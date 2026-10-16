@@ -18,21 +18,33 @@
 <header class="bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-4 pt-3 pb-3 sticky top-0 z-40 space-y-3 shadow-2xs">
   <!-- Top Bar: Location & User Profile Notification -->
   <div class="flex items-center justify-between">
-    <div class="flex items-center space-x-2 min-w-0">
-      <div class="w-8 h-8 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-900 text-sm shrink-0 shadow-2xs">
-        <i class="fa-solid fa-store"></i>
-      </div>
-      <div class="min-w-0 leading-tight">
-        <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Cửa hàng</span>
-        <button
-          type="button"
-          onclick={() => appStore.setTab('home')}
-          class="font-black text-xs text-blue-950 truncate flex items-center gap-1 hover:text-blue-900 cursor-pointer"
-        >
-          <span class="truncate">{themeStore.theme.storeName}</span>
-          <span class="text-slate-400 font-normal text-[11px] truncate">• {shortAddress}</span>
-        </button>
-      </div>
+    <div class="flex items-center space-x-2.5 min-w-0">
+      <button
+        type="button"
+        onclick={() => appStore.setTab('home')}
+        class="flex items-center space-x-2.5 min-w-0 text-left cursor-pointer group"
+      >
+        {#if themeStore.theme.logoImage}
+          <div class="w-9 h-9 rounded-xl overflow-hidden shadow-xs flex items-center justify-center bg-white border border-slate-200 shrink-0">
+            <img src={themeStore.theme.logoImage} alt={themeStore.theme.storeName} class="w-full h-full object-contain" />
+          </div>
+        {:else}
+          <div
+            class="w-9 h-9 rounded-xl flex items-center justify-center shadow-xs shrink-0 text-white transition"
+            style="background-color: {themeStore.theme.primaryColor}"
+          >
+            <i class="fa-solid {themeStore.theme.logoIcon} text-base"></i>
+          </div>
+        {/if}
+        <div class="min-w-0 leading-tight">
+          <span class="font-black text-xs text-blue-950 truncate block group-hover:text-blue-900">
+            {themeStore.theme.storeName}
+          </span>
+          <span class="text-[10px] text-blue-800 font-bold tracking-wider uppercase truncate block">
+            {themeStore.theme.storeTagline || shortAddress}
+          </span>
+        </div>
+      </button>
     </div>
 
     <!-- Right: Notification Bell & Profile -->

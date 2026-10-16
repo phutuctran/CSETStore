@@ -1,5 +1,6 @@
 <script lang="ts">
   import { appStore } from '../../stores/store.svelte';
+  import { themeStore } from '../../stores/themeStore.svelte';
   import MobileHeader from './MobileHeader.svelte';
   import MobileBottomNav from './MobileBottomNav.svelte';
   import MobileHomeView from './MobileHomeView.svelte';
@@ -40,6 +41,24 @@
       </div>
     {/if}
   </main>
+
+  <!-- Mobile Footer Branding (Synchronized with Admin Theme Customizer) -->
+  {#if appStore.activeTab !== 'product-detail'}
+    <footer class="mt-4 mb-20 py-6 border-t border-slate-200 text-center text-xs text-slate-500 space-y-2 px-4">
+      <div class="flex items-center justify-center space-x-2 text-blue-950 font-bold">
+        {#if themeStore.theme.logoImage}
+          <img src={themeStore.theme.logoImage} alt={themeStore.theme.storeName} class="w-4 h-4 object-contain" />
+        {:else}
+          <i class="fa-solid {themeStore.theme.logoIcon} text-blue-900"></i>
+        {/if}
+        <span>{themeStore.theme.storeName}</span>
+      </div>
+      {#if themeStore.theme.storeTagline}
+        <p class="text-[10px] text-blue-800 font-semibold tracking-wider uppercase">{themeStore.theme.storeTagline}</p>
+      {/if}
+      <p class="text-[10px] text-slate-400">{themeStore.theme.footerText}</p>
+    </footer>
+  {/if}
 
   <!-- Docked Bottom Mobile Navigation Bar (Docked at bottom of screen like in Image #1) -->
   {#if appStore.activeTab !== 'product-detail'}
