@@ -1,76 +1,124 @@
-import type { Product, Order, User, Role, ThemeConfig } from './types';
+import type { Product, User, Role, ThemeConfig, CategoryOption } from './types';
 
 export const INITIAL_PRODUCTS: Product[] = [
   {
     id: 1,
-    name: "Tượng Dragon Ball - Goku Ultra Instinct",
-    category: "anime",
-    price: 450000,
-    image: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=600&auto=format&fit=crop&q=80",
-    description: "Mô hình Goku in 3D Resin độ phân giải cao sắc nét từng chi tiết. Khối lượng nhựa chuẩn: ~180g. Thời gian in: ~18 giờ.",
-    grams: 180,
-    printHours: 18
+    name: "Tai Nghe Chống Ồn Không Dây Sony WH-1000XM5",
+    category: "electronics",
+    price: 6890000,
+    originalPrice: 7990000,
+    image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&auto=format&fit=crop&q=80",
+    description: "Chống ồn hàng đầu ngành, thời lượng pin 30 giờ, âm thanh Hi-Res Audio sắc nét.",
+    brand: "Sony",
+    rating: 4.9,
+    stock: 25
   },
   {
     id: 2,
-    name: "Chậu Cây Hình Học Geometric",
-    category: "decor",
-    price: 180000,
-    image: "https://images.unsplash.com/photo-1485955900006-10f4d324d411?w=600&auto=format&fit=crop&q=80",
-    description: "Chậu cây trang trí bàn làm việc in nhựa PLA thân thiện với môi trường. Khối lượng nhựa chuẩn: ~75g. Thời gian in: ~6.5 giờ.",
-    grams: 75,
-    printHours: 6.5
+    name: "Đồng Hồ Thông Minh Apple Watch Series 9 GPS",
+    category: "electronics",
+    price: 9490000,
+    originalPrice: 10490000,
+    image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&auto=format&fit=crop&q=80",
+    description: "Chip S9 SiP mạnh mẽ, màn hình sáng gấp đôi, theo dõi sức khỏe và cảm biến nhịp tim nâng cao.",
+    brand: "Apple",
+    rating: 4.8,
+    stock: 18
   },
   {
     id: 3,
-    name: "Giá Đỡ Điện Thoại Đa Năng 3D",
-    category: "tech",
-    price: 120000,
-    image: "https://images.unsplash.com/photo-1586105251261-72a756497a11?w=600&auto=format&fit=crop&q=80",
-    description: "Thiết kế chịu lực cao, góc nhìn tối ưu cho làm việc và giải trí. Khối lượng nhựa chuẩn: ~45g. Thời gian in: ~3.8 giờ.",
-    grams: 45,
-    printHours: 3.8
+    name: "Bàn Phím Cơ Không Dây NuPhy Air75 V2",
+    category: "electronics",
+    price: 2450000,
+    originalPrice: 2800000,
+    image: "https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=600&auto=format&fit=crop&q=80",
+    description: "Layout 75% siêu mỏng low-profile, kết nối 3 chế độ (Bluetooth 5.1, 2.4Ghz, Type-C).",
+    brand: "NuPhy",
+    rating: 4.7,
+    stock: 30
   },
   {
     id: 4,
-    name: "Mô Hình Gundam RX-78-2 Chibi",
-    category: "anime",
-    price: 320000,
-    image: "https://images.unsplash.com/photo-1563089145-599997674d42?w=600&auto=format&fit=crop&q=80",
-    description: "Khớp cử động linh hoạt, in nhiều màu bằng Bambu Lab AMS. Khối lượng nhựa chuẩn: ~130g. Thời gian in: ~12 giờ.",
-    grams: 130,
-    printHours: 12
+    name: "Áo Khoác Bomber Kaki Nam Phong Cách Hàn Quốc",
+    category: "fashion",
+    price: 489000,
+    originalPrice: 650000,
+    image: "https://images.unsplash.com/photo-1551028719-00167b16eac5?w=600&auto=format&fit=crop&q=80",
+    description: "Chất liệu kaki 2 lớp dày dặn, cản gió giữ ấm tốt, form dáng trẻ trung hiện đại.",
+    brand: "UrbanStyle",
+    rating: 4.6,
+    stock: 50
   },
   {
     id: 5,
-    name: "Đèn Ngủ Mặt Trăng Moon Lamp 3D",
-    category: "decor",
-    price: 260000,
-    image: "https://images.unsplash.com/photo-1532767153582-b1a0e5145009?w=600&auto=format&fit=crop&q=80",
-    description: "Mô phỏng bề mặt hố thiên thạch chân thực, hiệu ứng ánh sáng xuyên thấu tuyệt đẹp. Khối lượng nhựa: ~110g. Thời gian in: ~9.5 giờ.",
-    grams: 110,
-    printHours: 9.5
+    name: "Giày Thể Thao Sneaker Classic Unisex Trắng",
+    category: "fashion",
+    price: 850000,
+    originalPrice: 1100000,
+    image: "https://images.unsplash.com/photo-1549298916-b41d501d3772?w=600&auto=format&fit=crop&q=80",
+    description: "Đế cao su êm ái chống trơn trượt, da tổng hợp cao cấp dễ vệ sinh, phối đồ đa phong cách.",
+    brand: "RetroFit",
+    rating: 4.8,
+    stock: 40
   },
   {
     id: 6,
-    name: "Hộp Đựng Bút & Dụng Cụ Cơ Khí Xoay",
-    category: "tech",
-    price: 150000,
-    image: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=600&auto=format&fit=crop&q=80",
-    description: "Thiết kế bánh răng truyền động cơ khí mượt mà, tiện lợi cho góc làm việc. Khối lượng nhựa: ~60g. Thời gian in: ~5 giờ.",
-    grams: 60,
-    printHours: 5
+    name: "Máy Pha Cà Phê Espresso Mini Tự Động De'Longhi",
+    category: "home",
+    price: 3690000,
+    originalPrice: 4200000,
+    image: "https://images.unsplash.com/photo-1517668808822-9ebb02f2a0e6?w=600&auto=format&fit=crop&q=80",
+    description: "Áp suất 15 bar chuẩn Ý, tích hợp vòi đánh sữa tạo bọt cappuccino sánh mịn.",
+    brand: "De'Longhi",
+    rating: 4.9,
+    stock: 12
+  },
+  {
+    id: 7,
+    name: "Đèn Bàn Chống Cận Thị Thông Minh Xiaomi Pro",
+    category: "home",
+    price: 790000,
+    originalPrice: 950000,
+    image: "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=600&auto=format&fit=crop&q=80",
+    description: "Chỉ số hoàn màu Ra95 tiệm cận ánh sáng tự nhiên, điều chỉnh độ sáng và nhiệt độ màu qua App.",
+    brand: "Xiaomi",
+    rating: 4.7,
+    stock: 35
+  },
+  {
+    id: 8,
+    name: "Serum Dưỡng Trắng & Mờ Thâm Vitamin C Klairs",
+    category: "beauty",
+    price: 345000,
+    originalPrice: 420000,
+    image: "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=600&auto=format&fit=crop&q=80",
+    description: "Nồng độ Vitamin C tươi 5% an toàn lành tính cho da nhạy cảm, làm đều màu da rõ rệt.",
+    brand: "Klairs",
+    rating: 4.8,
+    stock: 60
+  },
+  {
+    id: 9,
+    name: "Bộ Sách Tâm Lý Học & Phát Triển Bản Thân (Trọn Bộ 3 Cuốn)",
+    category: "books",
+    price: 299000,
+    originalPrice: 380000,
+    image: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop&q=80",
+    description: "Gồm 'Đắc Nhân Tâm', 'Tư Duy Nhanh Và Chậm', 'Nguyên Lý 80/20'. Bản in bìa cứng cao cấp.",
+    brand: "NXB Trẻ",
+    rating: 5.0,
+    stock: 80
   }
 ];
 
-export const CATEGORIES = [
-  { key: 'all', label: 'Tất cả danh mục' },
-  { key: 'anime', label: 'Mô Hình Anime / Game' },
-  { key: 'decor', label: 'Đồ Trang Trí / Chậu Cây' },
-  { key: 'tech', label: 'Phụ Kiện Công Nghệ' }
-] as const;
-
-export const PRICE_PER_GRAM = 1500; // 1.500 VNĐ / gam
+export const CATEGORIES: CategoryOption[] = [
+  { key: 'all', label: 'Tất cả sản phẩm', icon: 'fa-layer-group' },
+  { key: 'electronics', label: 'Thiết Bị Điện Tử', icon: 'fa-laptop' },
+  { key: 'fashion', label: 'Thời Trang & Phụ Kiện', icon: 'fa-shirt' },
+  { key: 'home', label: 'Gia Dụng & Đời Sống', icon: 'fa-couch' },
+  { key: 'beauty', label: 'Mỹ Phẩm & Sức Khỏe', icon: 'fa-pump-soap' },
+  { key: 'books', label: 'Sách & Văn Phòng Phẩm', icon: 'fa-book' }
+];
 
 export const INITIAL_USERS: User[] = [
   {
@@ -93,7 +141,7 @@ export const INITIAL_USERS: User[] = [
     id: 'USR-INVENTORY',
     username: 'khoadmin',
     password: '123',
-    fullName: 'Lê Quản Lý Kho & Sản Phẩm',
+    fullName: 'Lê Quản Lý Kho & Hàng Hóa',
     role: 'inventory_admin',
     createdAt: '2026-01-03 10:00:00'
   },
@@ -118,14 +166,14 @@ export const ROLE_LABELS: Record<Role, string> = {
 
 export const DEFAULT_THEME_CONFIG: ThemeConfig = {
   storeName: 'CSET STORE',
-  storeTagline: '3D Printing Studio',
-  logoIcon: 'fa-cube',
+  storeTagline: 'Siêu Thị Mua Sắm Trực Tuyến Hàng Đầu',
+  logoIcon: 'fa-bag-shopping',
   logoImage: '',
 
   visibility: {
     showPromoBadge: true,
     showHeroSection: true,
-    showHeroPrinter: true,
+    showHeroImage: true,
     showTrustBadges: true,
     showFeaturedProducts: true,
     showValueProps: true,
@@ -136,23 +184,20 @@ export const DEFAULT_THEME_CONFIG: ThemeConfig = {
   accentColor: '#2563eb',  // Royal Blue
   backgroundColor: '#f8fafc', // Slate 50
 
-  badgeText: 'Đồng Giá In 1.500đ / gam nhựa',
+  badgeText: 'Ưu Đãi Đặc Biệt: Miễn Phí Vận Chuyển Toàn Quốc Cho Đơn Từ 300.000đ',
   heroTitle: 'CSET Store',
-  heroSubtitle: 'In 3D Thông Minh & Nhanh Chóng',
-  heroDescription: 'Sử dụng hệ thống máy in cao cấp Bambu Lab A1 Combo với công nghệ đa màu sắc nét. Tải file .stl, .3mf, .obj, .step trực tiếp lên web để tính khối lượng và báo giá chuẩn xác trong 1 giây.',
-  heroImage: 'https://images.unsplash.com/photo-1615655406736-b37c4fabf923?w=800&auto=format&fit=crop&q=80',
-  printerModel: 'Bambu Lab A1 Combo',
-  printerSpeedText: 'In 4 màu - Tốc độ 500mm/s',
+  heroSubtitle: 'Mua Sắm Thông Minh - Giá Tốt Mỗi Ngày',
+  heroDescription: 'Hàng ngàn sản phẩm công nghệ, thời trang, gia dụng và mỹ phẩm chính hãng 100%. Cam kết chất lượng, bảo hành chu đáo, giao hàng siêu tốc 2h.',
+  heroImage: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=800&auto=format&fit=crop&q=80',
+  heroHighlightTitle: 'Bộ Sưu Tập Mới 2026',
+  heroHighlightSub: 'Giảm đến 40% cho thành viên',
 
-  pricePerGram: 1500,
-  promoNotice: 'Giảm 10% cho đơn hàng in 3D trên 500g',
+  guaranteeText: '100% Chính Hãng - Hoàn tiền 200% nếu phát hiện hàng giả',
+  shippingText: 'Giao Hàng Siêu Tốc - Nhận hàng hỏa tốc trong 2 giờ',
+  returnPolicyText: 'Đổi Trả 7 Ngày - Miễn phí đổi trả nếu không hài lòng',
 
-  precisionText: '0.08mm - Độ chính xác cao',
-  supportText: '24/7 - In liên tục giao nhanh',
-  pricingNote: '1.500đ - Giá rẻ minh bạch / gam',
-
-  hotline: '0909.123.456',
-  contactEmail: 'support@csetstore.vn',
-  storeAddress: 'Khu Công Nghệ Cao, TP. Thủ Đức, TP. Hồ Chí Minh',
-  footerText: '© 2026 CSET Store. Đồ án xây dựng Website In 3D sử dụng Svelte 5 và Kiến trúc Layered Component.'
+  hotline: '1900.6868',
+  contactEmail: 'hotro@csetstore.vn',
+  storeAddress: 'Tòa nhà CSET Center, 123 Đại Lộ Ánh Sáng, Quận 1, TP. Hồ Chí Minh',
+  footerText: '© 2026 CSET Store. Nền tảng thương mại điện tử đa ngành hàng hiện đại xây dựng trên Svelte 5.'
 };

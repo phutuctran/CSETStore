@@ -1,10 +1,10 @@
 import type { Product, Order, User, ThemeConfig } from '../models/types';
 import { INITIAL_PRODUCTS, INITIAL_USERS, DEFAULT_THEME_CONFIG } from '../models/constants';
 
-const PRODUCTS_STORAGE_KEY = 'cset_products_v2';
-const ORDERS_STORAGE_KEY = 'cset_orders_v2';
-const USERS_STORAGE_KEY = 'cset_users_v2';
-const THEME_STORAGE_KEY = 'cset_theme_config_v2';
+const PRODUCTS_STORAGE_KEY = 'cset_products_v3';
+const ORDERS_STORAGE_KEY = 'cset_orders_v3';
+const USERS_STORAGE_KEY = 'cset_users_v3';
+const THEME_STORAGE_KEY = 'cset_theme_config_v3';
 
 export interface IStorageProvider {
   getItem(key: string): string | null;

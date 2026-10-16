@@ -7,7 +7,7 @@ const orderRepo = new LocalStorageOrderRepository();
 
 class StoreState {
   // Navigation State
-  activeTab = $state<'home' | 'shop' | 'custom' | 'orders'>('home');
+  activeTab = $state<'home' | 'shop' | 'orders'>('home');
 
   // Customer Auth State
   currentCustomer = $state<User | null>(authService.getCustomerSession());
@@ -51,7 +51,7 @@ class StoreState {
   );
 
   // Navigation Actions
-  setTab(tab: 'home' | 'shop' | 'custom' | 'orders') {
+  setTab(tab: 'home' | 'shop' | 'orders') {
     this.activeTab = tab;
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -161,7 +161,7 @@ class StoreState {
 
   addToCart(product: Product, quantity = 1) {
     const existingIndex = this.cart.findIndex(
-      (item) => item.productId === product.id && !item.details?.isCustom
+      (item) => item.productId === product.id
     );
 
     if (existingIndex > -1) {
@@ -172,37 +172,13 @@ class StoreState {
         productId: product.id,
         name: product.name,
         price: product.price,
+        originalPrice: product.originalPrice,
         image: product.image,
         quantity
       });
     }
 
     this.showToast(`Đã thêm "${product.name}" vào giỏ hàng!`);
-  }
-
-  addCustomOrderToCart(customItem: {
-    fileName: string;
-    grams: number;
-    hours: string;
-    price: number;
-    infill: number;
-  }) {
-    this.cart.push({
-      id: 'CUSTOM-' + Date.now(),
-      name: `In 3D Theo Yêu Cầu (${customItem.fileName} - ${customItem.grams}g - Infill ${customItem.infill}%)`,
-      price: customItem.price,
-      image: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=600&auto=format&fit=crop&q=80',
-      quantity: 1,
-      details: {
-        isCustom: true,
-        fileName: customItem.fileName,
-        grams: customItem.grams,
-        hours: customItem.hours,
-        infill: customItem.infill
-      }
-    });
-
-    this.showToast('Đã thêm dịch vụ in 3D theo yêu cầu vào giỏ hàng!');
   }
 
   removeFromCart(cartItemId: string) {

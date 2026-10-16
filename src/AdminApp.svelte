@@ -129,10 +129,11 @@
   // --- TAB: INVENTORY MANAGEMENT (SUPER ADMIN & INVENTORY ADMIN) ---
   let pName = $state('');
   let pPrice = $state<number | null>(null);
-  let pCategory = $state('anime');
+  let pOrigPrice = $state<number | null>(null);
+  let pCategory = $state('electronics');
+  let pBrand = $state('');
+  let pStock = $state<number | null>(50);
   let pDesc = $state('');
-  let pGrams = $state<number | null>(null);
-  let pHours = $state<number | null>(null);
   let pImgBase64 = $state('');
 
   function handleProductImage(e: Event) {
@@ -153,26 +154,27 @@
       alert('Vui lòng nhập tên và giá sản phẩm!');
       return;
     }
-    const image = pImgBase64 || 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=600&auto=format&fit=crop&q=80';
+    const image = pImgBase64 || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&auto=format&fit=crop&q=80';
     productRepo.create({
       name: pName.trim(),
       price: pPrice,
+      originalPrice: pOrigPrice || undefined,
       category: pCategory,
+      brand: pBrand.trim() || undefined,
+      stock: pStock || 50,
       image,
-      description: pDesc.trim() || 'Sản phẩm in 3D chất lượng cao CSET Store.',
-      grams: pGrams || undefined,
-      printHours: pHours || undefined
+      description: pDesc.trim() || 'Sản phẩm chính hãng chất lượng cao tại CSET Store.'
     });
     products = productRepo.getAll();
     showToast(`Đã thêm sản phẩm "${pName}" vào danh mục hàng hóa!`);
     pName = '';
     pPrice = null;
+    pOrigPrice = null;
+    pBrand = '';
+    pStock = 50;
     pDesc = '';
-    pGrams = null;
-    pHours = null;
     pImgBase64 = '';
   }
-
   function handleDeleteProduct(id: number, name: string) {
     if (confirm(`Xóa sản phẩm "${name}" khỏi kho cửa hàng?`)) {
       productRepo.delete(id);
@@ -467,7 +469,7 @@
                 Quản Lý Đơn Đặt Hàng
               </h2>
               <p class="text-xs text-slate-400 mt-1">
-                Quyền hạn: Admin Bán Hàng & Super Admin (Xem, xử lý và cập nhật tiến độ đơn in 3D).
+                Quyền hạn: Admin Bán Hàng & Super Admin (Xem, xử lý và cập nhật tiến độ đơn hàng).
               </p>
             </div>
             <span class="text-xs px-3 py-1.5 rounded-full bg-slate-800 text-blue-400 font-bold border border-slate-700">
@@ -562,7 +564,7 @@
                 Quản Lý Kho Hàng & Sản Phẩm
               </h2>
               <p class="text-xs text-slate-400 mt-1">
-                Quyền hạn: Admin Hàng Hóa & Super Admin (Thêm sản phẩm mới, xóa hoặc sửa kho hàng in 3D).
+                Quyền hạn: Admin Hàng Hóa & Super Admin (Thêm sản phẩm mới, xóa hoặc sửa kho hàng đa ngành).
               </p>
             </div>
             <button
@@ -590,25 +592,13 @@
                     type="text"
                     bind:value={pName}
                     required
-                    placeholder="Mô hình Gundam, Chậu cây..."
+                    placeholder="Tai nghe Sony, Áo bomber, Nồi chiên..."
                     class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
                   />
                 </div>
 
                 <div class="space-y-1.5">
-                  <label for="inv-price" class="text-xs font-bold text-slate-300 uppercase">Giá Bán (VNĐ) *</label>
-                  <input
-                    id="inv-price"
-                    type="number"
-                    bind:value={pPrice}
-                    required
-                    placeholder="250000"
-                    class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                  />
-                </div>
-
-                <div class="space-y-1.5">
-                  <label for="inv-cat" class="text-xs font-bold text-slate-300 uppercase">Danh Mục *</label>
+                  <label for="inv-cat" class="text-xs font-bold text-slate-300 uppercase">Ngành Hàng *</label>
                   <select
                     id="inv-cat"
                     bind:value={pCategory}
@@ -621,36 +611,58 @@
                 </div>
 
                 <div class="space-y-1.5">
-                  <label for="inv-img" class="text-xs font-bold text-slate-300 uppercase">Hình Ảnh (Tải lên)</label>
+                  <label for="inv-price" class="text-xs font-bold text-slate-300 uppercase">Giá Bán Khuyến Mãi (VNĐ) *</label>
+                  <input
+                    id="inv-price"
+                    type="number"
+                    bind:value={pPrice}
+                    required
+                    placeholder="Ví dụ: 450000"
+                    class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  />
+                </div>
+
+                <div class="space-y-1.5">
+                  <label for="inv-orig-price" class="text-xs font-bold text-slate-300 uppercase">Giá Gốc Niêm Yết (VNĐ - Tùy chọn)</label>
+                  <input
+                    id="inv-orig-price"
+                    type="number"
+                    bind:value={pOrigPrice}
+                    placeholder="Ví dụ: 600000"
+                    class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none"
+                  />
+                </div>
+
+                <div class="space-y-1.5">
+                  <label for="inv-brand" class="text-xs font-bold text-slate-300 uppercase">Thương Hiệu / Nhà Cung Cấp</label>
+                  <input
+                    id="inv-brand"
+                    type="text"
+                    bind:value={pBrand}
+                    placeholder="Sony, Apple, Xiaomi, Uniqlo..."
+                    class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none"
+                  />
+                </div>
+
+                <div class="space-y-1.5">
+                  <label for="inv-stock" class="text-xs font-bold text-slate-300 uppercase">Số Lượng Tồn Kho</label>
+                  <input
+                    id="inv-stock"
+                    type="number"
+                    bind:value={pStock}
+                    placeholder="50"
+                    class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none"
+                  />
+                </div>
+
+                <div class="space-y-1.5 md:col-span-2">
+                  <label for="inv-img" class="text-xs font-bold text-slate-300 uppercase">Hình Ảnh Sản Phẩm (Tải lên từ máy)</label>
                   <input
                     id="inv-img"
                     type="file"
                     accept="image/*"
                     onchange={handleProductImage}
-                    class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-1.5 text-xs text-slate-300"
-                  />
-                </div>
-
-                <div class="space-y-1.5">
-                  <label for="inv-g" class="text-xs font-bold text-slate-300 uppercase">Khối Lượng Nhựa (gam)</label>
-                  <input
-                    id="inv-g"
-                    type="number"
-                    bind:value={pGrams}
-                    placeholder="150"
-                    class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none"
-                  />
-                </div>
-
-                <div class="space-y-1.5">
-                  <label for="inv-h" class="text-xs font-bold text-slate-300 uppercase">Thời Gian In (giờ)</label>
-                  <input
-                    id="inv-h"
-                    type="number"
-                    step="0.1"
-                    bind:value={pHours}
-                    placeholder="12.5"
-                    class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none"
+                    class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-xs text-slate-300"
                   />
                 </div>
               </div>
@@ -887,7 +899,7 @@
                 Tùy Chỉnh Giao Diện Web Bán Hàng Chi Tiết
               </h2>
               <p class="text-xs text-slate-400 mt-1">
-                Thay đổi màu sắc thương hiệu, banner hero, khẩu hiệu, thông số in 3D và thông tin liên hệ. Mọi thay đổi áp dụng tức thì sang trang bán lẻ.
+                Thay đổi màu sắc thương hiệu, banner hero, khẩu hiệu, chính sách dịch vụ và thông tin liên hệ. Mọi thay đổi áp dụng tức thì sang trang bán lẻ.
               </p>
             </div>
 
@@ -1062,15 +1074,15 @@
                     />
                   </label>
 
-                  <!-- Toggle 3: Hero Printer Image -->
+                  <!-- Toggle 3: Hero Image -->
                   <label class="flex items-center justify-between p-3.5 rounded-2xl bg-slate-800/60 border border-slate-700/60 cursor-pointer hover:bg-slate-800 transition">
                     <div class="space-y-0.5 pr-3">
-                      <span class="text-xs font-bold text-white block">Hình Ảnh Máy In 3D Hero</span>
-                      <span class="text-[10px] text-slate-400 block">Ảnh máy Bambu Lab A1 bên phải</span>
+                      <span class="text-xs font-bold text-white block">Hình Ảnh Banner Hero</span>
+                      <span class="text-[10px] text-slate-400 block">Ảnh minh họa nổi bật bên phải banner</span>
                     </div>
                     <input
                       type="checkbox"
-                      bind:checked={themeDraft.visibility.showHeroPrinter}
+                      bind:checked={themeDraft.visibility.showHeroImage}
                       class="w-5 h-5 accent-purple-600 rounded cursor-pointer"
                     />
                   </label>
@@ -1078,8 +1090,8 @@
                   <!-- Toggle 4: Trust Badges -->
                   <label class="flex items-center justify-between p-3.5 rounded-2xl bg-slate-800/60 border border-slate-700/60 cursor-pointer hover:bg-slate-800 transition">
                     <div class="space-y-0.5 pr-3">
-                      <span class="text-xs font-bold text-white block">3 Thông Số Cam Kết Kỹ Thuật</span>
-                      <span class="text-[10px] text-slate-400 block">Độ chính xác 0.08mm, in 24/7, giá rẻ</span>
+                      <span class="text-xs font-bold text-white block">3 Cam Kết Dịch Vụ</span>
+                      <span class="text-[10px] text-slate-400 block">Chính hãng 100%, giao 2h, đổi trả 7 ngày</span>
                     </div>
                     <input
                       type="checkbox"
@@ -1170,7 +1182,7 @@
                   </div>
 
                   <div class="space-y-1.5">
-                    <label for="thm-hdesc" class="text-xs font-bold text-slate-300 uppercase">Mô Tả Giới Thiệu Công Nghệ In</label>
+                    <label for="thm-hdesc" class="text-xs font-bold text-slate-300 uppercase">Mô Tả Giới Thiệu Cửa Hàng</label>
                     <textarea
                       id="thm-hdesc"
                       bind:value={themeDraft.heroDescription}
@@ -1181,28 +1193,28 @@
 
                   <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div class="space-y-1.5">
-                      <label for="thm-model" class="text-xs font-bold text-slate-300 uppercase">Tên Hệ Thống Máy In</label>
+                      <label for="thm-model" class="text-xs font-bold text-slate-300 uppercase">Tiêu Đề Điểm Nhấn (Highlight Title)</label>
                       <input
                         id="thm-model"
                         type="text"
-                        bind:value={themeDraft.printerModel}
+                        bind:value={themeDraft.heroHighlightTitle}
                         class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none"
                       />
                     </div>
 
                     <div class="space-y-1.5">
-                      <label for="thm-speed" class="text-xs font-bold text-slate-300 uppercase">Tốc Độ & Công Nghệ</label>
+                      <label for="thm-speed" class="text-xs font-bold text-slate-300 uppercase">Khẩu Hiệu Khuyến Mãi (Highlight Sub)</label>
                       <input
                         id="thm-speed"
                         type="text"
-                        bind:value={themeDraft.printerSpeedText}
+                        bind:value={themeDraft.heroHighlightSub}
                         class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none"
                       />
                     </div>
                   </div>
 
                   <div class="space-y-1.5">
-                    <label for="thm-img-file" class="text-xs font-bold text-slate-300 uppercase">Hình Ảnh Banner Máy In (Tải từ máy hoặc nhập URL)</label>
+                    <label for="thm-img-file" class="text-xs font-bold text-slate-300 uppercase">Hình Ảnh Banner Trang Chủ (Tải từ máy hoặc dán URL)</label>
                     <div class="space-y-2">
                       <input
                         id="thm-img-file"
@@ -1231,31 +1243,31 @@
 
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div class="space-y-1.5">
-                    <label for="thm-prec" class="text-xs font-bold text-slate-300 uppercase">Thông Số Độ Chính Xác</label>
+                    <label for="thm-prec" class="text-xs font-bold text-slate-300 uppercase">Cam Kết Chính Hãng</label>
                     <input
                       id="thm-prec"
                       type="text"
-                      bind:value={themeDraft.precisionText}
+                      bind:value={themeDraft.guaranteeText}
                       class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
                     />
                   </div>
 
                   <div class="space-y-1.5">
-                    <label for="thm-supp" class="text-xs font-bold text-slate-300 uppercase">Thời Gian Phục Vụ</label>
+                    <label for="thm-supp" class="text-xs font-bold text-slate-300 uppercase">Giao Hàng</label>
                     <input
                       id="thm-supp"
                       type="text"
-                      bind:value={themeDraft.supportText}
+                      bind:value={themeDraft.shippingText}
                       class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
                     />
                   </div>
 
                   <div class="space-y-1.5">
-                    <label for="thm-pnote" class="text-xs font-bold text-slate-300 uppercase">Ghi Chú Giá In</label>
+                    <label for="thm-pnote" class="text-xs font-bold text-slate-300 uppercase">Chính Sách Đổi Trả</label>
                     <input
                       id="thm-pnote"
                       type="text"
-                      bind:value={themeDraft.pricingNote}
+                      bind:value={themeDraft.returnPolicyText}
                       class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
                     />
                   </div>
@@ -1360,8 +1372,7 @@
                       </p>
                     </div>
 
-                    <!-- Mini Banner Image Preview -->
-                    {#if themeDraft.visibility.showHeroPrinter}
+                    {#if themeDraft.visibility.showHeroImage}
                       <div class="h-28 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 relative">
                         <img
                           src={themeDraft.heroImage}
@@ -1369,8 +1380,8 @@
                           class="w-full h-full object-cover"
                         />
                         <div class="absolute bottom-1.5 left-1.5 right-1.5 bg-white/90 backdrop-blur-xs p-1.5 rounded-lg text-[9px] flex items-center justify-between">
-                          <span class="font-bold text-slate-900">{themeDraft.printerModel}</span>
-                          <span class="text-slate-500">{themeDraft.printerSpeedText.split('-')[0]}</span>
+                          <span class="font-bold text-slate-900">{themeDraft.heroHighlightTitle}</span>
+                          <span class="text-slate-500">{themeDraft.heroHighlightSub}</span>
                         </div>
                       </div>
                     {/if}
@@ -1418,7 +1429,7 @@
 
     <!-- Footer -->
     <footer class="bg-slate-900 border-t border-slate-800 py-6 text-center text-xs text-slate-500">
-      <p>© 2026 CSET Store - Hệ Thống Quản Trị Cửa Hàng In 3D (Đã phân cấp quyền hạn).</p>
+      <p>© 2026 CSET Store - Hệ Thống Quản Trị Cửa Hàng Thương Mại Điện Tử (Đã phân cấp quyền hạn).</p>
     </footer>
 
     <!-- Toast Notification -->

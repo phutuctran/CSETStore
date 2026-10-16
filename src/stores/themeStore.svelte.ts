@@ -9,7 +9,7 @@ class ThemeStore {
   constructor() {
     if (typeof window !== 'undefined') {
       window.addEventListener('storage', (e) => {
-        if (e.key === 'cset_theme_config_v2' && e.newValue) {
+        if (e.key === 'cset_theme_config_v3' && e.newValue) {
           try {
             this.theme = JSON.parse(e.newValue);
           } catch {

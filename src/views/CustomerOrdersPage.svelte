@@ -15,7 +15,7 @@
     <div>
       <h2 class="text-3xl font-black text-blue-950">Lịch Sử Đơn Hàng Của Bạn</h2>
       <p class="text-slate-600 text-sm mt-1">
-        Theo dõi tiến độ in 3D và giao hàng các đơn hàng đã đặt tại CSET Store.
+        Theo dõi tiến độ đóng gói và vận chuyển các đơn hàng đã đặt tại CSET Store.
       </p>
     </div>
 
@@ -46,7 +46,7 @@
       </div>
       <h3 class="text-xl font-bold text-blue-950">Vui lòng đăng nhập để xem đơn hàng</h3>
       <p class="text-slate-500 text-sm max-w-md mx-auto">
-        Tài khoản khách hàng giúp bạn lưu trữ và theo dõi các đơn in 3D theo thời gian thực.
+        Tài khoản khách hàng giúp bạn lưu trữ và theo dõi hành trình đơn hàng theo thời gian thực.
       </p>
       <div class="flex justify-center gap-3 pt-2">
         <button

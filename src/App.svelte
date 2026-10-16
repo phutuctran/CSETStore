@@ -7,7 +7,6 @@
   import CartModal from './components/CartModal.svelte';
   import HomePage from './views/HomePage.svelte';
   import ShopPage from './views/ShopPage.svelte';
-  import CustomOrderPage from './views/CustomOrderPage.svelte';
   import CustomerOrdersPage from './views/CustomerOrdersPage.svelte';
   import CustomerAuthModal from './components/CustomerAuthModal.svelte';
 </script>
@@ -22,8 +21,6 @@
       <HomePage />
     {:else if appStore.activeTab === 'shop'}
       <ShopPage />
-    {:else if appStore.activeTab === 'custom'}
-      <CustomOrderPage />
     {:else if appStore.activeTab === 'orders'}
       <CustomerOrdersPage />
     {/if}
@@ -34,6 +31,7 @@
   <CartModal />
   <CustomerAuthModal />
   <Toast />
+
   <!-- Footer -->
   <footer class="glass-panel border-t border-slate-200 mt-20 py-8 bg-white text-center text-xs text-slate-500">
     <div class="max-w-7xl mx-auto px-4 space-y-3">

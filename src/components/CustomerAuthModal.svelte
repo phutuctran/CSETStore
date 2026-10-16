@@ -72,7 +72,7 @@
         <p class="text-xs text-slate-500">
           {appStore.authMode === 'login'
             ? 'Đăng nhập để theo dõi trạng thái đơn hàng của bạn'
-            : 'Tạo tài khoản để lưu địa chỉ và lịch sử in 3D'}
+            : 'Tạo tài khoản để lưu địa chỉ và lịch sử mua hàng'}
         </p>
       </div>
 

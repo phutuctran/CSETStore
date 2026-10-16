@@ -9,9 +9,9 @@
   <!-- Page Header -->
   <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-6">
     <div>
-      <h2 class="text-3xl font-black text-blue-950">Cửa Hàng Sản Phẩm In 3D</h2>
+      <h2 class="text-3xl font-black text-blue-950">Danh Mục Tất Cả Sản Phẩm</h2>
       <p class="text-slate-600 text-sm mt-1">
-        Khám phá các mô hình decor, anime, công nghệ in 3D chất lượng cao sẵn sàng giao ngay.
+        Khám phá hàng ngàn mặt hàng điện tử, thời trang, gia dụng, mỹ phẩm và sách chính hãng.
       </p>
     </div>
     <div class="text-sm font-semibold text-slate-500">
@@ -21,7 +21,7 @@
 
   <div class="flex flex-col lg:flex-row gap-8">
     <!-- Filter Sidebar -->
-    <aside class="w-full lg:w-72 glass-panel p-6 rounded-3xl border border-slate-200 h-fit space-y-6 bg-white shrink-0">
+    <aside class="w-full lg:w-72 glass-panel p-6 rounded-3xl border border-slate-200 h-fit space-y-6 bg-white shrink-0 shadow-sm">
       <div class="flex items-center justify-between border-b border-slate-200 pb-4">
         <h3 class="text-lg font-bold text-blue-950 flex items-center">
           <i class="fa-solid fa-filter text-blue-900 mr-2"></i>
@@ -44,14 +44,14 @@
       <!-- Search Input -->
       <div class="space-y-2">
         <label for="filter-search" class="text-xs font-bold text-slate-500 uppercase tracking-wider block">
-          Tìm Theo Tên
+          Tìm Sản Phẩm
         </label>
         <div class="relative">
           <input
             id="filter-search"
             type="text"
             bind:value={appStore.searchQuery}
-            placeholder="Nhập tên sản phẩm..."
+            placeholder="Nhập tên sản phẩm, thương hiệu..."
             class="w-full bg-slate-50 border border-slate-300 rounded-xl pl-10 pr-4 py-2.5 text-sm text-blue-950 focus:outline-none focus:ring-2 focus:ring-blue-900"
           />
           <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-slate-400 text-xs"></i>
@@ -59,7 +59,7 @@
             <button
               type="button"
               onclick={() => appStore.searchQuery = ''}
-              class="absolute right-3 top-3 text-slate-400 hover:text-slate-600 text-xs"
+              class="absolute right-3 top-3 text-slate-400 hover:text-slate-600 text-xs cursor-pointer"
               aria-label="Xóa từ khóa tìm kiếm"
             >
               <i class="fa-solid fa-circle-xmark"></i>
@@ -71,7 +71,7 @@
       <!-- Categories Filter -->
       <div class="space-y-2">
         <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block">
-          Danh Mục
+          Ngành Hàng
         </span>
         <div class="space-y-1">
           {#each CATEGORIES as cat}
@@ -82,7 +82,10 @@
                 ? 'bg-blue-900 text-white shadow-sm'
                 : 'text-slate-700 hover:bg-slate-100'}"
             >
-              <span>{cat.label}</span>
+              <span class="flex items-center gap-2">
+                <i class="fa-solid {cat.icon || 'fa-box'} w-4"></i>
+                <span>{cat.label}</span>
+              </span>
               <span class="text-[10px] px-2 py-0.5 rounded-full {appStore.selectedCategory === cat.key ? 'bg-blue-800 text-white' : 'bg-slate-200 text-slate-600'}">
                 {cat.key === 'all'
                   ? appStore.products.length
@@ -93,22 +96,15 @@
         </div>
       </div>
 
-      <!-- Info Box -->
+      <!-- Support Banner Box -->
       <div class="bg-blue-50/70 p-4 rounded-2xl border border-blue-100 text-xs text-blue-900 space-y-2">
         <p class="font-bold flex items-center">
-          <i class="fa-solid fa-circle-info mr-1.5"></i>
-          Bạn cần mẫu độc quyền?
+          <i class="fa-solid fa-truck-ramp-box mr-1.5"></i>
+          Giao hàng miễn phí
         </p>
-        <p class="text-slate-600 leading-relaxed">
-          Tải file mô hình lên trang "Đặt In Theo Yêu Cầu" để nhận báo giá tức thì.
+        <p class="text-slate-600 leading-relaxed text-[11px]">
+          Áp dụng cho mọi đơn hàng có giá trị từ 300.000đ trên toàn quốc.
         </p>
-        <button
-          type="button"
-          onclick={() => appStore.setTab('custom')}
-          class="text-blue-900 font-bold underline hover:text-blue-950"
-        >
-          Đặt in ngay &rarr;
-        </button>
       </div>
     </aside>
 
@@ -121,7 +117,7 @@
           </div>
           <h4 class="text-lg font-bold text-blue-950">Không tìm thấy sản phẩm phù hợp</h4>
           <p class="text-slate-500 text-sm max-w-sm mx-auto">
-            Hãy thử tìm kiếm với từ khóa khác hoặc chuyển sang danh mục "Tất cả danh mục".
+            Hãy thử tìm kiếm với từ khóa khác hoặc chuyển sang danh mục "Tất cả sản phẩm".
           </p>
           <button
             type="button"

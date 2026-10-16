@@ -1,10 +1,10 @@
 <script lang="ts">
   import { appStore } from '../stores/store.svelte';
   import { themeStore } from '../stores/themeStore.svelte';
+
   const navItems = [
     { id: 'home', label: 'Trang Chủ', icon: 'fa-solid fa-house' },
-    { id: 'shop', label: 'Cửa Hàng', icon: 'fa-solid fa-store' },
-    { id: 'custom', label: 'Đặt In Theo Yêu Cầu', icon: 'fa-solid fa-sliders' },
+    { id: 'shop', label: 'Tất Cả Sản Phẩm', icon: 'fa-solid fa-store' },
     { id: 'orders', label: 'Đơn Hàng Của Tôi', icon: 'fa-solid fa-box-archive' },
   ] as const;
 </script>
@@ -20,7 +20,7 @@
       >
         {#if themeStore.theme.logoImage}
           <div class="w-10 h-10 rounded-xl overflow-hidden shadow-md flex items-center justify-center bg-white border border-slate-200">
-            <img src={themeStore.theme.logoImage} alt={themeStore.theme.storeName} class="w-full h-full object-cover" />
+            <img src={themeStore.theme.logoImage} alt={themeStore.theme.storeName} class="w-full h-full object-contain" />
           </div>
         {:else}
           <div

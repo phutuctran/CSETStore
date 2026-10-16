@@ -11,31 +11,35 @@ export interface User {
   createdAt: string;
 }
 
+export type CategoryKey = 'all' | 'electronics' | 'fashion' | 'home' | 'beauty' | 'books';
+
+export interface CategoryOption {
+  key: CategoryKey;
+  label: string;
+  icon?: string;
+}
+
 export interface Product {
   id: number;
   name: string;
-  category: 'anime' | 'decor' | 'tech' | string;
+  category: CategoryKey | string;
   price: number;
+  originalPrice?: number;
   image: string;
   description: string;
-  grams?: number;
-  printHours?: number;
+  brand?: string;
+  rating?: number;
+  stock?: number;
 }
 
 export interface CartItem {
-  id: string; // unique id per cart item
+  id: string;
   productId?: number;
   name: string;
   price: number;
+  originalPrice?: number;
   image: string;
   quantity: number;
-  details?: {
-    isCustom?: boolean;
-    fileName?: string;
-    grams?: number;
-    hours?: string;
-    infill?: number;
-  };
 }
 
 export interface Order {
@@ -50,21 +54,13 @@ export interface Order {
   createdAt: string;
 }
 
-export type CategoryKey = 'all' | 'anime' | 'decor' | 'tech';
-
-export interface CategoryOption {
-  key: CategoryKey;
-  label: string;
-  icon?: string;
-}
-
 export interface SectionVisibility {
   showPromoBadge: boolean;      // Huy hiệu khuyến mãi đầu trang
   showHeroSection: boolean;     // Khối banner Hero chính
-  showHeroPrinter: boolean;     // Khối hình ảnh máy in 3D Bambu Lab
-  showTrustBadges: boolean;     // 3 thông số độ chính xác, hỗ trợ, giá in
+  showHeroImage: boolean;       // Khối hình ảnh banner bên phải
+  showTrustBadges: boolean;     // 3 cam kết dịch vụ (Chính hãng, Giao nhanh, Đổi trả)
   showFeaturedProducts: boolean;// Lưới sản phẩm nổi bật trang chủ
-  showValueProps: boolean;      // 3 khối cam kết giá trị lợi ích dịch vụ
+  showValueProps: boolean;      // 3 khối lợi ích mua sắm
   showFooterContact: boolean;   // Hotline, Email, Địa chỉ ở chân trang
 }
 
@@ -80,7 +76,7 @@ export interface ThemeConfig {
 
   // Colors
   primaryColor: string; // e.g. #1e3a8a
-  accentColor: string; // e.g. #1e40af
+  accentColor: string; // e.g. #2563eb
   backgroundColor: string; // e.g. #f8fafc
 
   // Hero Section
@@ -89,17 +85,13 @@ export interface ThemeConfig {
   heroSubtitle: string;
   heroDescription: string;
   heroImage: string;
-  printerModel: string;
-  printerSpeedText: string;
-
-  // Pricing & Announcement
-  pricePerGram: number; // default 1500
-  promoNotice: string;
+  heroHighlightTitle: string;
+  heroHighlightSub: string;
 
   // Trust Badges
-  precisionText: string;
-  supportText: string;
-  pricingNote: string;
+  guaranteeText: string;
+  shippingText: string;
+  returnPolicyText: string;
 
   // Contact & Footer
   hotline: string;
