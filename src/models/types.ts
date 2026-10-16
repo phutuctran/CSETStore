@@ -67,6 +67,7 @@ export interface SectionVisibility {
 export interface TrustBadgeItem {
   id: string;
   icon: string;
+  customIconImage?: string; // Uploaded icon/logo image
   title: string;
   subtitle: string;
 }
@@ -74,6 +75,7 @@ export interface TrustBadgeItem {
 export interface ValuePropItem {
   id: string;
   icon: string;
+  customIconImage?: string; // Uploaded icon/logo image
   title: string;
   description: string;
 }

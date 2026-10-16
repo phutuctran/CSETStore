@@ -79,11 +79,18 @@
   }
 
   // --- TAB: USERS MANAGEMENT (SUPER ADMIN ONLY) ---
+  let userTabMode = $state<'admin' | 'customer'>('admin');
+  let editingUser = $state<User | null>(null);
+  let editFullName = $state('');
+  let editPhone = $state('');
+  let editAddress = $state('');
+  let editRole = $state<Role>('sales_admin');
+  let editPassword = $state('');
+
   let newUserName = $state('');
   let newUserUsername = $state('');
   let newUserPass = $state('123');
   let newUserRole = $state<Role>('sales_admin');
-
   function handleCreateAdminUser(e: Event) {
     e.preventDefault();
     if (!currentAdmin || currentAdmin.role !== 'super_admin') {
@@ -107,6 +114,29 @@
     newUserUsername = '';
     newUserPass = '123';
   }
+  function handleSelectEditUser(u: User) {
+    editingUser = u;
+    editFullName = u.fullName;
+    editPhone = u.phone || '';
+    editAddress = u.address || '';
+    editRole = u.role;
+    editPassword = u.password || '';
+  }
+
+  function handleSaveEditUser(e: Event) {
+    e.preventDefault();
+    if (!editingUser) return;
+    userRepo.update(editingUser.id, {
+      fullName: editFullName.trim(),
+      phone: editPhone.trim(),
+      address: editAddress.trim(),
+      role: editRole,
+      password: editPassword || editingUser.password
+    });
+    users = userRepo.getAll();
+    showToast(`Đã cập nhật thông tin tài khoản "${editingUser.username}" thành công!`);
+    editingUser = null;
+  }
 
   function handleDeleteUser(id: string, name: string) {
     if (id === currentAdmin?.id) {
@@ -116,6 +146,7 @@
     if (confirm(`Bạn có chắc muốn xóa tài khoản "${name}"?`)) {
       userRepo.delete(id);
       users = userRepo.getAll();
+      if (editingUser?.id === id) editingUser = null;
       showToast(`Đã xóa tài khoản "${name}"`);
     }
   }
@@ -235,6 +266,21 @@
     themeDraft.trustBadges = themeDraft.trustBadges.filter(b => b.id !== id);
   }
 
+  function handleTrustBadgeImageUpload(e: Event, badgeId: string) {
+    const input = e.target as HTMLInputElement;
+    if (input.files && input.files[0]) {
+      const file = input.files[0];
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        const target = themeDraft.trustBadges.find(b => b.id === badgeId);
+        if (target) {
+          target.customIconImage = (evt.target?.result as string) || '';
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
   function handleAddValueProp() {
     const newId = 'vp-' + Date.now();
     themeDraft.valueProps = [
@@ -246,6 +292,22 @@
   function handleRemoveValueProp(id: string) {
     themeDraft.valueProps = themeDraft.valueProps.filter(v => v.id !== id);
   }
+
+  function handleValuePropImageUpload(e: Event, propId: string) {
+    const input = e.target as HTMLInputElement;
+    if (input.files && input.files[0]) {
+      const file = input.files[0];
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        const target = themeDraft.valueProps.find(v => v.id === propId);
+        if (target) {
+          target.customIconImage = (evt.target?.result as string) || '';
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
 
   function handleResetTheme() {
     if (confirm('Khôi phục cấu hình giao diện mặc định ban đầu của CSET Store?')) {
@@ -924,7 +986,7 @@
                         </button>
                       </div>
 
-                      <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <div class="grid grid-cols-1 sm:grid-cols-4 gap-2">
                         <div>
                           <label for="tb-icon-{tb.id}" class="text-[11px] text-slate-600 block mb-0.5">Icon FontAwesome</label>
                           <input
@@ -934,6 +996,26 @@
                             placeholder="fa-shield-check..."
                             class="w-full border border-slate-300 rounded px-2.5 py-1 text-xs bg-white"
                           />
+                        </div>
+                        <div>
+                          <label for="tb-img-{tb.id}" class="text-[11px] text-slate-600 block mb-0.5">Hoặc Tải Ảnh Logo Icon</label>
+                          <input
+                            id="tb-img-{tb.id}"
+                            type="file"
+                            accept="image/*"
+                            onchange={(e) => handleTrustBadgeImageUpload(e, tb.id)}
+                            class="w-full border border-slate-300 rounded px-2 py-0.5 text-[10px] bg-white"
+                          />
+                          {#if tb.customIconImage}
+                            <span class="text-[10px] text-emerald-700 font-semibold block mt-0.5">
+                              ✓ Đã có ảnh logo riêng
+                              <button
+                                type="button"
+                                onclick={() => tb.customIconImage = ''}
+                                class="text-red-600 underline ml-1 cursor-pointer font-normal"
+                              >(Xóa ảnh)</button>
+                            </span>
+                          {/if}
                         </div>
                         <div>
                           <label for="tb-title-{tb.id}" class="text-[11px] text-slate-600 block mb-0.5">Tiêu Đề</label>
@@ -997,7 +1079,7 @@
                         </button>
                       </div>
 
-                      <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <div class="grid grid-cols-1 sm:grid-cols-4 gap-2">
                         <div>
                           <label for="vp-icon-{vp.id}" class="text-[11px] text-slate-600 block mb-0.5">Icon FontAwesome</label>
                           <input
@@ -1007,6 +1089,26 @@
                             placeholder="fa-tags..."
                             class="w-full border border-slate-300 rounded px-2.5 py-1 text-xs bg-white"
                           />
+                        </div>
+                        <div>
+                          <label for="vp-img-{vp.id}" class="text-[11px] text-slate-600 block mb-0.5">Hoặc Tải Ảnh Logo Icon</label>
+                          <input
+                            id="vp-img-{vp.id}"
+                            type="file"
+                            accept="image/*"
+                            onchange={(e) => handleValuePropImageUpload(e, vp.id)}
+                            class="w-full border border-slate-300 rounded px-2 py-0.5 text-[10px] bg-white"
+                          />
+                          {#if vp.customIconImage}
+                            <span class="text-[10px] text-emerald-700 font-semibold block mt-0.5">
+                              ✓ Đã có ảnh logo riêng
+                              <button
+                                type="button"
+                                onclick={() => vp.customIconImage = ''}
+                                class="text-red-600 underline ml-1 cursor-pointer font-normal"
+                              >(Xóa ảnh)</button>
+                            </span>
+                          {/if}
                         </div>
                         <div class="sm:col-span-2">
                           <label for="vp-title-{vp.id}" class="text-[11px] text-slate-600 block mb-0.5">Tiêu Đề Lợi Ích</label>
@@ -1018,7 +1120,7 @@
                             class="w-full border border-slate-300 rounded px-2.5 py-1 text-xs bg-white"
                           />
                         </div>
-                        <div class="sm:col-span-3">
+                        <div class="sm:col-span-4">
                           <label for="vp-desc-{vp.id}" class="text-[11px] text-slate-600 block mb-0.5">Mô Tả Chi Tiết</label>
                           <textarea
                             id="vp-desc-{vp.id}"
@@ -1164,127 +1266,312 @@
           </form>
         </div>
       {:else if activeTab === 'users' && authService.canManageUsers(currentAdmin.role)}
-        <!-- USERS MANAGEMENT MODULE (LIGHT MINIMALIST) -->
+        <!-- USERS MANAGEMENT MODULE: SEPARATE ADMIN AND CUSTOMER TABS -->
         <div class="space-y-6">
           <div class="flex items-center justify-between pb-3 border-b border-slate-300">
             <div>
-              <h2 class="text-lg font-bold text-slate-900">Quản Lý Tài Khoản Quản Trị</h2>
-              <p class="text-xs text-slate-500">Cấp tài khoản và phân quyền cho nhân viên</p>
+              <h2 class="text-lg font-bold text-slate-900">Quản Lý Tài Khoản Hệ Thống</h2>
+              <p class="text-xs text-slate-500">Tách biệt tài khoản nhân viên quản trị và khách hàng mua sắm</p>
             </div>
-            <span class="text-xs text-slate-600 font-semibold">Tổng: {users.length} tài khoản</span>
+            
+            <!-- Sub-tabs: Admin vs Customer -->
+            <div class="flex items-center gap-1 bg-slate-200/80 p-1 rounded-md text-xs font-semibold">
+              <button
+                type="button"
+                onclick={() => userTabMode = 'admin'}
+                class="px-3 py-1.5 rounded transition cursor-pointer {userTabMode === 'admin' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'}"
+              >
+                Tài Khoản Quản Trị ({users.filter(u => u.role !== 'customer').length})
+              </button>
+              <button
+                type="button"
+                onclick={() => userTabMode = 'customer'}
+                class="px-3 py-1.5 rounded transition cursor-pointer {userTabMode === 'customer' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'}"
+              >
+                Tài Khoản Khách Hàng ({users.filter(u => u.role === 'customer').length})
+              </button>
+            </div>
           </div>
 
-          <!-- Create Admin Form -->
-          <div class="bg-white border border-slate-300 rounded-lg p-5 space-y-4">
-            <h3 class="text-sm font-bold text-slate-900 border-b border-slate-200 pb-2">
-              Cấp Tài Khoản Mới
-            </h3>
+          {#if userTabMode === 'admin'}
+            <!-- CREATE ADMIN USER CARD -->
+            <div class="bg-white border border-slate-300 rounded-lg p-5 space-y-4">
+              <h3 class="text-sm font-bold text-slate-900 border-b border-slate-200 pb-2">
+                Cấp Tài Khoản Quản Trị Mới
+              </h3>
 
-            <form onsubmit={handleCreateAdminUser} class="space-y-4 text-xs">
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div class="space-y-1">
-                  <label for="u-fullname" class="font-semibold text-slate-700">Họ và Tên *</label>
-                  <input
-                    id="u-fullname"
-                    type="text"
-                    bind:value={newUserName}
-                    required
-                    placeholder="Nguyễn Văn A..."
-                    class="w-full border border-slate-300 rounded px-3 py-1.5 text-xs text-slate-900 focus:outline-none"
-                  />
+              <form onsubmit={handleCreateAdminUser} class="space-y-4 text-xs">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div class="space-y-1">
+                    <label for="u-fullname" class="font-semibold text-slate-700">Họ và Tên *</label>
+                    <input
+                      id="u-fullname"
+                      type="text"
+                      bind:value={newUserName}
+                      required
+                      placeholder="Nguyễn Văn A..."
+                      class="w-full border border-slate-300 rounded px-3 py-1.5 text-xs text-slate-900 focus:outline-none"
+                    />
+                  </div>
+
+                  <div class="space-y-1">
+                    <label for="u-username" class="font-semibold text-slate-700">Tên Đăng Nhập *</label>
+                    <input
+                      id="u-username"
+                      type="text"
+                      bind:value={newUserUsername}
+                      required
+                      placeholder="admin_sales..."
+                      class="w-full border border-slate-300 rounded px-3 py-1.5 text-xs text-slate-900 focus:outline-none"
+                    />
+                  </div>
+
+                  <div class="space-y-1">
+                    <label for="u-pass" class="font-semibold text-slate-700">Mật Khẩu Khởi Tạo *</label>
+                    <input
+                      id="u-pass"
+                      type="password"
+                      bind:value={newUserPass}
+                      required
+                      class="w-full border border-slate-300 rounded px-3 py-1.5 text-xs text-slate-900 focus:outline-none"
+                    />
+                  </div>
+
+                  <div class="space-y-1">
+                    <label for="u-role" class="font-semibold text-slate-700">Vai Trò Phân Quyền *</label>
+                    <select
+                      id="u-role"
+                      bind:value={newUserRole}
+                      class="w-full border border-slate-300 rounded px-3 py-1.5 text-xs text-slate-900 focus:outline-none"
+                    >
+                      <option value="sales_admin">Admin Bán Hàng (Xem & Quản lý đơn hàng)</option>
+                      <option value="inventory_admin">Admin Hàng Hóa (Quản lý kho hàng & sản phẩm)</option>
+                      <option value="super_admin">Super Admin (Toàn quyền hệ thống)</option>
+                    </select>
+                  </div>
                 </div>
 
-                <div class="space-y-1">
-                  <label for="u-username" class="font-semibold text-slate-700">Tên Đăng Nhập *</label>
-                  <input
-                    id="u-username"
-                    type="text"
-                    bind:value={newUserUsername}
-                    required
-                    placeholder="admin_sales..."
-                    class="w-full border border-slate-300 rounded px-3 py-1.5 text-xs text-slate-900 focus:outline-none"
-                  />
-                </div>
+                <button
+                  type="submit"
+                  class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded font-semibold text-xs cursor-pointer"
+                >
+                  Tạo Tài Khoản Quản Trị
+                </button>
+              </form>
+            </div>
 
-                <div class="space-y-1">
-                  <label for="u-pass" class="font-semibold text-slate-700">Mật Khẩu *</label>
-                  <input
-                    id="u-pass"
-                    type="password"
-                    bind:value={newUserPass}
-                    required
-                    class="w-full border border-slate-300 rounded px-3 py-1.5 text-xs text-slate-900 focus:outline-none"
-                  />
-                </div>
-
-                <div class="space-y-1">
-                  <label for="u-role" class="font-semibold text-slate-700">Vai Trò Phân Quyền *</label>
-                  <select
-                    id="u-role"
-                    bind:value={newUserRole}
-                    class="w-full border border-slate-300 rounded px-3 py-1.5 text-xs text-slate-900 focus:outline-none"
-                  >
-                    <option value="sales_admin">Admin Bán Hàng (Xem & Quản lý đơn hàng)</option>
-                    <option value="inventory_admin">Admin Hàng Hóa (Quản lý kho hàng & sản phẩm)</option>
-                    <option value="super_admin">Super Admin (Toàn quyền hệ thống)</option>
-                  </select>
-                </div>
+            <!-- ADMIN USERS TABLE -->
+            <div class="bg-white border border-slate-300 rounded-lg p-4 space-y-3">
+              <div class="flex items-center justify-between">
+                <h3 class="text-sm font-bold text-slate-900">Danh Sách Nhân Viên Quản Trị</h3>
+                <span class="text-xs text-slate-500">Bấm vào hàng hoặc nút "Sửa" để thay đổi quyền hạn</span>
               </div>
 
-              <button
-                type="submit"
-                class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded font-semibold text-xs cursor-pointer"
-              >
-                Tạo Tài Khoản
-              </button>
-            </form>
-          </div>
-
-          <!-- Users Table -->
-          <div class="bg-white border border-slate-300 rounded-lg p-4 space-y-3">
-            <h3 class="text-sm font-bold text-slate-900">Danh Sách Người Dùng ({users.length})</h3>
-            <div class="overflow-x-auto">
-              <table class="w-full text-left text-xs text-slate-700">
-                <thead class="bg-slate-100 border-b border-slate-200 text-slate-800 font-semibold uppercase text-[11px]">
-                  <tr>
-                    <th class="p-2.5">Tài Khoản</th>
-                    <th class="p-2.5">Họ và Tên</th>
-                    <th class="p-2.5">Vai Trò</th>
-                    <th class="p-2.5">Ngày Tạo</th>
-                    <th class="p-2.5 text-center">Thao Tác</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-200">
-                  {#each users as u (u.id)}
-                    <tr class="hover:bg-slate-50">
-                      <td class="p-2.5 font-mono font-semibold text-slate-900">@{u.username}</td>
-                      <td class="p-2.5">{u.fullName}</td>
-                      <td class="p-2.5">
-                        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border {u.role === 'super_admin' ? 'bg-purple-50 text-purple-700 border-purple-200' : (u.role === 'sales_admin' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-slate-100 text-slate-700 border-slate-200')}">
-                          {ROLE_LABELS[u.role] || u.role}
-                        </span>
-                      </td>
-                      <td class="p-2.5 text-slate-500">{u.createdAt}</td>
-                      <td class="p-2.5 text-center">
-                        {#if u.id !== currentAdmin.id}
+              <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs text-slate-700">
+                  <thead class="bg-slate-100 border-b border-slate-200 text-slate-800 font-semibold uppercase text-[11px]">
+                    <tr>
+                      <th class="p-2.5">Tài Khoản</th>
+                      <th class="p-2.5">Họ và Tên</th>
+                      <th class="p-2.5">Quyền Hạn (Role)</th>
+                      <th class="p-2.5">Ngày Tạo</th>
+                      <th class="p-2.5 text-center">Thao Tác</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-200">
+                    {#each users.filter(u => u.role !== 'customer') as u (u.id)}
+                      <tr class="hover:bg-slate-50 transition">
+                        <td class="p-2.5 font-mono font-bold text-slate-900">@{u.username}</td>
+                        <td class="p-2.5 font-medium">{u.fullName}</td>
+                        <td class="p-2.5">
+                          <span class="px-2 py-0.5 rounded text-[10px] font-semibold border {u.role === 'super_admin' ? 'bg-purple-50 text-purple-700 border-purple-200' : (u.role === 'sales_admin' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200')}">
+                            {ROLE_LABELS[u.role] || u.role}
+                          </span>
+                        </td>
+                        <td class="p-2.5 text-slate-500">{u.createdAt}</td>
+                        <td class="p-2.5 text-center space-x-2">
                           <button
                             type="button"
-                            onclick={() => handleDeleteUser(u.id, u.fullName)}
-                            class="text-red-600 hover:underline cursor-pointer font-medium"
+                            onclick={() => handleSelectEditUser(u)}
+                            class="text-blue-600 hover:underline cursor-pointer font-semibold"
                           >
-                            Xóa
+                            Sửa quyền / Thông tin
                           </button>
-                        {:else}
-                          <span class="text-slate-400 italic text-[11px]">Đang đăng nhập</span>
-                        {/if}
-                      </td>
+                          {#if u.id !== currentAdmin.id}
+                            <button
+                              type="button"
+                              onclick={() => handleDeleteUser(u.id, u.fullName)}
+                              class="text-red-600 hover:underline cursor-pointer font-medium ml-1"
+                            >
+                              Xóa
+                            </button>
+                          {/if}
+                        </td>
+                      </tr>
+                    {/each}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          {:else}
+            <!-- CUSTOMER USERS TABLE -->
+            <div class="bg-white border border-slate-300 rounded-lg p-4 space-y-3">
+              <div class="flex items-center justify-between">
+                <h3 class="text-sm font-bold text-slate-900">Danh Sách Tài Khoản Khách Hàng</h3>
+                <span class="text-xs text-slate-500">Xem và sửa thông tin giao hàng của khách</span>
+              </div>
+
+              <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs text-slate-700">
+                  <thead class="bg-slate-100 border-b border-slate-200 text-slate-800 font-semibold uppercase text-[11px]">
+                    <tr>
+                      <th class="p-2.5">Tài Khoản</th>
+                      <th class="p-2.5">Họ và Tên</th>
+                      <th class="p-2.5">Số Điện Thoại</th>
+                      <th class="p-2.5">Địa Chỉ Giao Hàng</th>
+                      <th class="p-2.5">Ngày Đăng Ký</th>
+                      <th class="p-2.5 text-center">Thao Tác</th>
                     </tr>
-                  {/each}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody class="divide-y divide-slate-200">
+                    {#if users.filter(u => u.role === 'customer').length === 0}
+                      <tr>
+                        <td colspan="6" class="p-6 text-center text-slate-400 italic">Chưa có tài khoản khách hàng nào đăng ký.</td>
+                      </tr>
+                    {:else}
+                      {#each users.filter(u => u.role === 'customer') as u (u.id)}
+                        <tr class="hover:bg-slate-50 transition">
+                          <td class="p-2.5 font-mono font-semibold text-slate-900">@{u.username}</td>
+                          <td class="p-2.5 font-medium">{u.fullName}</td>
+                          <td class="p-2.5">{u.phone || 'Chưa cập nhật'}</td>
+                          <td class="p-2.5 max-w-xs truncate">{u.address || 'Chưa cập nhật'}</td>
+                          <td class="p-2.5 text-slate-500">{u.createdAt}</td>
+                          <td class="p-2.5 text-center space-x-2">
+                            <button
+                              type="button"
+                              onclick={() => handleSelectEditUser(u)}
+                              class="text-blue-600 hover:underline cursor-pointer font-semibold"
+                            >
+                              Sửa thông tin
+                            </button>
+                            <button
+                              type="button"
+                              onclick={() => handleDeleteUser(u.id, u.fullName)}
+                              class="text-red-600 hover:underline cursor-pointer font-medium ml-1"
+                            >
+                              Xóa
+                            </button>
+                          </td>
+                        </tr>
+                      {/each}
+                    {/if}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          {/if}
+        </div>
+
+        <!-- EDIT USER MODAL -->
+        {#if editingUser}
+          <div class="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+            <div class="bg-white border border-slate-300 rounded-xl p-6 w-full max-w-lg shadow-lg space-y-4">
+              <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+                <div>
+                  <h4 class="text-sm font-bold text-slate-900">
+                    Chỉnh Sửa Tài Khoản: @{editingUser.username}
+                  </h4>
+                  <p class="text-[11px] text-slate-500">Cập nhật thông tin và cấp lại vai trò quyền hạn</p>
+                </div>
+                <button
+                  type="button"
+                  onclick={() => editingUser = null}
+                  class="text-slate-400 hover:text-slate-800 text-lg cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <form onsubmit={handleSaveEditUser} class="space-y-3.5 text-xs">
+                <div class="space-y-1">
+                  <label for="ed-name" class="font-semibold text-slate-700">Họ và Tên</label>
+                  <input
+                    id="ed-name"
+                    type="text"
+                    bind:value={editFullName}
+                    required
+                    class="w-full border border-slate-300 rounded px-3 py-1.5 text-xs text-slate-900 focus:outline-none"
+                  />
+                </div>
+
+                <div class="space-y-1">
+                  <label for="ed-role" class="font-semibold text-slate-700">Vai Trò & Quyền Hạn</label>
+                  <select
+                    id="ed-role"
+                    bind:value={editRole}
+                    class="w-full border border-slate-300 rounded px-3 py-1.5 text-xs text-slate-900 focus:outline-none"
+                  >
+                    <option value="sales_admin">Admin Bán Hàng (Xem & Xử lý đơn hàng)</option>
+                    <option value="inventory_admin">Admin Hàng Hóa (Quản lý kho hàng & sản phẩm)</option>
+                    <option value="super_admin">Super Admin (Toàn quyền hệ thống)</option>
+                    <option value="customer">Khách Hàng (Tài khoản người mua)</option>
+                  </select>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div class="space-y-1">
+                    <label for="ed-phone" class="font-semibold text-slate-700">Số Điện Thoại</label>
+                    <input
+                      id="ed-phone"
+                      type="text"
+                      bind:value={editPhone}
+                      placeholder="0901234567..."
+                      class="w-full border border-slate-300 rounded px-3 py-1.5 text-xs text-slate-900 focus:outline-none"
+                    />
+                  </div>
+
+                  <div class="space-y-1">
+                    <label for="ed-pass" class="font-semibold text-slate-700">Đổi Mật Khẩu</label>
+                    <input
+                      id="ed-pass"
+                      type="text"
+                      bind:value={editPassword}
+                      placeholder="Để nguyên nếu không đổi..."
+                      class="w-full border border-slate-300 rounded px-3 py-1.5 text-xs text-slate-900 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div class="space-y-1">
+                  <label for="ed-addr" class="font-semibold text-slate-700">Địa Chỉ Giao Hàng</label>
+                  <input
+                    id="ed-addr"
+                    type="text"
+                    bind:value={editAddress}
+                    placeholder="Số nhà, đường, quận/huyện..."
+                    class="w-full border border-slate-300 rounded px-3 py-1.5 text-xs text-slate-900 focus:outline-none"
+                  />
+                </div>
+
+                <div class="flex justify-end gap-2 pt-2 border-t border-slate-200">
+                  <button
+                    type="button"
+                    onclick={() => editingUser = null}
+                    class="px-3.5 py-1.5 border border-slate-300 rounded text-slate-700 hover:bg-slate-50 cursor-pointer font-medium"
+                  >
+                    Hủy Bỏ
+                  </button>
+                  <button
+                    type="submit"
+                    class="px-4 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded font-semibold cursor-pointer"
+                  >
+                    Lưu Thay Đổi
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
-        </div>
+        {/if}
       {/if}
     </main>
 

@@ -54,8 +54,13 @@
           <div class="pt-6 flex flex-wrap gap-6 border-t border-slate-200/80 text-left">
             {#each themeStore.theme.trustBadges as tb (tb.id)}
               <div class="flex-1 min-w-[140px]">
-                <span class="block text-sm font-black text-blue-950">
-                  <i class="fa-solid {tb.icon} text-blue-900 mr-1.5"></i>{tb.title}
+                <span class="flex items-center text-sm font-black text-blue-950 gap-2">
+                  {#if tb.customIconImage}
+                    <img src={tb.customIconImage} alt={tb.title} class="w-5 h-5 object-contain shrink-0" />
+                  {:else}
+                    <i class="fa-solid {tb.icon} text-blue-900"></i>
+                  {/if}
+                  <span>{tb.title}</span>
                 </span>
                 <span class="text-xs text-slate-500 font-medium block mt-0.5">{tb.subtitle}</span>
               </div>
@@ -155,8 +160,12 @@
     <section class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
       {#each themeStore.theme.valueProps as vp (vp.id)}
         <div class="glass-panel p-6 rounded-2xl border border-slate-200 bg-white space-y-3">
-          <div class="w-12 h-12 bg-blue-50 text-blue-900 rounded-xl flex items-center justify-center text-xl">
-            <i class="fa-solid {vp.icon}"></i>
+          <div class="w-12 h-12 bg-blue-50 text-blue-900 rounded-xl flex items-center justify-center text-xl overflow-hidden p-1.5">
+            {#if vp.customIconImage}
+              <img src={vp.customIconImage} alt={vp.title} class="w-full h-full object-contain" />
+            {:else}
+              <i class="fa-solid {vp.icon}"></i>
+            {/if}
           </div>
           <h3 class="font-bold text-blue-950 text-base">{vp.title}</h3>
           <p class="text-slate-600 text-xs leading-relaxed">
