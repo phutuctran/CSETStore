@@ -1,0 +1,11 @@
+{
+  "framework": "vite",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "rewrites": [
+    { "source": "/api/products/:id", "destination": "/api/products/[id]" },
+    { "source": "/api/products", "destination": "/api/products/index" },
+    { "source": "/api/reviews", "destination": "/api/reviews/index" },
+    { "source": "/admin", "destination": "/admin.html" }
+  ]
+}

@@ -1,0 +1,38 @@
+name: CI/CD Pipeline - Build & Verify
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-verify:
+    name: Type-Check & Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Svelte & TypeScript Type-Check
+        run: npm run check
+
+      - name: Build Production Assets
+        run: npm run build
+
+      - name: Verify Dist Artifacts
+        run: |
+          test -f dist/index.html || (echo "Missing dist/index.html" && exit 1)
+          test -f dist/admin.html || (echo "Missing dist/admin.html" && exit 1)
+          echo "Build artifacts verified successfully!"
