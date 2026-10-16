@@ -286,13 +286,6 @@
             </button>
           {/if}
         </div>
-      {:else if appStore.products.length > 8}
-        <div class="py-6 text-center border-t border-slate-200">
-          <div class="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-slate-100 text-slate-500 text-xs font-semibold">
-            <i class="fa-solid fa-circle-check text-emerald-600"></i>
-            <span>Đã tải hiển thị toàn bộ {appStore.products.length} sản phẩm</span>
-          </div>
-        </div>
       {/if}
     </section>
   {/if}
