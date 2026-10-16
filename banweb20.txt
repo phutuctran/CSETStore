@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSET Store - Dịch Vụ & Sản Phẩm In 3D</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; color: #1e293b; }
+        .glass-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); border: 1px solid rgba(226, 232, 240, 0.8); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between">
+
+    <!-- HEADER / NAVIGATION -->
+    <header class="sticky top-0 z-40 glass-panel border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                <!-- Logo -->
+                <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('home')">
+                    <div class="w-10 h-10 bg-blue-900 rounded-xl flex items-center justify-center shadow-md">
+                        <i class="fa-solid fa-cube text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <span class="text-xl font-extrabold tracking-wider text-blue-950">CSET STORE</span>
+                        <span class="block text-[10px] text-blue-800 font-semibold tracking-widest uppercase">3D Printing Studio</span>
+                    </div>
+                </div>
+
+                <!-- Navigation Links -->
+                <nav class="hidden md:flex space-x-1 bg-gray-100 p-1.5 rounded-2xl border border-gray-200">
+                    <button type="button" onclick="switchTab('home')" id="nav-home" class="nav-btn px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-blue-900 shadow-sm cursor-pointer transition">
+                        <i class="fa-solid fa-house mr-2"></i>Trang Chủ
+                    </button>
+                    <button type="button" onclick="switchTab('shop')" id="nav-shop" class="nav-btn px-5 py-2.5 rounded-xl text-sm font-semibold text-gray-600 hover:text-blue-900 cursor-pointer transition">
+                        <i class="fa-solid fa-store mr-2"></i>Cửa Hàng
+                    </button>
+                    <button type="button" onclick="switchTab('custom')" id="nav-custom" class="nav-btn px-5 py-2.5 rounded-xl text-sm font-semibold text-gray-600 hover:text-blue-900 cursor-pointer transition">
+                        <i class="fa-solid fa-sliders mr-2"></i>Đặt In Theo Yêu Cầu
+                    </button>
+                    <button type="button" onclick="switchTab('admin')" id="nav-admin" class="nav-btn px-5 py-2.5 rounded-xl text-sm font-semibold text-amber-700 hover:text-amber-800 cursor-pointer transition">
+                        <i class="fa-solid fa-user-shield mr-2"></i>Quản Trị (Admin)
+                    </button>
+                </nav>
+
+                <!-- Cart Button -->
+                <div class="flex items-center space-x-4">
+                    <button type="button" onclick="openCartModal()" class="relative p-3 rounded-xl bg-white hover:bg-gray-50 border border-gray-200 text-blue-950 shadow-sm cursor-pointer transition">
+                        <i class="fa-solid fa-cart-shopping text-lg"></i>
+                        <span id="cart-badge" class="absolute -top-1.5 -right-1.5 bg-blue-900 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">0</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- TAB 1: HOME PAGE -->
+        <section id="tab-home" class="space-y-12">
+            <div class="relative rounded-3xl overflow-hidden glass-panel border border-gray-200 p-8 md:p-12 lg:p-16 flex flex-col lg:flex-row items-center justify-between gap-12 bg-white">
+                <div class="space-y-6 max-w-2xl text-center lg:text-left z-10">
+                    <div class="inline-flex items-center space-x-2 px-3 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-blue-900 text-xs font-bold uppercase tracking-wider">
+                        <i class="fa-solid fa-bolt"></i>
+                        <span>Đồng Giá In 1.500đ / gam</span>
+                    </div>
+                    <h1 class="text-4xl md:text-5xl lg:text-6xl font-black text-blue-950 leading-tight">
+                        CSET Store <br/>
+                        <span class="text-blue-900">In 3D Thông Minh & Nhanh Chóng</span>
+                    </h1>
+                    <p class="text-gray-600 text-base md:text-lg">
+                        Sử dụng hệ thống máy in cao cấp Bambu Lab A1 Combo. Tải file `.stl`, `.3mf`, `.obj` trực tiếp lên web để tính khối lượng nhựa và báo giá chuẩn xác.
+                    </p>
+                    <div class="flex flex-wrap items-center justify-center lg:justify-start gap-4 pt-2">
+                        <button type="button" onclick="switchTab('shop')" class="px-8 py-4 rounded-xl bg-blue-900 hover:bg-blue-800 text-white font-bold shadow-lg cursor-pointer">
+                            <i class="fa-solid fa-bag-shopping mr-2"></i>Khám Phá Sản Phẩm
+                        </button>
+                        <button type="button" onclick="switchTab('custom')" class="px-8 py-4 rounded-xl bg-gray-100 hover:bg-gray-200 text-blue-950 font-bold border border-gray-300 cursor-pointer">
+                            <i class="fa-solid fa-upload mr-2"></i>Tải File Báo Giá Ngay
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Hình máy in Bambu Lab A1 Combo -->
+                <div class="relative w-full lg:w-1/2 flex justify-center">
+                    <div class="w-72 h-72 md:w-96 md:h-96 rounded-2xl overflow-hidden border border-gray-200 shadow-xl bg-gray-100">
+                        <img src="https://images.unsplash.com/photo-1615655406736-b37c4fabf923?w=800&auto=format&fit=crop&q=80" alt="Bambu Lab A1 Combo 3D Printer" class="w-full h-full object-cover">
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <div class="flex items-center justify-between mb-8">
+                    <h2 class="text-2xl font-bold text-blue-950">Sản Phẩm Nổi Bật</h2>
+                    <button type="button" onclick="switchTab('shop')" class="text-blue-900 font-bold text-sm cursor-pointer hover:underline">Xem Tất Cả &rarr;</button>
+                </div>
+                <div id="home-products-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"></div>
+            </div>
+        </section>
+
+        <!-- TAB 2: SHOP PAGE -->
+        <section id="tab-shop" class="hidden space-y-8">
+            <div class="flex flex-col lg:flex-row gap-8">
+                <aside class="w-full lg:w-64 glass-panel p-6 rounded-2xl border border-gray-200 h-fit space-y-6 bg-white">
+                    <h3 class="text-lg font-bold text-blue-950 border-b border-gray-200 pb-4">
+                        <i class="fa-solid fa-filter text-blue-900 mr-2"></i>Bộ Lọc
+                    </h3>
+                    <div class="space-y-2">
+                        <label class="text-xs font-bold text-gray-500 uppercase tracking-wider block">Danh Mục</label>
+                        <select id="filter-category" onchange="applyFilters()" class="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-2.5 text-sm text-blue-950">
+                            <option value="all">Tất cả danh mục</option>
+                            <option value="anime">Mô Hình Anime / Game</option>
+                            <option value="decor">Đồ Trang Trí / Chậu Cây</option>
+                            <option value="tech">Phụ Kiện Công Nghệ</option>
+                        </select>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-xs font-bold text-gray-500 uppercase tracking-wider block">Tìm Tên</label>
+                        <input type="text" id="filter-search" oninput="applyFilters()" placeholder="Nhập tên..." class="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-2.5 text-sm text-blue-950">
+                    </div>
+                </aside>
+
+                <div class="flex-grow">
+                    <div id="shop-products-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: CUSTOM ORDER PAGE -->
+        <section id="tab-custom" class="hidden space-y-8 max-w-4xl mx-auto">
+            <div class="text-center space-y-3">
+                <h2 class="text-3xl font-black text-blue-950">Báo Giá & Đặt In 3D Theo Yêu Cầu</h2>
+                <p class="text-gray-600">Tải lên file `.stl`, `.3mf`, `.obj` để hệ thống tự động phân tích khối lượng nhựa, thời gian và tính giá chuẩn 1.500đ/gam</p>
+            </div>
+
+            <div class="glass-panel p-8 rounded-3xl border border-gray-200 space-y-8 bg-white">
+                <div onclick="document.getElementById('real-file-input').click()" class="border-2 border-dashed border-gray-300 hover:border-blue-900 rounded-2xl p-8 text-center cursor-pointer transition bg-gray-50">
+                    <input type="file" id="real-file-input" accept=".stl,.3mf,.obj,.step" onchange="handleFileSelected(event)" class="hidden">
+                    <div class="space-y-3">
+                        <div class="w-16 h-16 bg-blue-50 text-blue-900 rounded-full flex items-center justify-center mx-auto text-2xl">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                        </div>
+                        <p id="file-name-display" class="text-blue-950 font-bold text-base">Bấm vào đây để chọn file 3D (.STL, .3MF, .OBJ)</p>
+                        <p class="text-xs text-gray-400">Hệ thống sẽ tự động phân tích thể tích và quy đổi khối lượng nhựa chính xác</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-gray-50 p-5 rounded-2xl border border-gray-200 space-y-1">
+                        <span class="text-xs font-bold text-gray-500 uppercase tracking-wider block">Khối Lượng Nhựa Cần In</span>
+                        <span id="stat-grams" class="text-2xl font-extrabold text-blue-950">25 gam</span>
+                    </div>
+
+                    <div class="bg-gray-50 p-5 rounded-2xl border border-gray-200 space-y-1">
+                        <span class="text-xs font-bold text-gray-500 uppercase tracking-wider block">Thời Gian In Dự Kiến</span>
+                        <span id="stat-hours" class="text-2xl font-extrabold text-blue-950">3.3 giờ</span>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-xs font-bold text-gray-600 uppercase">Mật Độ Rỗng (Infill %)</label>
+                    <select id="infill-select" onchange="recalculateStats()" class="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 text-sm text-blue-950">
+                        <option value="15">15% (Tiêu chuẩn nhẹ)</option>
+                        <option value="20" selected>20% (Khuyên dùng - Cân bằng)</option>
+                        <option value="40">40% (Độ chắc chắn cao)</option>
+                        <option value="100">100% (Đặc hoàn toàn)</option>
+                    </select>
+                </div>
+
+                <div class="p-6 rounded-2xl bg-blue-50 border border-blue-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div>
+                        <span class="text-xs font-bold text-blue-800 uppercase tracking-wider block">Đơn giá chuẩn: 1.500 VNĐ / gam</span>
+                        <span id="custom-price-display" class="text-3xl font-black text-blue-950">37.500 VNĐ</span>
+                    </div>
+                    <button type="button" onclick="addCustomToCart()" class="w-full sm:w-auto px-8 py-4 rounded-xl bg-blue-900 hover:bg-blue-800 text-white font-bold shadow-md cursor-pointer transition">
+                        <i class="fa-solid fa-cart-plus mr-2"></i>Thêm Vào Giỏ Hàng
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 4: ADMIN PAGE -->
+        <section id="tab-admin" class="hidden space-y-8 max-w-4xl mx-auto">
+            <div class="text-center space-y-3">
+                <h2 class="text-3xl font-black text-blue-950">Trang Quản Trị - CSET Store</h2>
+                <p class="text-gray-600">Thêm sản phẩm mới hoặc xóa sản phẩm khỏi cửa hàng</p>
+            </div>
+
+            <div class="glass-panel p-8 rounded-3xl border border-gray-200 space-y-6 bg-white">
+                <h3 class="text-xl font-bold text-blue-950 border-b border-gray-200 pb-3">Thêm Sản Phẩm Mới</h3>
+                <form onsubmit="handleAddNewProduct(event)" class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-2">
+                            <label class="text-xs font-bold text-gray-600 uppercase">Tên Sản Phẩm *</label>
+                            <input type="text" id="admin-name" required placeholder="Nhập tên sản phẩm..." class="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 text-sm text-blue-950">
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-xs font-bold text-gray-600 uppercase">Giá Bán (VNĐ) *</label>
+                            <input type="number" id="admin-price" required placeholder="Ví dụ: 250000" class="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 text-sm text-blue-950">
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-xs font-bold text-gray-600 uppercase">Danh Mục *</label>
+                            <select id="admin-category" class="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 text-sm text-blue-950">
+                                <option value="anime">Mô Hình Anime / Game</option>
+                                <option value="decor">Đồ Trang Trí / Chậu Cây</option>
+                                <option value="tech">Phụ Kiện Công Nghệ</option>
+                            </select>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-xs font-bold text-gray-600 uppercase">Hình Ảnh (Chọn file từ máy)</label>
+                            <input type="file" id="admin-image-file" accept="image/*" onchange="handleImageUpload(event)" class="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-2 text-sm text-gray-600">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full py-4 rounded-xl bg-blue-900 hover:bg-blue-800 text-white font-bold cursor-pointer">Đăng Sản Phẩm Lên Cửa Hàng</button>
+                </form>
+            </div>
+
+            <div class="glass-panel p-8 rounded-3xl border border-gray-200 bg-white">
+                <h3 class="text-xl font-bold text-blue-950 border-b border-gray-200 pb-3 mb-4">Danh Sách Sản Phẩm</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-gray-700">
+                        <thead class="bg-gray-100 text-blue-950 uppercase text-xs">
+                            <tr>
+                                <th class="p-3">Ảnh</th>
+                                <th class="p-3">Tên</th>
+                                <th class="p-3">Giá Bán</th>
+                                <th class="p-3">Thao Tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-product-table"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- PRODUCT DETAIL MODAL (Chi tiết sản phẩm kiểu Shopee) -->
+    <div id="product-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-3xl rounded-3xl border border-gray-200 p-6 md:p-8 relative bg-white shadow-2xl">
+            <button type="button" onclick="closeProductModal()" class="absolute top-6 right-6 text-gray-400 hover:text-blue-950 text-2xl cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                <div class="h-80 rounded-2xl overflow-hidden bg-gray-100 border border-gray-200 shadow-inner">
+                    <img id="modal-img" src="" alt="Product Detail" class="w-full h-full object-cover">
+                </div>
+                <div class="space-y-6">
+                    <div>
+                        <span id="modal-category" class="px-3 py-1 bg-blue-50 text-blue-900 text-xs font-bold rounded-lg uppercase tracking-wider">Danh mục</span>
+                        <h3 id="modal-title" class="text-2xl font-black text-blue-950 mt-2">Tên sản phẩm</h3>
+                        <p id="modal-price" class="text-2xl font-extrabold text-blue-900 mt-1">0 VNĐ</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-2">
+                        <span class="text-xs font-bold text-gray-500 uppercase block">Thông tin chi tiết in 3D:</span>
+                        <p id="modal-desc" class="text-gray-600 text-sm leading-relaxed">Thông tin mô tả đang cập nhật...</p>
+                    </div>
+                    <div class="flex gap-4">
+                        <button type="button" onclick="addModalProductToCart()" class="flex-grow py-4 rounded-xl bg-blue-900 hover:bg-blue-800 text-white font-bold shadow-lg cursor-pointer transition">
+                            <i class="fa-solid fa-cart-plus mr-2"></i>Thêm Vào Giỏ Hàng
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CART & CHECKOUT MODAL (Giỏ hàng & Đăng ký thông tin khách hàng) -->
+    <div id="cart-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-2xl rounded-3xl border border-gray-200 p-6 md:p-8 relative space-y-6 bg-white shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b border-gray-200 pb-4">
+                <h3 class="text-xl font-bold text-blue-950"><i class="fa-solid fa-cart-shopping text-blue-900 mr-2"></i>Giỏ Hàng & Thanh Toán</h3>
+                <button type="button" onclick="closeCartModal()" class="text-gray-400 hover:text-blue-950 text-xl cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <!-- Danh sách sản phẩm trong giỏ -->
+            <div id="cart-items-list" class="space-y-3 max-h-48 overflow-y-auto pr-2"></div>
+            
+            <div class="border-t border-gray-200 pt-4 space-y-4">
+                <div class="flex justify-between text-lg font-black text-blue-950">
+                    <span>Tổng Tiền Thanh Toán:</span>
+                    <span id="cart-total-price" class="text-blue-900">0 VNĐ</span>
+                </div>
+
+                <!-- Form đăng ký thông tin khách hàng -->
+                <div class="bg-gray-50 p-5 rounded-2xl border border-gray-200 space-y-4">
+                    <h4 class="font-bold text-blue-950 text-sm"><i class="fa-solid fa-address-card mr-2 text-blue-900"></i>Thông Tin Giao Hàng</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="space-y-1">
+                            <label class="text-xs font-bold text-gray-600 uppercase">Họ và Tên *</label>
+                            <input type="text" id="checkout-name" required placeholder="Nhập họ và tên..." class="w-full bg-white border border-gray-300 rounded-xl px-4 py-2.5 text-sm text-blue-950">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-xs font-bold text-gray-600 uppercase">Số Điện Thoại *</label>
+                            <input type="tel" id="checkout-phone" required placeholder="Nhập số điện thoại..." class="w-full bg-white border border-gray-300 rounded-xl px-4 py-2.5 text-sm text-blue-950">
+                        </div>
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-xs font-bold text-gray-600 uppercase">Địa Chỉ Nhận Hàng *</label>
+                        <input type="text" id="checkout-address" required placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành phố..." class="w-full bg-white border border-gray-300 rounded-xl px-4 py-2.5 text-sm text-blue-950">
+                    </div>
+                </div>
+
+                <button type="button" onclick="processCheckout()" class="w-full py-4 rounded-xl bg-blue-900 hover:bg-blue-800 text-white font-bold cursor-pointer shadow-md transition">
+                    Xác Nhận Đặt Hàng Ngay
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="glass-panel border-t border-gray-200 mt-16 py-8 text-center text-xs text-gray-500 bg-white">
+        <p>© 2026 CSET Store 3D Printing Studio. Tất cả quyền được bảo lưu.</p>
+    </footer>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        const defaultProducts = [
+            { id: 1, name: "Tượng Dragon Ball - Goku Ultra Instinct", category: "anime", price: 450000, image: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=600&auto=format&fit=crop&q=80", description: "Mô hình Goku in 3D Resin độ phân giải cao sắc nét từng chi tiết. Khối lượng nhựa chuẩn: ~180g. Thời gian in: ~18 giờ." },
+            { id: 2, name: "Chậu Cây Hình Học Geometric", category: "decor", price: 180000, image: "https://images.unsplash.com/photo-1485955900006-10f4d324d411?w=600&auto=format&fit=crop&q=80", description: "Chậu cây trang trí bàn làm việc in nhựa PLA thân thiện với môi trường. Khối lượng nhựa chuẩn: ~75g. Thời gian in: ~6.5 giờ." },
+            { id: 3, name: "Giá Đỡ Điện Thoại Đa Năng 3D", category: "tech", price: 120000, image: "https://images.unsplash.com/photo-1586105251261-72a756497a11?w=600&auto=format&fit=crop&q=80", description: "Thiết kế chịu lực cao, góc nhìn tối ưu cho làm việc và giải trí. Khối lượng nhựa chuẩn: ~45g. Thời gian in: ~3.8 giờ." }
+        ];
+
+        let products = JSON.parse(localStorage.getItem('cset_products')) || defaultProducts;
+        let cart = [];
+        let currentModalProduct = null;
+        let uploadedImageBase64 = '';
+        let uploadedFileName = '';
+        let baseCalculatedGrams = 25;
+
+        function saveProductsToStorage() {
+            localStorage.setItem('cset_products', JSON.stringify(products));
+        }
+
+        function switchTab(tabId) {
+            ['home', 'shop', 'custom', 'admin'].forEach(t => {
+                const tabEl = document.getElementById(`tab-${t}`);
+                const navEl = document.getElementById(`nav-${t}`);
+                if(tabEl) tabEl.classList.add('hidden');
+                if(navEl) navEl.className = "nav-btn px-5 py-2.5 rounded-xl text-sm font-semibold text-gray-600 hover:text-blue-900 cursor-pointer transition";
+            });
+
+            const activeTab = document.getElementById(`tab-${tabId}`);
+            const activeNav = document.getElementById(`nav-${tabId}`);
+            if(activeTab) activeTab.classList.remove('hidden');
+            if(activeNav) activeNav.className = "nav-btn px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-blue-900 shadow-sm cursor-pointer transition";
+
+            if (tabId === 'home') renderHomeProducts();
+            if (tabId === 'shop') renderShopProducts(products);
+            if (tabId === 'admin') renderAdminTable();
+        }
+
+        function formatPrice(num) {
+            return num.toLocaleString('vi-VN') + ' VNĐ';
+        }
+
+        function renderHomeProducts() {
+            const grid = document.getElementById('home-products-grid');
+            if(!grid) return;
+            grid.innerHTML = products.slice(0, 4).map(p => `
+                <div onclick="openProductModal(${p.id})" class="glass-panel rounded-2xl overflow-hidden border border-gray-200 flex flex-col justify-between bg-white shadow-sm hover:shadow-md transition cursor-pointer">
+                    <img src="${p.image}" class="h-48 w-full object-cover">
+                    <div class="p-5 space-y-3">
+                        <h3 class="font-bold text-blue-950 line-clamp-1">${p.name}</h3>
+                        <p class="text-blue-900 font-extrabold">${formatPrice(p.price)}</p>
+                        <button type="button" class="w-full py-2.5 rounded-xl bg-gray-100 hover:bg-blue-900 hover:text-white font-semibold text-xs text-blue-950 transition">Xem Chi Tiết</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderShopProducts(items) {
+            const grid = document.getElementById('shop-products-grid');
+            if(!grid) return;
+            grid.innerHTML = items.map(p => `
+                <div onclick="openProductModal(${p.id})" class="glass-panel rounded-2xl overflow-hidden border border-gray-200 flex flex-col justify-between bg-white shadow-sm hover:shadow-md transition cursor-pointer">
+                    <img src="${p.image}" class="h-48 w-full object-cover">
+                    <div class="p-5 space-y-3">
+                        <h3 class="font-bold text-blue-950 line-clamp-1">${p.name}</h3>
+                        <p class="text-blue-900 font-extrabold">${formatPrice(p.price)}</p>
+                        <button type="button" class="w-full py-2.5 rounded-xl bg-blue-900 text-white font-bold text-xs transition">Xem Chi Tiết</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function applyFilters() {
+            const cat = document.getElementById('filter-category').value;
+            const search = document.getElementById('filter-search').value.toLowerCase();
+            let filtered = products.filter(p => {
+                const matchCat = (cat === 'all' || p.category === cat);
+                const matchSearch = p.name.toLowerCase().includes(search);
+                return matchCat && matchSearch;
+            });
+            renderShopProducts(filtered);
+        }
+
+        function openProductModal(id) {
+            currentModalProduct = products.find(p => p.id === id);
+            if(!currentModalProduct) return;
+            
+            document.getElementById('modal-title').innerText = currentModalProduct.name;
+            document.getElementById('modal-price').innerText = formatPrice(currentModalProduct.price);
+            document.getElementById('modal-desc').innerText = currentModalProduct.description || "Sản phẩm in 3D chất lượng cao tại CSET Store.";
+            document.getElementById('modal-category').innerText = currentModalProduct.category.toUpperCase();
+            document.getElementById('modal-img').src = currentModalProduct.image;
+            
+            document.getElementById('product-modal').classList.remove('hidden');
+        }
+
+        function closeProductModal() { 
+            document.getElementById('product-modal').classList.add('hidden'); 
+        }
+
+        function addModalProductToCart() {
+            if(!currentModalProduct) return;
+            cart.push(currentModalProduct);
+            updateCartBadge();
+            closeProductModal();
+            alert('Đã thêm sản phẩm vào giỏ hàng thành công!');
+        }
+
+        function updateCartBadge() { 
+            const badge = document.getElementById('cart-badge');
+            if(badge) badge.innerText = cart.length; 
+        }
+
+        function openCartModal() {
+            const list = document.getElementById('cart-items-list');
+            if(!list) return;
+            let total = 0;
+            list.innerHTML = cart.map((item, index) => {
+                total += item.price;
+                return `
+                    <div class="flex items-center justify-between bg-gray-50 p-3 rounded-xl border border-gray-200">
+                        <div class="flex items-center space-x-3">
+                            <img src="${item.image}" class="w-12 h-12 rounded-lg object-cover">
+                            <div>
+                                <p class="text-blue-950 text-sm font-bold">${item.name}</p>
+                                <p class="text-blue-900 text-xs font-semibold">${formatPrice(item.price)}</p>
+                            </div>
+                        </div>
+                        <button type="button" onclick="removeFromCart(${index})" class="text-red-500 text-xs hover:text-red-700 cursor-pointer"><i class="fa-solid fa-trash"></i> Xóa</button>
+                    </div>
+                `;
+            }).join('');
+            document.getElementById('cart-total-price').innerText = formatPrice(total);
+            document.getElementById('cart-modal').classList.remove('hidden');
+        }
+
+        function closeCartModal() { document.getElementById('cart-modal').classList.add('hidden'); }
+
+        function removeFromCart(index) {
+            cart.splice(index, 1);
+            updateCartBadge();
+            openCartModal();
+        }
+
+        function processCheckout() {
+            if(cart.length === 0) return alert('Giỏ hàng trống!');
+            
+            const name = document.getElementById('checkout-name').value.trim();
+            const phone = document.getElementById('checkout-phone').value.trim();
+            const address = document.getElementById('checkout-address').value.trim();
+
+            if(!name || !phone || !address) {
+                return alert('Vui lòng điền đầy đủ thông tin giao hàng (Họ tên, Số điện thoại, Địa chỉ)!');
+            }
+
+            alert(`Cảm ơn bạn ${name}! Đặt hàng thành công.\nCSET Store sẽ liên hệ qua số điện thoại ${phone} và giao hàng đến địa chỉ: ${address} trong thời gian sớm nhất.`);
+            cart = [];
+            updateCartBadge();
+            closeCartModal();
+        }
+
+        // Xử lý file in 3D & tính toán chi phí
+        function handleFileSelected(e) {
+            const file = e.target.files[0];
+            if(!file) return;
+            uploadedFileName = file.name;
+            const displayEl = document.getElementById('file-name-display');
+            if(displayEl) displayEl.innerText = `Đã nhận file: ${file.name}`;
+            
+            let sizeKB = file.size / 1024;
+            baseCalculatedGrams = Math.max(5, Math.min(600, Math.round(sizeKB * 0.15)));
+
+            recalculateStats();
+            alert(`Đã phân tích file "${file.name}" thành công! Hệ thống đã tính toán lượng nhựa và thời gian in.`);
+        }
+
+        function recalculateStats() {
+            const infillEl = document.getElementById('infill-select');
+            const infillPercent = infillEl ? parseInt(infillEl.value) / 100 : 0.2;
+            const finalGrams = Math.round(baseCalculatedGrams * (0.4 + 0.6 * infillPercent));
+            
+            const totalMinutes = finalGrams * 8;
+            const hours = (totalMinutes / 60).toFixed(1);
+            const totalPrice = finalGrams * 1500;
+
+            const gEl = document.getElementById('stat-grams');
+            const hEl = document.getElementById('stat-hours');
+            const pEl = document.getElementById('custom-price-display');
+
+            if(gEl) gEl.innerText = `${finalGrams} gam`;
+            if(hEl) hEl.innerText = `${hours} giờ`;
+            if(pEl) pEl.innerText = formatPrice(totalPrice);
+        }
+
+        function addCustomToCart() {
+            const gEl = document.getElementById('stat-grams');
+            const pEl = document.getElementById('custom-price-display');
+            if(!gEl || !pEl) return;
+
+            const gramsText = gEl.innerText;
+            const priceText = pEl.innerText;
+            const price = parseInt(priceText.replace(/\D/g, ''));
+            const fileName = uploadedFileName || 'File_In_3D_Custom';
+
+            cart.push({
+                name: `In 3D Theo Yêu Cầu (${fileName} - ${gramsText})`,
+                price: price,
+                image: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=600&auto=format&fit=crop&q=80"
+            });
+            updateCartBadge();
+            alert('Đã thêm dịch vụ in 3D vào giỏ hàng CSET Store!');
+        }
+
+        function handleImageUpload(e) {
+            const file = e.target.files[0];
+            if(file) {
+                const reader = new FileReader();
+                reader.onload = function(evt) { uploadedImageBase64 = evt.target.result; }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function handleAddNewProduct(e) {
+            e.preventDefault();
+            const name = document.getElementById('admin-name').value;
+            const price = parseInt(document.getElementById('admin-price').value);
+            const category = document.getElementById('admin-category').value;
+            const finalImage = uploadedImageBase64 || "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=600&auto=format&fit=crop&q=80";
+
+            products.push({ id: Date.now(), name, category, price, image: finalImage, description: "Sản phẩm in 3D chất lượng cao được thiết kế tại CSET Store." });
+            saveProductsToStorage();
+            renderAdminTable();
+            renderHomeProducts();
+            alert('Thêm sản phẩm mới thành công!');
+            e.target.reset();
+            uploadedImageBase64 = '';
+        }
+
+        function deleteProduct(id) {
+            if(confirm('Bạn muốn xóa sản phẩm này khỏi CSET Store?')) {
+                products = products.filter(p => p.id !== id);
+                saveProductsToStorage();
+                renderAdminTable();
+                renderHomeProducts();
+            }
+        }
+
+        function renderAdminTable() {
+            const tbody = document.getElementById('admin-product-table');
+            if(!tbody) return;
+            tbody.innerHTML = products.map(p => `
+                <tr class="border-b border-gray-200">
+                    <td class="p-3"><img src="${p.image}" class="w-10 h-10 rounded object-cover"></td>
+                    <td class="p-3 font-bold text-blue-950">${p.name}</td>
+                    <td class="p-3 text-blue-900 font-semibold">${formatPrice(p.price)}</td>
+                    <td class="p-3"><button type="button" onclick="deleteProduct(${p.id})" class="text-red-500 hover:text-red-700 font-semibold cursor-pointer"><i class="fa-solid fa-trash"></i> Xóa</button></td>
+                </tr>
+            `).join('');
+        }
+
+        // Khởi chạy khi trang đã tải xong hoàn toàn
+        document.addEventListener('DOMContentLoaded', function() {
+            renderHomeProducts();
+            recalculateStats();
+        });
+    </script>
+</body>
+</html>
