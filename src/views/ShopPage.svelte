@@ -47,8 +47,14 @@
   let displayedProducts = $derived(
     filteredList.slice(0, visibleCount)
   );
+  let col1Products = $derived(
+    displayedProducts.filter((_, i) => i % 2 === 0)
+  );
+  let col2Products = $derived(
+    displayedProducts.filter((_, i) => i % 2 === 1)
+  );
+  let isMobileFilterExpanded = $state<boolean>(false);
   let hasMore = $derived(visibleCount < filteredList.length);
-
   function loadMore() {
     if (isLoadingMore || !hasMore) return;
     isLoadingMore = true;
@@ -102,8 +108,8 @@
   </div>
 
   <div class="flex flex-col lg:flex-row gap-8">
-    <!-- Filter Sidebar -->
-    <aside class="w-full lg:w-72 glass-panel p-6 rounded-3xl border border-slate-200 h-fit space-y-6 bg-white shrink-0 shadow-sm">
+    <!-- Desktop Filter Sidebar -->
+    <aside class="hidden lg:block w-72 glass-panel p-6 rounded-3xl border border-slate-200 h-fit space-y-6 bg-white shrink-0 shadow-sm">
       <div class="flex items-center justify-between border-b border-slate-200 pb-4">
         <h3 class="text-lg font-bold text-blue-950 flex items-center">
           <i class="fa-solid fa-filter text-blue-900 mr-2"></i>
@@ -221,6 +227,128 @@
       </div>
     </aside>
 
+    <!-- Mobile Collapsible Filter (Thu gọn chỉ hiển thị icon) -->
+    <div class="lg:hidden bg-white border border-slate-200 rounded-3xl p-3.5 space-y-3 shadow-2xs">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="w-7 h-7 rounded-lg bg-blue-50 text-blue-900 flex items-center justify-center text-xs font-bold shrink-0">
+            <i class="fa-solid fa-filter"></i>
+          </span>
+          <span class="text-xs font-black text-blue-950 truncate">Ngành Hàng</span>
+          {#if appStore.selectedCategory !== 'all'}
+            {@const activeCat = displayCategories.find(c => c.key === appStore.selectedCategory)}
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-900 truncate shrink-0">
+              {activeCat?.label}
+            </span>
+          {/if}
+        </div>
+
+        <div class="flex items-center gap-2 shrink-0">
+          {#if appStore.selectedCategory !== 'all' || selectedSubCategory || appStore.searchQuery}
+            <button
+              type="button"
+              onclick={() => {
+                appStore.selectedCategory = 'all';
+                selectedSubCategory = '';
+                appStore.searchQuery = '';
+              }}
+              class="text-[11px] text-rose-600 hover:underline font-bold cursor-pointer"
+            >
+              Đặt lại
+            </button>
+          {/if}
+          <button
+            type="button"
+            onclick={() => isMobileFilterExpanded = !isMobileFilterExpanded}
+            class="px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+          >
+            <span>{isMobileFilterExpanded ? 'Thu gọn icon' : 'Mở rộng'}</span>
+            <i class="fa-solid {isMobileFilterExpanded ? 'fa-chevron-up' : 'fa-chevron-down'} text-[10px]"></i>
+          </button>
+        </div>
+      </div>
+
+      {#if !isMobileFilterExpanded}
+        <!-- Compact Icon-Only Horizontal Strip (Thu gọn chỉ icon) -->
+        <div class="flex items-center gap-2.5 overflow-x-auto py-1 scrollbar-none px-0.5">
+          {#each displayCategories as cat}
+            {@const isSelected = appStore.selectedCategory === cat.key}
+            <button
+              type="button"
+              onclick={() => handleCategoryChange(cat.key)}
+              class="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-all duration-200 cursor-pointer relative {isSelected
+                ? 'bg-blue-900 text-white shadow-md scale-105 ring-2 ring-blue-300'
+                : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'}"
+              title={cat.label}
+              aria-label={cat.label}
+            >
+              {#if cat.customIconImage}
+                <img src={cat.customIconImage} alt={cat.label} class="w-5 h-5 object-contain" />
+              {:else}
+                <i class="fa-solid {cat.icon || 'fa-box'} text-base"></i>
+              {/if}
+              {#if isSelected}
+                <span class="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-500 border-2 border-white"></span>
+              {/if}
+            </button>
+          {/each}
+        </div>
+
+        <!-- Quick Subcategories strip on mobile -->
+        {#if activeSubCategories.length > 0}
+          <div class="flex items-center gap-1.5 overflow-x-auto pt-1 pb-0.5 scrollbar-none border-t border-slate-100 text-[11px]">
+            <button
+              type="button"
+              onclick={() => selectedSubCategory = ''}
+              class="px-2.5 py-1 rounded-lg font-semibold shrink-0 transition {!selectedSubCategory ? 'bg-purple-100 text-purple-900 font-bold border border-purple-300' : 'bg-slate-100 text-slate-600'}"
+            >
+              Tất cả
+            </button>
+            {#each activeSubCategories as sub}
+              <button
+                type="button"
+                onclick={() => selectedSubCategory = sub.name}
+                class="px-2.5 py-1 rounded-lg font-semibold shrink-0 transition {selectedSubCategory === sub.name ? 'bg-purple-100 text-purple-900 font-bold border border-purple-300' : 'bg-slate-100 text-slate-600'}"
+              >
+                {sub.name}
+              </button>
+            {/each}
+          </div>
+        {/if}
+      {:else}
+        <!-- Expanded Mobile Filter with text -->
+        <div class="space-y-3 pt-2 border-t border-slate-100 animate-in fade-in duration-150">
+          <div class="relative">
+            <input
+              type="text"
+              bind:value={appStore.searchQuery}
+              placeholder="Tìm sản phẩm..."
+              class="w-full bg-slate-50 border border-slate-300 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-900 focus:outline-none"
+            />
+            <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-slate-400 text-xs"></i>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            {#each displayCategories as cat}
+              {@const isSelected = appStore.selectedCategory === cat.key}
+              <button
+                type="button"
+                onclick={() => handleCategoryChange(cat.key)}
+                class="px-3 py-2 rounded-xl font-bold border text-left flex items-center justify-between transition cursor-pointer {isSelected
+                  ? 'bg-blue-900 text-white border-blue-900 shadow-xs'
+                  : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'}"
+              >
+                <span class="flex items-center gap-1.5 truncate">
+                  <i class="fa-solid {cat.icon || 'fa-box'} text-xs"></i>
+                  <span class="truncate">{cat.label}</span>
+                </span>
+              </button>
+            {/each}
+          </div>
+        </div>
+      {/if}
+    </div>
+
     <!-- Product Grid Area -->
     <div class="flex-grow">
       {#if appStore.filteredProducts.length === 0}
@@ -245,7 +373,25 @@
         </div>
       {:else}
         <div class="space-y-6">
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 gap-6">
+          <!-- Staggered 2-Column Mobile Grid (Cột đôi sole nhau lệch nhịp) -->
+          <div class="grid grid-cols-2 gap-3.5 items-start md:hidden">
+            <!-- Left Column 1 (starts at top) -->
+            <div class="flex flex-col gap-3.5">
+              {#each col1Products as product (product.id)}
+                <ProductCard {product} />
+              {/each}
+            </div>
+
+            <!-- Right Column 2 (Staggered offset pt-6 / Lệch nhịp sole nhau) -->
+            <div class="flex flex-col gap-3.5 pt-6">
+              {#each col2Products as product (product.id)}
+                <ProductCard {product} />
+              {/each}
+            </div>
+          </div>
+
+          <!-- Standard Grid for Tablet and Desktop -->
+          <div class="hidden md:grid md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 gap-6">
             {#each displayedProducts as product (product.id)}
               <ProductCard {product} />
             {/each}
