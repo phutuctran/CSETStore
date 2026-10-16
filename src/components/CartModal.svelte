@@ -67,14 +67,16 @@
     <div
       class="glass-panel w-full max-w-2xl rounded-3xl border border-slate-200 p-6 md:p-8 relative space-y-6 bg-white shadow-2xl max-h-[90vh] overflow-y-auto z-10 animate-in fade-in zoom-in-95 duration-200"
     >
-      <div class="flex items-center justify-between border-b border-slate-200 pb-4">
-        <h3 class="text-xl font-bold text-blue-950 flex items-center">
-          <i class="fa-solid fa-cart-shopping text-blue-900 mr-2.5"></i>
-          Giỏ Hàng & Thanh Toán
-          <span class="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-900">
+      <div class="flex items-center justify-between border-b border-slate-200 pb-4 gap-2">
+        <div class="flex items-center gap-2 min-w-0">
+          <i class="fa-solid fa-cart-shopping text-blue-900 text-lg sm:text-xl shrink-0"></i>
+          <h3 class="text-lg sm:text-xl font-bold text-blue-950 truncate">
+            Giỏ Hàng
+          </h3>
+          <span class="whitespace-nowrap text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-900 shrink-0 inline-flex items-center">
             {appStore.cartCount} món
           </span>
-        </h3>
+        </div>
         <button
           type="button"
           onclick={() => appStore.closeCart()}
