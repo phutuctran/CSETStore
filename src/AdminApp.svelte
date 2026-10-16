@@ -374,9 +374,9 @@
   let backupJsonInput = $state('');
   let restoreStatusMessage = $state('');
 
-  function handleDownloadBackup() {
-    backupService.downloadBackupFile(currentAdmin?.fullName || 'Super Admin');
-    showToast('Đã xuất file sao lưu dữ liệu toàn trang về máy tính!');
+  async function handleDownloadBackup() {
+    await backupService.downloadDatabaseBackupFile(currentAdmin?.fullName || 'Super Admin');
+    showToast('Đã xuất file sao lưu cơ sở dữ liệu SQL (.sql) về máy tính!');
   }
 
   function handleUploadBackupFile(e: Event) {
@@ -392,21 +392,23 @@
     }
   }
 
-  function handleExecuteRestore() {
+  async function handleExecuteRestore() {
     if (!backupJsonInput.trim()) {
-      alert('Vui lòng chọn file backup hoặc dán nội dung JSON vào ô!');
+      alert('Vui lòng chọn file backup database (.sql / .sqlite / .json) hoặc dán nội dung vào ô!');
       return;
     }
     if (confirm('CẢNH BÁO: Quá trình khôi phục sẽ ghi đè toàn bộ sản phẩm, danh mục, đơn hàng, tài khoản và giao diện hiện tại bằng dữ liệu backup. Bạn có chắc chắn muốn khôi phục?')) {
-      const res = backupService.restoreFromBackupJSON(backupJsonInput);
+      const res = await backupService.restoreDatabaseFile(backupJsonInput);
       restoreStatusMessage = res.message;
       if (res.success) {
         products = productRepo.getAll();
         categories = categoryRepo.getAll();
         orders = orderRepo.getAll();
         users = userRepo.getAll();
+        coupons = couponRepo.getAll();
+        reviews = reviewRepo.getAll();
         themeDraft = themeRepo.getTheme();
-        showToast('Khôi phục toàn bộ hệ thống thành công!');
+        showToast('Khôi phục cơ sở dữ liệu SQL thành công!');
       } else {
         alert(res.message);
       }
@@ -3973,62 +3975,80 @@
             <!-- BACKUP CARD -->
             <div class="bg-white border border-slate-300 rounded-lg p-5 space-y-4">
               <div class="flex items-center gap-2.5 border-b border-slate-200 pb-2.5">
-                <i class="fa-solid fa-download text-blue-900 text-base"></i>
-                <h3 class="font-bold text-slate-900 text-sm">Sao Lưu Dữ Liệu Toàn Trang</h3>
+                <i class="fa-solid fa-database text-blue-900 text-base"></i>
+                <h3 class="font-bold text-slate-900 text-sm">Sao Lưu Cơ Sở Dữ Liệu SQL (Database Backup)</h3>
               </div>
 
               <p class="text-slate-600 leading-relaxed">
-                Hệ thống sẽ đóng gói tất cả các phân hệ dữ liệu hiện có bao gồm:
+                Hệ thống sẽ kết xuất toàn bộ cơ sở dữ liệu SQL ra file kịch bản <code class="text-blue-900 font-bold font-mono">.sql</code> chứa đầy đủ cấu trúc bảng và dữ liệu:
               </p>
 
-              <ul class="space-y-1 text-slate-700 bg-slate-50 p-3 rounded border border-slate-200 font-medium">
-                <li>✓ Toàn bộ {products.length} sản phẩm, nhiều ảnh & thông số kỹ thuật</li>
-                <li>✓ {categories.length} ngành hàng & các loại danh mục con</li>
-                <li>✓ {orders.length} đơn hàng & lịch sử giao dịch khách hàng</li>
-                <li>✓ {users.length} tài khoản quản trị và tài khoản khách</li>
-                <li>✓ Tất cả các tab tùy biến (Hot/Sale) & banner quảng cáo</li>
-                <li>✓ Đánh giá, nhận xét, lượt truy cập & cấu hình giao diện</li>
+              <ul class="space-y-1.5 text-slate-700 bg-slate-50 p-3.5 rounded-lg border border-slate-200 font-medium">
+                <li class="flex items-center gap-2 text-xs">
+                  <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                  <span>Bảng <strong>products</strong>: Toàn bộ {products.length} sản phẩm, gallery ảnh, thông số & biến thể</span>
+                </li>
+                <li class="flex items-center gap-2 text-xs">
+                  <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                  <span>Bảng <strong>users</strong>: {users.length} tài khoản (Mật khẩu mã hóa muối PBKDF2, SĐT & Địa chỉ mã hóa AES-256)</span>
+                </li>
+                <li class="flex items-center gap-2 text-xs">
+                  <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                  <span>Bảng <strong>orders</strong>: {orders.length} đơn hàng & lịch sử giao dịch (thông tin người nhận mã hóa)</span>
+                </li>
+                <li class="flex items-center gap-2 text-xs">
+                  <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                  <span>Bảng <strong>categories</strong>: {categories.length} ngành hàng & danh mục chi tiết</span>
+                </li>
+                <li class="flex items-center gap-2 text-xs">
+                  <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                  <span>Bảng <strong>reviews</strong>: {reviews.length} đánh giá khách hàng & phản hồi quản trị viên</span>
+                </li>
+                <li class="flex items-center gap-2 text-xs">
+                  <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                  <span>Bảng <strong>coupons</strong> & <strong>theme_config</strong>: Cấu hình mã ưu đãi và toàn bộ giao diện</span>
+                </li>
               </ul>
 
               <button
                 type="button"
                 onclick={handleDownloadBackup}
-                class="w-full py-2.5 bg-blue-900 hover:bg-blue-800 text-white rounded font-bold text-xs cursor-pointer shadow-xs flex items-center justify-center gap-2"
+                class="w-full py-3 bg-blue-900 hover:bg-blue-800 text-white rounded-lg font-bold text-xs cursor-pointer shadow-xs flex items-center justify-center gap-2 transition"
               >
-                <i class="fa-solid fa-file-arrow-down"></i>
-                <span>Tải File Sao Lưu (.JSON) Về Máy</span>
+                <i class="fa-solid fa-database"></i>
+                <span>Tải File Backup Database (.SQL) Về Máy</span>
               </button>
             </div>
 
             <!-- RESTORE CARD -->
             <div class="bg-white border border-slate-300 rounded-lg p-5 space-y-4">
               <div class="flex items-center gap-2.5 border-b border-slate-200 pb-2.5">
-                <i class="fa-solid fa-upload text-emerald-800 text-base"></i>
-                <h3 class="font-bold text-slate-900 text-sm">Khôi Phục Từ File Backup</h3>
+                <i class="fa-solid fa-rotate-left text-emerald-800 text-base"></i>
+                <h3 class="font-bold text-slate-900 text-sm">Khôi Phục Cơ Sở Dữ Liệu Từ File Backup</h3>
               </div>
 
               <p class="text-slate-600 leading-relaxed">
-                Chọn file sao lưu JSON đã tải về trước đó để khôi phục toàn vẹn dữ liệu cho website:
+                Chọn file sao lưu database (<code class="text-emerald-800 font-bold font-mono">.sql</code> / <code class="text-emerald-800 font-bold font-mono">.sqlite</code>) để khôi phục toàn vẹn dữ liệu cho hệ thống:
               </p>
 
               <div class="space-y-2">
-                <label for="bk-file" class="font-semibold text-slate-700 block">Chọn file backup từ máy tính</label>
+                <label for="bk-file" class="font-semibold text-slate-700 block">Chọn file backup database từ máy tính</label>
                 <input
                   id="bk-file"
                   type="file"
-                  accept=".json,application/json"
+                  accept=".sql,.sqlite,.json,text/plain"
                   onchange={handleUploadBackupFile}
                   class="w-full border border-slate-300 rounded px-3 py-1.5 text-xs bg-white text-slate-600"
                 />
               </div>
 
               <div class="space-y-1">
-                <label for="bk-json" class="font-semibold text-slate-700 block">Hoặc dán nội dung JSON backup</label>
+                <label for="bk-json" class="font-semibold text-slate-700 block">Hoặc dán nội dung script SQL / JSON backup</label>
                 <textarea
                   id="bk-json"
                   bind:value={backupJsonInput}
-                  rows={3}
-                  placeholder="Dán mã JSON backup vào đây..."
+                  rows={4}
+                  placeholder="Dán câu lệnh SQL hoặc mã backup vào đây..."
                   class="w-full border border-slate-300 rounded p-2 text-[11px] font-mono text-slate-800 focus:outline-none"
                 ></textarea>
               </div>
@@ -4042,10 +4062,10 @@
               <button
                 type="button"
                 onclick={handleExecuteRestore}
-                class="w-full py-2.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded font-bold text-xs cursor-pointer shadow-xs flex items-center justify-center gap-2"
+                class="w-full py-3 bg-emerald-800 hover:bg-emerald-900 text-white rounded-lg font-bold text-xs cursor-pointer shadow-xs flex items-center justify-center gap-2 transition"
               >
-                <i class="fa-solid fa-rotate-left"></i>
-                <span>Bắt Đầu Khôi Phục Dữ Liệu</span>
+                <i class="fa-solid fa-arrow-rotate-left"></i>
+                <span>Bắt Đầu Khôi Phục Database SQL</span>
               </button>
             </div>
           </div>

@@ -4,42 +4,24 @@ import path from 'path';
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 5174;
 const DIST = path.join(import.meta.dirname, 'dist');
-const DATA_DIR = path.join(import.meta.dirname, 'data');
-
-function getProducts() {
-  const filePath = path.join(DATA_DIR, 'products.json');
-  if (fs.existsSync(filePath)) {
-    try {
-      return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-    } catch (e) {
-      console.error('Error reading products.json:', e);
-    }
-  }
-  return [];
-}
-
-function getReviews() {
-  const filePath = path.join(DATA_DIR, 'reviews.json');
-  if (fs.existsSync(filePath)) {
-    try {
-      return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-    } catch (e) {
-      console.error('Error reading reviews.json:', e);
-    }
-  }
-  return [];
-}
-
-function saveProducts(products) {
-  const filePath = path.join(DATA_DIR, 'products.json');
-  try {
-    fs.writeFileSync(filePath, JSON.stringify(products, null, 2), 'utf-8');
-    return true;
-  } catch (e) {
-    console.error('Error saving products.json:', e);
-    return false;
-  }
-}
+import {
+  sqlGetProducts,
+  sqlGetProductById,
+  sqlCreateProduct,
+  sqlUpdateProduct,
+  sqlDeleteProduct,
+  sqlGetReviews,
+  sqlCreateReview,
+  sqlUpdateReview,
+  sqlDeleteReview,
+  sqlGetCategories,
+  sqlGetOrders,
+  sqlCreateOrder,
+  sqlUpdateOrderStatus,
+  sqlGetUsers,
+  exportSqlDump,
+  restoreSqlDump
+} from './server/database.js';
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
@@ -67,12 +49,39 @@ const server = http.createServer((req, res) => {
       return;
     }
 
+    // GET /api/backup/download (Exports real SQL database backup)
+    if (req.method === 'GET' && (reqPath === '/api/backup/download' || reqPath === '/api/backup/sql')) {
+      const sqlDump = exportSqlDump();
+      const dateStr = new Date().toISOString().split('T')[0];
+      res.setHeader('Content-Type', 'application/sql; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="cset_store_backup_${dateStr}.sql"`);
+      res.writeHead(200);
+      res.end(sqlDump);
+      return;
+    }
+
+    // POST /api/backup/restore (Restores SQL database from SQL backup script)
+    if (req.method === 'POST' && reqPath === '/api/backup/restore') {
+      let body = '';
+      req.on('data', chunk => body += chunk);
+      req.on('end', () => {
+        try {
+          const result = restoreSqlDump(body);
+          res.writeHead(200);
+          res.end(JSON.stringify(result));
+        } catch (err) {
+          res.writeHead(400);
+          res.end(JSON.stringify({ success: false, message: err.message }));
+        }
+      });
+      return;
+    }
+
     // GET /api/products/:id
     const productMatch = reqPath.match(/^\/api\/products\/(\d+)$/);
     if (req.method === 'GET' && productMatch) {
       const prodId = parseInt(productMatch[1], 10);
-      const products = getProducts();
-      const product = products.find(p => p.id === prodId);
+      const product = sqlGetProductById(prodId);
       if (product) {
         res.writeHead(200);
         res.end(JSON.stringify({ success: true, data: product }));
@@ -91,13 +100,10 @@ const server = http.createServer((req, res) => {
       req.on('end', () => {
         try {
           const patch = JSON.parse(body);
-          const products = getProducts();
-          const idx = products.findIndex(p => p.id === prodId);
-          if (idx !== -1) {
-            products[idx] = { ...products[idx], ...patch };
-            saveProducts(products);
+          const success = sqlUpdateProduct(prodId, patch);
+          if (success) {
             res.writeHead(200);
-            res.end(JSON.stringify({ success: true, data: products[idx] }));
+            res.end(JSON.stringify({ success: true, data: sqlGetProductById(prodId) }));
           } else {
             res.writeHead(404);
             res.end(JSON.stringify({ success: false, message: 'Không tìm thấy sản phẩm' }));
@@ -113,11 +119,9 @@ const server = http.createServer((req, res) => {
     // DELETE /api/products/:id
     if (req.method === 'DELETE' && productMatch) {
       const prodId = parseInt(productMatch[1], 10);
-      let products = getProducts();
-      products = products.filter(p => p.id !== prodId);
-      saveProducts(products);
+      const success = sqlDeleteProduct(prodId);
       res.writeHead(200);
-      res.end(JSON.stringify({ success: true }));
+      res.end(JSON.stringify({ success }));
       return;
     }
 
@@ -128,14 +132,9 @@ const server = http.createServer((req, res) => {
       req.on('end', () => {
         try {
           const newProd = JSON.parse(body);
-          const products = getProducts();
-          if (!newProd.id) {
-            newProd.id = products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1;
-          }
-          products.unshift(newProd);
-          saveProducts(products);
+          const created = sqlCreateProduct(newProd);
           res.writeHead(201);
-          res.end(JSON.stringify({ success: true, data: newProd }));
+          res.end(JSON.stringify({ success: true, data: created }));
         } catch (err) {
           res.writeHead(400);
           res.end(JSON.stringify({ success: false, message: 'Dữ liệu không hợp lệ' }));
@@ -146,28 +145,111 @@ const server = http.createServer((req, res) => {
 
     // GET /api/products
     if (req.method === 'GET' && (reqPath === '/api/products' || reqPath === '/api/products/')) {
-      const products = getProducts();
+      const products = sqlGetProducts();
       res.writeHead(200);
       res.end(JSON.stringify({ success: true, data: products }));
       return;
     }
 
-    // GET /api/reviews?productId=:id
+    // GET /api/reviews?productId=:id&all=1
     if (req.method === 'GET' && reqPath === '/api/reviews') {
       const sp = new URLSearchParams(queryString || '');
       const prodId = sp.get('productId');
-      let reviews = getReviews();
-      if (prodId) {
-        reviews = reviews.filter(r => r.productId === parseInt(prodId, 10));
-      }
+      const includeHidden = sp.get('all') === '1';
+      const reviews = sqlGetReviews(prodId, includeHidden);
       res.writeHead(200);
       res.end(JSON.stringify({ success: true, data: reviews }));
       return;
     }
 
-    res.writeHead(404);
-    res.end(JSON.stringify({ success: false, message: 'API route not found' }));
-    return;
+    // POST /api/reviews
+    if (req.method === 'POST' && reqPath === '/api/reviews') {
+      let body = '';
+      req.on('data', chunk => body += chunk);
+      req.on('end', () => {
+        try {
+          const data = JSON.parse(body);
+          const created = sqlCreateReview(data);
+          res.writeHead(201);
+          res.end(JSON.stringify({ success: true, data: created }));
+        } catch (err) {
+          res.writeHead(400);
+          res.end(JSON.stringify({ success: false, message: 'Dữ liệu không hợp lệ' }));
+        }
+      });
+      return;
+    }
+
+    // PUT /api/reviews/:id
+    const reviewMatch = reqPath.match(/^\/api\/reviews\/([^/]+)$/);
+    if (req.method === 'PUT' && reviewMatch) {
+      const revId = reviewMatch[1];
+      let body = '';
+      req.on('data', chunk => body += chunk);
+      req.on('end', () => {
+        try {
+          const patch = JSON.parse(body);
+          const success = sqlUpdateReview(revId, patch);
+          res.writeHead(200);
+          res.end(JSON.stringify({ success }));
+        } catch (err) {
+          res.writeHead(400);
+          res.end(JSON.stringify({ success: false, message: 'Dữ liệu không hợp lệ' }));
+        }
+      });
+      return;
+    }
+
+    // DELETE /api/reviews/:id
+    if (req.method === 'DELETE' && reviewMatch) {
+      const revId = reviewMatch[1];
+      const success = sqlDeleteReview(revId);
+      res.writeHead(200);
+      res.end(JSON.stringify({ success }));
+      return;
+    }
+
+    // GET /api/categories
+    if (req.method === 'GET' && (reqPath === '/api/categories' || reqPath === '/api/categories/')) {
+      const categories = sqlGetCategories();
+      res.writeHead(200);
+      res.end(JSON.stringify({ success: true, data: categories }));
+      return;
+    }
+
+    // GET /api/orders
+    if (req.method === 'GET' && (reqPath === '/api/orders' || reqPath === '/api/orders/')) {
+      const orders = sqlGetOrders();
+      res.writeHead(200);
+      res.end(JSON.stringify({ success: true, data: orders }));
+      return;
+    }
+
+    // POST /api/orders
+    if (req.method === 'POST' && (reqPath === '/api/orders' || reqPath === '/api/orders/')) {
+      let body = '';
+      req.on('data', chunk => body += chunk);
+      req.on('end', () => {
+        try {
+          const newOrder = JSON.parse(body);
+          const created = sqlCreateOrder(newOrder);
+          res.writeHead(201);
+          res.end(JSON.stringify({ success: true, data: created }));
+        } catch (err) {
+          res.writeHead(400);
+          res.end(JSON.stringify({ success: false, message: 'Dữ liệu không hợp lệ' }));
+        }
+      });
+      return;
+    }
+
+    // GET /api/users
+    if (req.method === 'GET' && (reqPath === '/api/users' || reqPath === '/api/users/')) {
+      const users = sqlGetUsers();
+      res.writeHead(200);
+      res.end(JSON.stringify({ success: true, data: users }));
+      return;
+    }
   }
 
   let reqUrl = reqPath;
