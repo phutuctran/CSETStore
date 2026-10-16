@@ -1,18 +1,23 @@
 @echo off
 title CSET Store - Offline Deployment Runner
 echo ===================================================
-echo     CSET STORE - 3D PRINTING STUDIO (OFFLINE)
+echo     CSET STORE - SIEU THI MUA SAM TRUC TUYEN (OFFLINE)
 echo ===================================================
 echo.
-echo Dang kiem tra thu muc dist san pham...
-if not exist "dist" (
-    echo Chua tim thay thu muc dist. Dang tien hanh build...
-    call npm run build
+echo Dang tien hanh dong goi ung dung (npm run build)...
+call npm run build
+if %ERRORLEVEL% NEQ 0 (
+    echo [LOI] Dong goi that bai. Vui long kiem tra lai ma nguon!
+    pause
+    exit /b %ERRORLEVEL%
 )
 
 echo.
-echo Dang khoi chay may chu Offline tai cong 5174...
-echo Ban co the mo trinh duyet truy cap: http://localhost:5174
+echo ===================================================
+echo May chu Offline dang hoat dong tai cong 5174:
+echo   - Cua hang (Store): http://localhost:5174
+echo   - Quan tri (Admin): http://localhost:5174/admin.html
+echo ===================================================
 echo Nhan Ctrl + C de dung may chu bat cu luc nao.
 echo.
 call node serve-offline.mjs

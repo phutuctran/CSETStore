@@ -1,20 +1,35 @@
 <script lang="ts">
   import { appStore } from '../stores/store.svelte';
-  import { formatCurrency, calculateDiscountPercent } from '../services/pricingService';
+  import { formatCurrency, getEffectivePrice, getProductDiscountDetails } from '../services/pricingService';
 
   let product = $derived(appStore.selectedProduct);
   let quantity = $state<number>(1);
-  let discount = $derived(product ? calculateDiscountPercent(product.price, product.originalPrice) : 0);
+  let selectedImage = $state<string>('');
+  let selectedVariants = $state<Record<string, string>>({});
+
+  let effectivePrice = $derived(product ? getEffectivePrice(product) : 0);
+  let discountInfo = $derived(product ? getProductDiscountDetails(product) : { hasDiscount: false, discountPercent: 0 });
 
   $effect(() => {
-    if (appStore.isProductModalOpen) {
+    if (appStore.isProductModalOpen && product) {
       quantity = 1;
+      selectedImage = product.image;
+      // Initialize default selected variants (first option of each group)
+      const initialVariants: Record<string, string> = {};
+      if (product.variantGroups && product.variantGroups.length > 0) {
+        for (const vg of product.variantGroups) {
+          if (vg.options && vg.options.length > 0) {
+            initialVariants[vg.name] = vg.options[0];
+          }
+        }
+      }
+      selectedVariants = initialVariants;
     }
   });
 
   function handleAddToCart() {
     if (product) {
-      appStore.addToCart(product, quantity);
+      appStore.addToCart(product, quantity, { ...selectedVariants });
       appStore.closeProductDetail();
     }
   }
@@ -45,31 +60,57 @@
         <i class="fa-solid fa-xmark"></i>
       </button>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-        <!-- Image Preview -->
-        <div class="h-80 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shadow-inner flex items-center justify-center relative">
-          <img
-            src={product.image}
-            alt={product.name}
-            class="w-full h-full object-cover"
-          />
-          {#if discount > 0}
-            <span class="absolute top-3 left-3 px-3 py-1 rounded-lg text-xs font-black bg-rose-600 text-white shadow-md">
-              GIẢM {discount}%
-            </span>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+        <!-- Image Gallery Preview -->
+        <div class="space-y-3">
+          <div class="h-80 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shadow-inner flex items-center justify-center relative">
+            <img
+              src={selectedImage || product.image}
+              alt={product.name}
+              class="w-full h-full object-cover transition-all duration-300"
+            />
+            {#if discountInfo.hasDiscount}
+              <span class="absolute top-3 left-3 px-3 py-1 rounded-lg text-xs font-black bg-rose-600 text-white shadow-md">
+                GIẢM {discountInfo.discountPercent}%
+              </span>
+            {/if}
+          </div>
+
+          <!-- Thumbnails list if multiple images exist -->
+          {#if product.images && product.images.length > 1}
+            <div class="flex gap-2 overflow-x-auto p-1">
+              {#each product.images as img}
+                <button
+                  type="button"
+                  onclick={() => selectedImage = img}
+                  class="w-14 h-14 rounded-lg overflow-hidden border-2 cursor-pointer transition shrink-0 {(selectedImage === img || (!selectedImage && img === product.image)) ? 'border-blue-900 ring-2 ring-blue-200' : 'border-slate-200 hover:border-slate-400'}"
+                >
+                  <img src={img} alt="Thumbnail" class="w-full h-full object-cover" />
+                </button>
+              {/each}
+            </div>
           {/if}
         </div>
-
         <!-- Details -->
         <div class="space-y-5">
           <div>
-            <div class="flex items-center gap-2">
-              <span class="px-3 py-1 bg-blue-50 text-blue-900 text-xs font-bold rounded-lg uppercase tracking-wider inline-block">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="px-2.5 py-1 bg-blue-50 text-blue-900 text-xs font-bold rounded-lg uppercase tracking-wider inline-block">
                 {product.category}
               </span>
+              {#if product.subCategory}
+                <span class="px-2.5 py-1 bg-purple-50 text-purple-900 text-xs font-semibold rounded-lg">
+                  Loại: <strong>{product.subCategory}</strong>
+                </span>
+              {/if}
               {#if product.brand}
                 <span class="px-2.5 py-1 bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg">
                   Thương hiệu: <strong>{product.brand}</strong>
+                </span>
+              {/if}
+              {#if product.sku}
+                <span class="px-2 py-0.5 bg-slate-100 text-slate-500 font-mono text-[11px] rounded">
+                  SKU: {product.sku}
                 </span>
               {/if}
             </div>
@@ -80,11 +121,11 @@
 
             <div class="flex items-baseline gap-3 mt-2">
               <p class="text-3xl font-black text-blue-900">
-                {formatCurrency(product.price)}
+                {formatCurrency(effectivePrice)}
               </p>
-              {#if product.originalPrice && product.originalPrice > product.price}
+              {#if discountInfo.hasDiscount && discountInfo.originalPrice}
                 <span class="text-sm text-slate-400 line-through font-semibold">
-                  {formatCurrency(product.originalPrice)}
+                  {formatCurrency(discountInfo.originalPrice)}
                 </span>
               {/if}
             </div>
@@ -98,15 +139,60 @@
               {product.description}
             </p>
 
-            <div class="pt-2 flex items-center gap-4 text-xs border-t border-slate-200 text-slate-600">
-              <span class="flex items-center gap-1 text-emerald-700 font-bold">
-                <i class="fa-solid fa-circle-check"></i> Còn hàng ({product.stock ?? 50})
-              </span>
-              <span class="flex items-center gap-1 text-amber-600 font-bold">
-                <i class="fa-solid fa-star"></i> {product.rating ?? 4.9} / 5.0
-              </span>
+            <div class="pt-2 grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs border-t border-slate-200 text-slate-600">
+              <div><strong>Xuất xứ:</strong> {product.origin || 'Chính hãng'}</div>
+              <div><strong>Bảo hành:</strong> {product.warranty || '12 tháng'}</div>
+              {#if product.condition}
+                <div><strong>Tình trạng:</strong> {product.condition}</div>
+              {/if}
+              {#if product.weight}
+                <div><strong>Khối lượng:</strong> {product.weight}</div>
+              {/if}
+              <div><strong>Tồn kho:</strong> {product.stock ?? 50} sản phẩm</div>
+              <div><strong>Đánh giá:</strong> ⭐ {product.rating ?? 4.9} / 5.0</div>
             </div>
+
+            {#if product.specifications && product.specifications.length > 0}
+              <div class="pt-2 border-t border-slate-200 space-y-1.5">
+                <span class="text-[11px] font-bold text-slate-700 uppercase block">Thông số kỹ thuật:</span>
+                <div class="space-y-1 text-xs">
+                  {#each product.specifications as spec}
+                    <div class="flex justify-between py-0.5 border-b border-slate-100 last:border-none">
+                      <span class="text-slate-500">{spec.name}:</span>
+                      <span class="font-medium text-slate-800">{spec.value}</span>
+                    </div>
+                  {/each}
+                </div>
+              </div>
+            {/if}
           </div>
+          <!-- Variant Selector (Phân loại sản phẩm: Màu sắc, Size, ...) -->
+          {#if product.variantGroups && product.variantGroups.length > 0}
+            <div class="space-y-3 pt-1 border-t border-slate-200">
+              {#each product.variantGroups as vg}
+                <div class="space-y-1.5">
+                  <div class="flex items-center justify-between text-xs">
+                    <span class="font-bold text-slate-700 uppercase">{vg.name}:</span>
+                    <span class="font-semibold text-blue-900">{selectedVariants[vg.name] || 'Chưa chọn'}</span>
+                  </div>
+                  <div class="flex flex-wrap gap-2">
+                    {#each vg.options as opt}
+                      {@const isSelected = selectedVariants[vg.name] === opt}
+                      <button
+                        type="button"
+                        onclick={() => { selectedVariants[vg.name] = opt; }}
+                        class="px-3 py-1.5 rounded-lg text-xs font-semibold border transition cursor-pointer {isSelected
+                          ? 'bg-blue-900 text-white border-blue-900 shadow-xs'
+                          : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300'}"
+                      >
+                        {opt}
+                      </button>
+                    {/each}
+                  </div>
+                </div>
+              {/each}
+            </div>
+          {/if}
 
           <!-- Quantity Selector -->
           <div class="flex items-center space-x-4">

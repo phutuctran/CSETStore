@@ -1,6 +1,6 @@
 <script lang="ts">
   import { appStore } from '../stores/store.svelte';
-  import { CATEGORIES } from '../models/constants';
+  import { INITIAL_CATEGORIES as CATEGORIES } from '../models/constants';
   import { formatCurrency } from '../services/pricingService';
 
   // Form states
@@ -40,9 +40,7 @@
       price: newPrice,
       category: newCategory,
       image: finalImage,
-      description: newDescription.trim() || 'Sản phẩm in 3D chất lượng cao được sản xuất tại CSET Store.',
-      grams: newGrams || undefined,
-      printHours: newPrintHours || undefined
+      description: newDescription.trim() || 'Sản phẩm in 3D chất lượng cao được sản xuất tại CSET Store.'
     });
 
     // Reset form
@@ -158,7 +156,7 @@
               bind:value={newCategory}
               class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-sm text-blue-950 focus:outline-none focus:ring-2 focus:ring-blue-900"
             >
-              {#each CATEGORIES.filter(c => c.key !== 'all') as c}
+              {#each CATEGORIES.filter((c: { key: string; label: string }) => c.key !== 'all') as c}
                 <option value={c.key}>{c.label}</option>
               {/each}
             </select>

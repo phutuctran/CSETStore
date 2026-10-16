@@ -5,14 +5,22 @@
   const navItems = [
     { id: 'home', label: 'Trang Chủ', icon: 'fa-solid fa-house' },
     { id: 'shop', label: 'Tất Cả Sản Phẩm', icon: 'fa-solid fa-store' },
-    { id: 'orders', label: 'Đơn Hàng Của Tôi', icon: 'fa-solid fa-box-archive' },
   ] as const;
+
+  let isDropdownOpen = $state(false);
+
+  function toggleDropdown() {
+    isDropdownOpen = !isDropdownOpen;
+  }
+
+  function closeDropdown() {
+    isDropdownOpen = false;
+  }
 </script>
 
-<header class="sticky top-0 z-40 glass-panel border-b border-slate-200">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<header class="sticky top-0 z-40 glass-panel border-b border-slate-200 w-full transition-all">
+  <div class="w-full max-w-7xl 2xl:max-w-[1760px] 3xl:max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 2xl:px-12 transition-all">
     <div class="flex items-center justify-between h-20">
-      <!-- Logo -->
       <button
         type="button"
         onclick={() => appStore.setTab('home')}
@@ -50,28 +58,115 @@
             {item.label}
           </button>
         {/each}
+
+        <!-- Custom Dynamic Navigation Tabs configured in Admin -->
+        {#if themeStore.theme.customTabs}
+          {#each themeStore.theme.customTabs.filter(t => t.enabled) as cTab (cTab.id)}
+            <button
+              type="button"
+              onclick={() => appStore.setTab(cTab.id)}
+              class="px-5 py-2.5 rounded-xl text-sm font-bold transition cursor-pointer flex items-center {appStore.activeTab === cTab.id
+                ? 'bg-red-600 text-white shadow-sm'
+                : 'text-red-700 hover:text-red-900 hover:bg-red-50'}"
+            >
+              <i class="fa-solid {cTab.icon || 'fa-fire'} mr-2 text-amber-500"></i>
+              <span>{cTab.name}</span>
+            </button>
+          {/each}
+        {/if}
+
+        <!-- Tab Đặt Hàng Theo Yêu Cầu (Bật/tắt trong Admin Theme Customizer) -->
+        {#if themeStore.theme.visibility.showCustomOrderTab !== false}
+          <button
+            type="button"
+            onclick={() => appStore.setTab('custom-order')}
+            class="px-5 py-2.5 rounded-xl text-sm font-semibold transition cursor-pointer flex items-center {appStore.activeTab === 'custom-order'
+              ? 'bg-blue-900 text-white shadow-sm'
+              : 'text-slate-600 hover:text-blue-900 hover:bg-slate-200/50'}"
+          >
+            <i class="fa-solid fa-wand-magic-sparkles mr-2 text-amber-500"></i>
+            <span>Đặt Hàng Theo Yêu Cầu</span>
+          </button>
+        {/if}
       </nav>
 
       <!-- Right Actions: Customer Account & Cart -->
       <div class="flex items-center space-x-3">
         {#if appStore.currentCustomer}
-          <div class="hidden sm:flex items-center gap-2 bg-blue-50 px-3 py-1.5 rounded-xl border border-blue-200">
+          <!-- Customer Account Dropdown Menu Button -->
+          <div class="relative hidden sm:block">
             <button
               type="button"
-              onclick={() => appStore.setTab('orders')}
-              class="text-xs font-bold text-blue-950 hover:text-blue-800 transition cursor-pointer flex items-center gap-1.5"
+              onclick={toggleDropdown}
+              class="flex items-center gap-2 bg-blue-50 hover:bg-blue-100/70 px-3.5 py-2 rounded-xl border border-blue-200 transition cursor-pointer text-xs font-bold text-blue-950 focus:outline-none"
             >
-              <i class="fa-solid fa-user-circle text-blue-900 text-sm"></i>
-              <span>{appStore.currentCustomer.fullName.split(' ').pop()}</span>
+              <div class="w-6 h-6 rounded-full bg-blue-900 text-white flex items-center justify-center text-[10px]">
+                <i class="fa-solid fa-user"></i>
+              </div>
+              <span class="max-w-[150px] truncate">{appStore.currentCustomer.fullName}</span>
+              <i class="fa-solid fa-chevron-down text-[10px] text-blue-800 transition-transform duration-200 {isDropdownOpen ? 'rotate-180' : ''}"></i>
             </button>
-            <button
-              type="button"
-              onclick={() => appStore.logoutCustomer()}
-              class="text-[11px] text-slate-400 hover:text-red-600 ml-1 cursor-pointer"
-              title="Đăng xuất"
-            >
-              <i class="fa-solid fa-arrow-right-from-bracket"></i>
-            </button>
+
+            <!-- Dropdown Menu List -->
+            {#if isDropdownOpen}
+              <!-- Backdrop overlay for closing dropdown -->
+              <button
+                type="button"
+                class="fixed inset-0 z-40 bg-transparent w-full h-full border-none cursor-default"
+                onclick={closeDropdown}
+                aria-label="Đóng menu"
+              ></button>
+
+              <div class="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 py-2 text-xs divide-y divide-slate-100 animate-in fade-in zoom-in-95 duration-150">
+                <!-- User header info -->
+                <div class="px-4 py-2.5">
+                  <p class="font-bold text-slate-900 text-xs truncate">{appStore.currentCustomer.fullName}</p>
+                  <p class="text-[11px] text-slate-500 font-mono">@{appStore.currentCustomer.username}</p>
+                </div>
+
+                <!-- Menu options -->
+                <div class="py-1">
+                  <button
+                    type="button"
+                    onclick={() => {
+                      closeDropdown();
+                      appStore.openProfileModal();
+                    }}
+                    class="w-full text-left px-4 py-2 text-slate-700 hover:bg-slate-50 hover:text-blue-900 font-semibold flex items-center gap-2.5 transition cursor-pointer"
+                  >
+                    <i class="fa-solid fa-id-card text-blue-900 w-4 text-center"></i>
+                    <span>Thông Tin & Chỉnh Sửa</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onclick={() => {
+                      closeDropdown();
+                      appStore.setTab('orders');
+                    }}
+                    class="w-full text-left px-4 py-2 text-slate-700 hover:bg-slate-50 hover:text-blue-900 font-semibold flex items-center gap-2.5 transition cursor-pointer"
+                  >
+                    <i class="fa-solid fa-box-archive text-blue-900 w-4 text-center"></i>
+                    <span>Đơn Hàng Của Tôi</span>
+                  </button>
+                </div>
+
+                <!-- Logout option -->
+                <div class="pt-1">
+                  <button
+                    type="button"
+                    onclick={() => {
+                      closeDropdown();
+                      appStore.logoutCustomer();
+                    }}
+                    class="w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 font-semibold flex items-center gap-2.5 transition cursor-pointer"
+                  >
+                    <i class="fa-solid fa-arrow-right-from-bracket w-4 text-center"></i>
+                    <span>Đăng Xuất</span>
+                  </button>
+                </div>
+              </div>
+            {/if}
           </div>
         {:else}
           <button
@@ -114,6 +209,34 @@
           {item.label}
         </button>
       {/each}
+
+      {#if themeStore.theme.customTabs}
+        {#each themeStore.theme.customTabs.filter(t => t.enabled) as cTab (cTab.id)}
+          <button
+            type="button"
+            onclick={() => appStore.setTab(cTab.id)}
+            class="whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-bold flex items-center shrink-0 {appStore.activeTab === cTab.id
+              ? 'bg-red-600 text-white'
+              : 'text-red-700 bg-red-50'}"
+          >
+            <i class="fa-solid {cTab.icon || 'fa-fire'} mr-1.5 text-amber-500"></i>
+            <span>{cTab.name}</span>
+          </button>
+        {/each}
+      {/if}
+
+      {#if themeStore.theme.visibility.showCustomOrderTab !== false}
+        <button
+          type="button"
+          onclick={() => appStore.setTab('custom-order')}
+          class="whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center shrink-0 {appStore.activeTab === 'custom-order'
+            ? 'bg-blue-900 text-white'
+            : 'text-slate-600'}"
+        >
+          <i class="fa-solid fa-wand-magic-sparkles mr-1.5 text-amber-500"></i>
+          <span>Đặt Hàng Theo Yêu Cầu</span>
+        </button>
+      {/if}
     </div>
   </div>
 </header>

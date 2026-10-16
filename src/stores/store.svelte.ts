@@ -1,17 +1,18 @@
-import type { Product, CartItem, Order, CategoryKey, User } from '../models/types';
-import { LocalStorageProductRepository, LocalStorageOrderRepository } from '../repositories';
+import type { Product, CartItem, Order, CategoryKey, User, Coupon } from '../models/types';
+import { LocalStorageProductRepository, LocalStorageOrderRepository, LocalStorageCouponRepository } from '../repositories';
 import { authService } from '../services/authService';
-
+import { routerService } from '../services/routerService';
+import { getEffectivePrice } from '../services/pricingService';
 const productRepo = new LocalStorageProductRepository();
 const orderRepo = new LocalStorageOrderRepository();
-
+const couponRepo = new LocalStorageCouponRepository();
 class StoreState {
-  // Navigation State
-  activeTab = $state<'home' | 'shop' | 'orders'>('home');
-
+  // Navigation State (supports 'home', 'shop', 'orders', or any custom tab id)
+  activeTab = $state<string>('home');
   // Customer Auth State
   currentCustomer = $state<User | null>(authService.getCustomerSession());
   isAuthModalOpen = $state<boolean>(false);
+  isProfileModalOpen = $state<boolean>(false);
   authMode = $state<'login' | 'register'>('login');
 
   // Products State
@@ -19,9 +20,25 @@ class StoreState {
   selectedCategory = $state<CategoryKey>('all');
   searchQuery = $state<string>('');
 
+  constructor() {
+    if (typeof window !== 'undefined') {
+      window.addEventListener('storage', (e) => {
+        if (e.key === 'cset_products_v5') {
+          this.products = productRepo.getAll();
+        }
+        if (e.key === 'cset_orders_v5') {
+          this.orders = orderRepo.getAll();
+        }
+      });
+    }
+  }
   // Cart State
   cart = $state<CartItem[]>([]);
   isCartOpen = $state<boolean>(false);
+
+  // Coupon State
+  appliedCoupon = $state<Coupon | null>(null);
+  couponError = $state<string>('');
 
   // Product Detail Modal State
   selectedProduct = $state<Product | null>(null);
@@ -32,7 +49,6 @@ class StoreState {
 
   // Toast notification
   toastMessage = $state<string | null>(null);
-
   // Derived state
   filteredProducts = $derived(
     this.products.filter((p) => {
@@ -46,16 +62,91 @@ class StoreState {
     this.cart.reduce((sum, item) => sum + item.quantity, 0)
   );
 
-  cartTotal = $derived(
+  subtotal = $derived(
     this.cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
   );
 
+  discountAmount = $derived.by(() => {
+    if (!this.appliedCoupon) return 0;
+    const sub = this.subtotal;
+    if (this.appliedCoupon.minOrderValue && sub < this.appliedCoupon.minOrderValue) {
+      return 0;
+    }
+    let discount = 0;
+    if (this.appliedCoupon.discountType === 'percentage') {
+      discount = Math.round((sub * this.appliedCoupon.discountValue) / 100);
+      if (this.appliedCoupon.maxDiscountAmount && discount > this.appliedCoupon.maxDiscountAmount) {
+        discount = this.appliedCoupon.maxDiscountAmount;
+      }
+    } else {
+      discount = this.appliedCoupon.discountValue;
+    }
+    return Math.min(discount, sub);
+  });
+
+  cartTotal = $derived(
+    Math.max(0, this.subtotal - this.discountAmount)
+  );
+
+  // Coupon Actions
+  applyCoupon(code: string): boolean {
+    this.couponError = '';
+    if (!code.trim()) {
+      this.couponError = 'Vui lòng nhập mã giảm giá!';
+      return false;
+    }
+    const coupon = couponRepo.getByCode(code);
+    if (!coupon) {
+      this.couponError = 'Mã giảm giá không tồn tại hoặc đã hết hạn!';
+      return false;
+    }
+    if (!coupon.isActive) {
+      this.couponError = 'Mã giảm giá hiện đang tạm khóa!';
+      return false;
+    }
+    if (coupon.usageLimit && coupon.usedCount >= coupon.usageLimit) {
+      this.couponError = 'Mã giảm giá đã đạt giới hạn lượt sử dụng!';
+      return false;
+    }
+    if (coupon.minOrderValue && this.subtotal < coupon.minOrderValue) {
+      this.couponError = `Đơn hàng tối thiểu ${coupon.minOrderValue.toLocaleString('vi-VN')} VNĐ để áp dụng mã này!`;
+      return false;
+    }
+
+    this.appliedCoupon = coupon;
+    this.showToast(`Đã áp dụng mã giảm giá "${coupon.code}" thành công!`);
+    return true;
+  }
+
+  removeCoupon() {
+    this.appliedCoupon = null;
+    this.couponError = '';
+    this.showToast('Đã hủy mã giảm giá');
+  }
   // Navigation Actions
-  setTab(tab: 'home' | 'shop' | 'orders') {
+  setTab(tab: string) {
     this.activeTab = tab;
+    if (tab === 'home') {
+      routerService.navigate('/');
+    } else if (tab === 'shop') {
+      routerService.navigate('/shop');
+    } else if (tab === 'orders') {
+      routerService.navigate('/orders');
+    } else if (tab === 'custom-order') {
+      routerService.navigate('/custom-order');
+    } else if (tab.startsWith('tab-')) {
+      routerService.navigate('/tab', tab);
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  // Dedicated Product Detail Page
+  viewProductDetail(product: { id: number }) {
+    this.selectedProduct = null;
+    this.activeTab = 'product-detail';
+    routerService.navigate('/product', product.id.toString());
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
   // Customer Auth Actions
   openAuthModal(mode: 'login' | 'register' = 'login') {
     this.authMode = mode;
@@ -64,6 +155,14 @@ class StoreState {
 
   closeAuthModal() {
     this.isAuthModalOpen = false;
+  }
+
+  openProfileModal() {
+    this.isProfileModalOpen = true;
+  }
+
+  closeProfileModal() {
+    this.isProfileModalOpen = false;
   }
 
   loginCustomer(username: string, pass: string) {
@@ -101,6 +200,18 @@ class StoreState {
     this.showToast('Đã đăng xuất tài khoản khách hàng!');
   }
 
+  updateCustomerProfile(patch: { fullName: string; phone: string; address: string; password?: string }) {
+    if (!this.currentCustomer) return false;
+    const updated = authService.updateCustomerProfile(this.currentCustomer.id, patch);
+    if (updated) {
+      this.currentCustomer = updated;
+      this.closeProfileModal();
+      this.showToast('Đã cập nhật thông tin cá nhân thành công!');
+      return true;
+    }
+    this.showToast('Cập nhật thông tin thất bại!');
+    return false;
+  }
   customerOrders = $derived(
     this.currentCustomer
       ? this.orders.filter((o) => o.customerId === this.currentCustomer?.id || o.phone === this.currentCustomer?.phone)
@@ -159,26 +270,46 @@ class StoreState {
     this.isCartOpen = false;
   }
 
-  addToCart(product: Product, quantity = 1) {
+  addToCart(product: Product, quantity = 1, selectedVariants?: Record<string, string>) {
+    // Generate unique key for items with same product but different variants
+    const variantKey = selectedVariants ? JSON.stringify(selectedVariants) : '';
     const existingIndex = this.cart.findIndex(
-      (item) => item.productId === product.id
+      (item) => item.productId === product.id && JSON.stringify(item.selectedVariants || '') === variantKey
     );
 
     if (existingIndex > -1) {
       this.cart[existingIndex].quantity += quantity;
     } else {
+      const effectivePrice = getEffectivePrice(product);
       this.cart.push({
         id: 'ITEM-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
         productId: product.id,
         name: product.name,
-        price: product.price,
-        originalPrice: product.originalPrice,
+        price: effectivePrice,
+        originalPrice: product.originalPrice || (effectivePrice < product.price ? product.price : undefined),
         image: product.image,
-        quantity
+        quantity,
+        selectedVariants
       });
     }
 
-    this.showToast(`Đã thêm "${product.name}" vào giỏ hàng!`);
+    const variantSuffix = selectedVariants && Object.keys(selectedVariants).length > 0
+      ? ` (${Object.values(selectedVariants).join(', ')})`
+      : '';
+    this.showToast(`Đã thêm "${product.name}${variantSuffix}" vào giỏ hàng!`);
+  }
+
+  addCustomOrderToCart(customOrder: { fileName: string; grams: number; hours: number; price: number; infill: number }) {
+    this.cart.push({
+      id: 'CUSTOM-' + Date.now(),
+      name: `Sản Phẩm Theo Yêu Cầu (${customOrder.fileName})`,
+      price: customOrder.price,
+      image: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=400&q=80',
+      quantity: 1,
+      details: { isCustom: true, ...customOrder }
+    });
+    this.openCart();
+    this.showToast('Đã thêm sản phẩm theo yêu cầu vào giỏ hàng!');
   }
 
   removeFromCart(cartItemId: string) {
@@ -207,18 +338,32 @@ class StoreState {
       return null;
     }
 
+    const subtotal = this.subtotal;
+    const discount = this.discountAmount;
+    const finalTotal = this.cartTotal;
+    const coupon = this.appliedCoupon;
+
     const newOrder = orderRepo.create({
       customerId: !customer.isGuest && this.currentCustomer ? this.currentCustomer.id : undefined,
       customerName: customer.name,
       phone: customer.phone,
       address: customer.address,
       items: [...this.cart],
-      totalAmount: this.cartTotal,
+      subtotalAmount: subtotal,
+      couponCode: coupon ? coupon.code : undefined,
+      discountAmount: discount > 0 ? discount : undefined,
+      totalAmount: finalTotal,
       status: 'pending'
     });
 
+    // If coupon used, increment its usage
+    if (coupon) {
+      couponRepo.incrementUsage(coupon.code);
+    }
+
     this.orders = orderRepo.getAll();
     this.clearCart();
+    this.appliedCoupon = null;
     this.isCartOpen = false;
     this.showToast(`Đặt hàng thành công! Mã đơn: ${newOrder.id}`);
     return newOrder;

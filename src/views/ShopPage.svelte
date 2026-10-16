@@ -1,8 +1,90 @@
 <script lang="ts">
   import { appStore } from '../stores/store.svelte';
-  import { CATEGORIES } from '../models/constants';
-  import type { CategoryKey } from '../models/types';
+  import { LocalStorageCategoryRepository } from '../repositories';
   import ProductCard from '../components/ProductCard.svelte';
+  import Pagination from '../components/Pagination.svelte';
+  import { routerService } from '../services/routerService';
+
+  const categoryRepo = new LocalStorageCategoryRepository();
+  let categories = $state(categoryRepo.getAll());
+  let selectedSubCategory = $state<string>('');
+
+  // Pagination State
+  let currentPage = $state<number>(1);
+  const pageSize = 6;
+
+  // Synchronize route query on mount
+  $effect(() => {
+    const route = routerService.parseHash();
+    if (route.query.page) {
+      const p = parseInt(route.query.page, 10);
+      if (!isNaN(p) && p > 0) currentPage = p;
+    }
+    if (route.query.cat && route.query.cat !== appStore.selectedCategory) {
+      appStore.selectedCategory = route.query.cat;
+    }
+  });
+
+  let displayCategories = $derived([
+    { key: 'all', label: 'Tất cả sản phẩm', icon: 'fa-layer-group', subcategories: [] },
+    ...categories
+  ]);
+
+  let activeSubCategories = $derived(
+    categories.find(c => c.key === appStore.selectedCategory)?.subcategories || []
+  );
+
+  let filteredList = $derived(
+    appStore.filteredProducts.filter(p => {
+      if (!selectedSubCategory) return true;
+      return p.subCategory === selectedSubCategory;
+    })
+  );
+  let visibleCount = $state<number>(8);
+  let isLoadingMore = $state<boolean>(false);
+  let sentinelEl = $state<HTMLDivElement | null>(null);
+
+  let displayedProducts = $derived(
+    filteredList.slice(0, visibleCount)
+  );
+  let hasMore = $derived(visibleCount < filteredList.length);
+
+  function loadMore() {
+    if (isLoadingMore || !hasMore) return;
+    isLoadingMore = true;
+    setTimeout(() => {
+      visibleCount = Math.min(filteredList.length, visibleCount + 6);
+      isLoadingMore = false;
+    }, 250);
+  }
+
+  // Reset visibleCount whenever category, subCategory or searchQuery changes
+  $effect(() => {
+    const _c = appStore.selectedCategory;
+    const _s = selectedSubCategory;
+    const _q = appStore.searchQuery;
+    visibleCount = 8;
+  });
+
+  // Setup IntersectionObserver for continuous scroll
+  $effect(() => {
+    if (!sentinelEl || typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && hasMore && !isLoadingMore) {
+        loadMore();
+      }
+    }, { rootMargin: '250px' });
+
+    observer.observe(sentinelEl);
+    return () => observer.disconnect();
+  });
+
+  function handleCategoryChange(catKey: string) {
+    appStore.selectedCategory = catKey;
+    selectedSubCategory = '';
+    visibleCount = 8;
+    routerService.navigate('/shop', undefined, { cat: catKey !== 'all' ? catKey : undefined });
+  }
 </script>
 
 <div class="space-y-8">
@@ -15,7 +97,7 @@
       </p>
     </div>
     <div class="text-sm font-semibold text-slate-500">
-      Hiển thị <span class="text-blue-900 font-bold">{appStore.filteredProducts.length}</span> / {appStore.products.length} sản phẩm
+      Hiển thị: <span class="text-blue-900 font-bold">{displayedProducts.length}</span> / {filteredList.length} sản phẩm
     </div>
   </div>
 
@@ -74,16 +156,20 @@
           Ngành Hàng
         </span>
         <div class="space-y-1">
-          {#each CATEGORIES as cat}
+          {#each displayCategories as cat}
             <button
               type="button"
-              onclick={() => appStore.selectedCategory = cat.key as CategoryKey}
+              onclick={() => handleCategoryChange(cat.key)}
               class="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-between cursor-pointer {appStore.selectedCategory === cat.key
                 ? 'bg-blue-900 text-white shadow-sm'
                 : 'text-slate-700 hover:bg-slate-100'}"
             >
               <span class="flex items-center gap-2">
-                <i class="fa-solid {cat.icon || 'fa-box'} w-4"></i>
+                {#if cat.customIconImage}
+                  <img src={cat.customIconImage} alt={cat.label} class="w-4 h-4 object-contain shrink-0" />
+                {:else}
+                  <i class="fa-solid {cat.icon || 'fa-box'} w-4"></i>
+                {/if}
                 <span>{cat.label}</span>
               </span>
               <span class="text-[10px] px-2 py-0.5 rounded-full {appStore.selectedCategory === cat.key ? 'bg-blue-800 text-white' : 'bg-slate-200 text-slate-600'}">
@@ -95,6 +181,33 @@
           {/each}
         </div>
       </div>
+
+      <!-- Subcategories filter if present -->
+      {#if activeSubCategories.length > 0}
+        <div class="space-y-2 pt-2 border-t border-slate-200">
+          <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+            Loại Danh Mục
+          </span>
+          <div class="flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              onclick={() => selectedSubCategory = ''}
+              class="px-2.5 py-1 rounded-lg text-[11px] font-semibold transition cursor-pointer {!selectedSubCategory ? 'bg-purple-100 text-purple-900 font-bold border border-purple-300' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}"
+            >
+              Tất cả loại
+            </button>
+            {#each activeSubCategories as sub}
+              <button
+                type="button"
+                onclick={() => selectedSubCategory = sub.name}
+                class="px-2.5 py-1 rounded-lg text-[11px] font-semibold transition cursor-pointer {selectedSubCategory === sub.name ? 'bg-purple-100 text-purple-900 font-bold border border-purple-300' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}"
+              >
+                {sub.name}
+              </button>
+            {/each}
+          </div>
+        </div>
+      {/if}
 
       <!-- Support Banner Box -->
       <div class="bg-blue-50/70 p-4 rounded-2xl border border-blue-100 text-xs text-blue-900 space-y-2">
@@ -131,10 +244,40 @@
           </button>
         </div>
       {:else}
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {#each appStore.filteredProducts as product (product.id)}
-            <ProductCard {product} />
-          {/each}
+        <div class="space-y-6">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 gap-6">
+            {#each displayedProducts as product (product.id)}
+              <ProductCard {product} />
+            {/each}
+          </div>
+
+          <!-- Continuous Scroll Loader & Sentinel -->
+          {#if hasMore}
+            <div bind:this={sentinelEl} class="py-8 flex flex-col items-center justify-center gap-2">
+              {#if isLoadingMore}
+                <div class="flex items-center gap-2 text-xs font-semibold text-blue-900 bg-blue-50 px-4 py-2 rounded-full border border-blue-200 shadow-xs animate-pulse">
+                  <i class="fa-solid fa-spinner fa-spin"></i>
+                  <span>Đang cuộn tải thêm sản phẩm...</span>
+                </div>
+              {:else}
+                <button
+                  type="button"
+                  onclick={loadMore}
+                  class="px-6 py-2.5 rounded-full bg-white border border-slate-300 hover:border-blue-900 text-blue-950 font-bold text-xs hover:bg-blue-50 transition shadow-xs cursor-pointer flex items-center gap-2"
+                >
+                  <span>Cuộn xuống hoặc nhấn để xem tiếp ({filteredList.length - visibleCount} sản phẩm còn lại)</span>
+                  <i class="fa-solid fa-chevron-down text-[10px]"></i>
+                </button>
+              {/if}
+            </div>
+          {:else if filteredList.length > 0}
+            <div class="py-8 text-center border-t border-slate-200">
+              <div class="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-slate-100 text-slate-500 text-xs font-semibold">
+                <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                <span>Đã tải hiển thị toàn bộ {filteredList.length} sản phẩm</span>
+              </div>
+            </div>
+          {/if}
         </div>
       {/if}
     </div>

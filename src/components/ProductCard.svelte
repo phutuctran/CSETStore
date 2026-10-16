@@ -1,25 +1,26 @@
 <script lang="ts">
   import type { Product } from '../models/types';
   import { appStore } from '../stores/store.svelte';
-  import { formatCurrency, calculateDiscountPercent } from '../services/pricingService';
-
+  import { themeStore } from '../stores/themeStore.svelte';
+  import { formatCurrency, getEffectivePrice, getProductDiscountDetails } from '../services/pricingService';
   interface Props {
     product: Product;
     showQuickAdd?: boolean;
   }
 
   let { product, showQuickAdd = true }: Props = $props();
-  let discount = $derived(calculateDiscountPercent(product.price, product.originalPrice));
+  let effectivePrice = $derived(getEffectivePrice(product));
+  let discountInfo = $derived(getProductDiscountDetails(product));
 </script>
 
 <div
   role="button"
   tabindex="0"
-  onclick={() => appStore.openProductDetail(product)}
+  onclick={() => appStore.viewProductDetail(product)}
   onkeydown={(e) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      appStore.openProductDetail(product);
+      appStore.viewProductDetail(product);
     }
   }}
   class="glass-panel group rounded-2xl overflow-hidden border border-slate-200 flex flex-col justify-between bg-white shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-blue-900"
@@ -33,13 +34,13 @@
     />
     
     <!-- Badges -->
-    <div class="absolute top-3 left-3 flex flex-col gap-1.5">
-      <span class="px-2.5 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-wider bg-white/90 text-blue-900 shadow-sm backdrop-blur-xs">
+    <div class="absolute top-3 left-3 flex flex-col items-start gap-1.5">
+      <span class="px-2.5 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-wider bg-white/90 text-blue-900 shadow-sm backdrop-blur-xs w-fit">
         {product.category}
       </span>
-      {#if discount > 0}
-        <span class="px-2 py-0.5 rounded-md text-[10px] font-black bg-rose-600 text-white shadow-sm">
-          -{discount}%
+      {#if discountInfo.hasDiscount}
+        <span class="px-2 py-0.5 rounded-md text-[10px] font-black bg-rose-600 text-white shadow-sm w-fit self-start">
+          -{discountInfo.discountPercent}%
         </span>
       {/if}
     </div>
@@ -66,11 +67,11 @@
     <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
       <div>
         <div class="flex items-center gap-1.5">
-          <span class="text-blue-900 font-black text-base">{formatCurrency(product.price)}</span>
+          <span class="text-blue-900 font-black text-base">{formatCurrency(effectivePrice)}</span>
         </div>
-        {#if product.originalPrice && product.originalPrice > product.price}
+        {#if discountInfo.hasDiscount && discountInfo.originalPrice}
           <span class="text-[11px] text-slate-400 line-through block font-medium">
-            {formatCurrency(product.originalPrice)}
+            {formatCurrency(discountInfo.originalPrice)}
           </span>
         {/if}
       </div>
@@ -86,7 +87,7 @@
           title="Thêm vào giỏ"
         >
           <i class="fa-solid fa-cart-plus"></i>
-          <span>Thêm</span>
+          <span>{themeStore.theme.productGridStyle?.buyButtonText || 'Thêm'}</span>
         </button>
       {/if}
     </div>

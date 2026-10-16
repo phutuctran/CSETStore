@@ -7,7 +7,7 @@
   let address = $state('');
   let isSubmitting = $state(false);
   let isGuestOrder = $state(false);
-
+  let couponInput = $state('');
   $effect(() => {
     if (appStore.isCartOpen && appStore.currentCustomer) {
       customerName = appStore.currentCustomer.fullName;
@@ -116,6 +116,15 @@
                 <div class="min-w-0">
                   <p class="text-blue-950 text-sm font-bold truncate">{item.name}</p>
                   <p class="text-blue-900 text-xs font-semibold">{formatCurrency(item.price)}</p>
+                  {#if item.selectedVariants && Object.keys(item.selectedVariants).length > 0}
+                    <div class="flex flex-wrap gap-1 mt-1">
+                      {#each Object.entries(item.selectedVariants) as [k, v]}
+                        <span class="inline-block text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded font-medium">
+                          {k}: <strong>{v}</strong>
+                        </span>
+                      {/each}
+                    </div>
+                  {/if}
                   {#if item.details?.isCustom}
                     <span class="inline-block text-[10px] bg-blue-100 text-blue-900 font-bold px-2 py-0.5 rounded mt-0.5">
                       Đơn In Riêng
@@ -158,12 +167,83 @@
         </div>
 
         <!-- Checkout Form & Summary -->
-        <div class="border-t border-slate-200 pt-4 space-y-4">
-          <div class="flex justify-between items-center text-lg font-black text-blue-950 bg-slate-50 p-4 rounded-xl border border-slate-200">
-            <span>Tổng Tiền Thanh Toán:</span>
-            <span class="text-2xl text-blue-900">{formatCurrency(appStore.cartTotal)}</span>
+        <!-- Coupon Code Input Box -->
+        <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-2">
+          <div class="flex items-center justify-between text-xs">
+            <span class="font-bold text-slate-700 uppercase flex items-center gap-1.5">
+              <i class="fa-solid fa-ticket text-amber-500"></i>
+              Mã Giảm Giá / Voucher
+            </span>
+            {#if appStore.appliedCoupon}
+              <span class="text-emerald-700 font-bold flex items-center gap-1">
+                <i class="fa-solid fa-circle-check"></i>
+                Đang áp dụng: {appStore.appliedCoupon.code}
+              </span>
+            {/if}
           </div>
 
+          {#if !appStore.appliedCoupon}
+            <div class="flex gap-2">
+              <input
+                type="text"
+                bind:value={couponInput}
+                placeholder="Nhập mã (VD: CSET10, GIAM50K, CSETVIP)..."
+                class="flex-grow uppercase bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-900"
+              />
+              <button
+                type="button"
+                onclick={() => {
+                  if (couponInput.trim()) {
+                    const ok = appStore.applyCoupon(couponInput);
+                    if (ok) couponInput = '';
+                  }
+                }}
+                class="px-4 py-2 bg-blue-900 hover:bg-blue-800 text-white font-bold rounded-xl text-xs transition cursor-pointer shrink-0 shadow-xs"
+              >
+                Áp Dụng
+              </button>
+            </div>
+            {#if appStore.couponError}
+              <p class="text-rose-600 text-xs font-semibold">{appStore.couponError}</p>
+            {/if}
+          {:else}
+            <div class="flex items-center justify-between bg-emerald-50 border border-emerald-200 p-2.5 rounded-xl text-xs">
+              <div class="space-y-0.5">
+                <div class="font-bold text-emerald-900 flex items-center gap-1.5">
+                  <span class="bg-emerald-600 text-white px-2 py-0.5 rounded font-black text-[11px]">{appStore.appliedCoupon.code}</span>
+                  <span>{appStore.appliedCoupon.description}</span>
+                </div>
+                <p class="text-emerald-700 text-[11px]">Tiết kiệm: -{formatCurrency(appStore.discountAmount)}</p>
+              </div>
+              <button
+                type="button"
+                onclick={() => appStore.removeCoupon()}
+                class="text-rose-600 hover:text-rose-800 text-xs font-bold underline cursor-pointer shrink-0 ml-2"
+              >
+                Hủy mã
+              </button>
+            </div>
+          {/if}
+        </div>
+
+        <!-- Checkout Form & Summary -->
+        <div class="border-t border-slate-200 pt-4 space-y-4">
+          <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2 text-xs">
+            <div class="flex justify-between items-center text-slate-600">
+              <span>Tạm tính tiền hàng:</span>
+              <span class="font-bold text-slate-800">{formatCurrency(appStore.subtotal)}</span>
+            </div>
+            {#if appStore.discountAmount > 0}
+              <div class="flex justify-between items-center text-emerald-600 font-semibold">
+                <span>Giảm giá ({appStore.appliedCoupon?.code}):</span>
+                <span>-{formatCurrency(appStore.discountAmount)}</span>
+              </div>
+            {/if}
+            <div class="flex justify-between items-center text-sm font-black text-blue-950 pt-2 border-t border-slate-200">
+              <span class="text-base">Tổng Tiền Thanh Toán:</span>
+              <span class="text-2xl text-blue-900">{formatCurrency(appStore.cartTotal)}</span>
+            </div>
+          </div>
           <form onsubmit={handleSubmitCheckout} class="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-4">
             <h4 class="font-bold text-blue-950 text-sm flex items-center">
               <i class="fa-solid fa-address-card mr-2 text-blue-900"></i>

@@ -9,18 +9,18 @@ Nền tảng thương mại điện tử hiện đại bán đa dạng các ngà
 1. **Multi-Page Application Architecture (MPA)**:
    - **Trang Cửa Hàng Bán Lẻ**: Truy cập tại `/index.html`.
    - **Trang Quản Trị Hệ Thống (Admin Portal)**: Truy cập tại `/admin.html` với cơ chế đăng nhập và giao diện riêng biệt.
-2. **Role-Based Access Control (RBAC) & Service Layer**:
-   - `authService.ts`: Kiểm soát quyền truy cập chặt chẽ theo vai trò người dùng:
-     - 👑 **Super Admin (`super_admin`)**: Toàn quyền hệ thống, quản lý và cấp tài khoản quản trị mới, xem/duyệt đơn, tùy chỉnh giao diện và quản lý kho hàng.
-     - 🛒 **Admin Bán Hàng (`sales_admin`)**: Chỉ xem danh sách đơn hàng và cập nhật tiến độ xử lý/giao hàng.
-     - 📦 **Admin Hàng Hóa (`inventory_admin`)**: Quản lý danh mục sản phẩm đa ngành hàng, thêm mới sản phẩm (giá niêm yết, giá khuyến mãi, thương hiệu, tồn kho) và sửa/xóa kho hàng.
-     - 👤 **Khách Hàng (`customer`) / Khách vãng lai (`guest`)**: Đăng ký, đăng nhập theo dõi lịch sử đơn hàng hoặc mua hàng nhanh dạng guest.
-3. **Repository Pattern (`src/repositories/index.ts`)**:
-   - `IProductRepository`, `IOrderRepository`, `IUserRepository`, `IThemeRepository`: Trừu tượng hóa việc lưu trữ dữ liệu, an toàn khi chạy offline.
-4. **Store Pattern với Svelte 5 Runes (`src/stores/store.svelte.ts` & `src/stores/themeStore.svelte.ts`)**:
+2. **Dynamic Routing (Định tuyến động 2 chiều)**:
+   - `routerService.ts`: Điều hướng hash URL chuẩn SPA/MPA tương thích mọi hosting (`#/`, `#/shop?page=2`, `#/product/:id`, `#/tab/:tabId`, `#/orders`), đồng bộ 2 chiều với lịch sử duyệt web và các nút Back/Forward.
+3. **Pagination Component (`src/components/Pagination.svelte`)**:
+   - Tự động phân chia dữ liệu theo trang chuẩn UI/UX, áp dụng trên Cửa Hàng, Tab Tùy Biến, Bảng Hàng Hóa và Bảng Đơn Hàng Admin.
+4. **Lazy Loading Performance**:
+   - Tích hợp chuẩn HTML5 `loading="lazy"` cho toàn bộ ảnh sản phẩm, banner, poster nhằm tối ưu tốc độ tải trang ban đầu (FCP/LCP).
+5. **Role-Based Access Control (RBAC) & Service Layer**:
+   - `authService.ts`: Kiểm soát quyền truy cập chặt chẽ theo vai trò người dùng (Super Admin, Sales Admin, Inventory Admin, Customer).
+6. **Repository Pattern (`src/repositories/index.ts`)**:
+   - Trừu tượng hóa việc lưu trữ dữ liệu, an toàn khi chạy offline và có khả năng tích hợp API backend dễ dàng.
+7. **Store Pattern với Svelte 5 Runes (`src/stores/store.svelte.ts` & `src/stores/themeStore.svelte.ts`)**:
    - Quản lý trạng thái bằng các primitive runes `$state`, `$derived`, `$effect`.
-
----
 
 ## 👥 Danh Sách Tài Khoản Mẫu Trải Nghiệm (Mật khẩu: `123`)
 
@@ -52,19 +52,39 @@ Nền tảng thương mại điện tử hiện đại bán đa dạng các ngà
 
 ## 🚀 Khởi Chạy Nhanh (Offline & Online)
 
-### Chạy Offline 1-Click trên Windows:
-- Nhấp đúp chuột vào file **`start-offline.bat`**
-- Truy cập Cửa hàng: `http://localhost:5174/index.html`
-- Truy cập Admin: `http://localhost:5174/admin.html`
-
-### Dòng lệnh Terminal:
 ```bash
 # 1. Cài đặt thư viện
 npm install
 
-# 2. Build sản phẩm
+# 2. Chạy môi trường Dev
+npm run dev
+
+# 3. Build sản phẩm Live Stage chuẩn
 npm run build
 
-# 3. Khởi chạy máy chủ offline
-npm run start:offline
+# 4. Chạy máy chủ offline
+node serve-offline.mjs
+```
+
+---
+
+## 📤 Hướng Dẫn Push Lên GitHub
+
+Để đẩy toàn bộ mã nguồn lên repository GitHub:
+
+```bash
+# 1. Thêm toàn bộ các file đã hoàn thiện
+git add .
+
+# 2. Tạo commit chuẩn Live Stage
+git commit -m "feat: live stage ready - svelte 5, dynamic routing, pagination, lazy loading, and admin portal"
+
+# 3. Thiết lập nhánh chính
+git branch -M main
+
+# 4. Kết nối remote repository GitHub của bạn (thay thế URL bằng link repo của bạn)
+git remote add origin https://github.com/<YOUR_USERNAME>/<YOUR_REPOSITORY>.git
+
+# 5. Đẩy code lên GitHub
+git push -u origin main
 ```

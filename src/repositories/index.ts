@@ -1,11 +1,14 @@
-import type { Product, Order, User, ThemeConfig } from '../models/types';
-import { INITIAL_PRODUCTS, INITIAL_USERS, DEFAULT_THEME_CONFIG } from '../models/constants';
+import type { Product, Order, User, ThemeConfig, CategoryOption, ProductReview, Coupon } from '../models/types';
+import { INITIAL_PRODUCTS, INITIAL_USERS, DEFAULT_THEME_CONFIG, INITIAL_CATEGORIES, INITIAL_COUPONS } from '../models/constants';
+import { INITIAL_DEMO_ORDERS, INITIAL_DEMO_REVIEWS } from '../models/demoData';
 
-const PRODUCTS_STORAGE_KEY = 'cset_products_v3';
-const ORDERS_STORAGE_KEY = 'cset_orders_v3';
-const USERS_STORAGE_KEY = 'cset_users_v3';
-const THEME_STORAGE_KEY = 'cset_theme_config_v3';
-
+const PRODUCTS_STORAGE_KEY = 'cset_products_v5';
+const ORDERS_STORAGE_KEY = 'cset_orders_v5';
+const USERS_STORAGE_KEY = 'cset_users_v5';
+const THEME_STORAGE_KEY = 'cset_theme_config_v5';
+const CATEGORIES_STORAGE_KEY = 'cset_categories_v5';
+const REVIEWS_STORAGE_KEY = 'cset_reviews_v5';
+const COUPONS_STORAGE_KEY = 'cset_coupons_v5';
 export interface IStorageProvider {
   getItem(key: string): string | null;
   setItem(key: string, value: string): void;
@@ -46,10 +49,40 @@ export interface IOrderRepository {
   updateStatus(id: string, status: Order['status']): boolean;
 }
 
+export interface ICouponRepository {
+  getAll(): Coupon[];
+  getByCode(code: string): Coupon | undefined;
+  create(coupon: Omit<Coupon, 'id' | 'usedCount'>): Coupon;
+  update(id: string, patch: Partial<Coupon>): boolean;
+  delete(id: string): boolean;
+  incrementUsage(code: string): boolean;
+  resetToDefaults(): Coupon[];
+}
+
+export interface IReviewRepository {
+  getAll(): ProductReview[];
+  getByProductId(productId: number, includeHidden?: boolean): ProductReview[];
+  hasPurchased(productId: number, userId?: string, phone?: string): boolean;
+  create(review: Omit<ProductReview, 'id' | 'createdAt'>): ProductReview;
+  update(id: string, patch: Partial<ProductReview>): boolean;
+  delete(id: string): boolean;
+  reply(id: string, replyText: string, replierName?: string): boolean;
+  toggleVisibility(id: string): boolean;
+}
+
 export interface IThemeRepository {
   getTheme(): ThemeConfig;
   saveTheme(config: ThemeConfig): void;
   resetTheme(): ThemeConfig;
+}
+
+export interface ICategoryRepository {
+  getAll(): CategoryOption[];
+  saveAll(categories: CategoryOption[]): void;
+  createCategory(cat: CategoryOption): CategoryOption;
+  updateCategory(key: string, patch: Partial<CategoryOption>): boolean;
+  deleteCategory(key: string): boolean;
+  resetCategories(): CategoryOption[];
 }
 
 export interface IUserRepository {
@@ -89,6 +122,13 @@ export class LocalStorageProductRepository implements IProductRepository {
     const newProduct: Product = { ...productData, id: newId };
     list.unshift(newProduct);
     getSafeStorage().setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(list));
+    if (typeof window !== 'undefined' && typeof fetch === 'function') {
+      fetch('/api/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newProduct)
+      }).catch(() => {});
+    }
     return newProduct;
   }
 
@@ -98,6 +138,13 @@ export class LocalStorageProductRepository implements IProductRepository {
     if (index === -1) return false;
     list[index] = { ...list[index], ...patch };
     getSafeStorage().setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(list));
+    if (typeof window !== 'undefined' && typeof fetch === 'function') {
+      fetch(`/api/products/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch)
+      }).catch(() => {});
+    }
     return true;
   }
 
@@ -106,9 +153,11 @@ export class LocalStorageProductRepository implements IProductRepository {
     const next = list.filter((p) => p.id !== id);
     if (next.length === list.length) return false;
     getSafeStorage().setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(next));
+    if (typeof window !== 'undefined' && typeof fetch === 'function') {
+      fetch(`/api/products/${id}`, { method: 'DELETE' }).catch(() => {});
+    }
     return true;
   }
-
   resetToDefaults(): Product[] {
     getSafeStorage().setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(INITIAL_PRODUCTS));
     return INITIAL_PRODUCTS;
@@ -122,12 +171,15 @@ export class LocalStorageOrderRepository implements IOrderRepository {
   getAll(): Order[] {
     const storage = getSafeStorage();
     const raw = storage.getItem(ORDERS_STORAGE_KEY);
-    if (!raw) return [];
+    if (!raw) {
+      storage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(INITIAL_DEMO_ORDERS));
+      return INITIAL_DEMO_ORDERS;
+    }
     try {
       const parsed: unknown = JSON.parse(raw);
-      return Array.isArray(parsed) ? (parsed as Order[]) : [];
+      return Array.isArray(parsed) && parsed.length > 0 ? (parsed as Order[]) : INITIAL_DEMO_ORDERS;
     } catch {
-      return [];
+      return INITIAL_DEMO_ORDERS;
     }
   }
   getByCustomerId(customerId: string): Order[] {
@@ -154,6 +206,89 @@ export class LocalStorageOrderRepository implements IOrderRepository {
     getSafeStorage().setItem(ORDERS_STORAGE_KEY, JSON.stringify(list));
     return true;
   }
+
+}
+
+/**
+ * LocalStorageReviewRepository: Manages verified reviews and comments
+ */
+export class LocalStorageReviewRepository implements IReviewRepository {
+  getAll(): ProductReview[] {
+    const storage = getSafeStorage();
+    const raw = storage.getItem(REVIEWS_STORAGE_KEY);
+    if (!raw) {
+      storage.setItem(REVIEWS_STORAGE_KEY, JSON.stringify(INITIAL_DEMO_REVIEWS));
+      return INITIAL_DEMO_REVIEWS;
+    }
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      return Array.isArray(parsed) ? (parsed as ProductReview[]) : INITIAL_DEMO_REVIEWS;
+    } catch {
+      return INITIAL_DEMO_REVIEWS;
+    }
+  }
+
+  getByProductId(productId: number, includeHidden = false): ProductReview[] {
+    return this.getAll().filter(r => r.productId === productId && (includeHidden || !r.hidden));
+  }
+
+  hasPurchased(productId: number, userId?: string, phone?: string): boolean {
+    if (!userId && !phone) return false;
+    const orders = new LocalStorageOrderRepository().getAll();
+    return orders.some(o => {
+      const isUserMatch = (userId && o.customerId === userId) || (phone && o.phone === phone);
+      if (!isUserMatch) return false;
+      const isNotCancelled = o.status !== 'cancelled';
+      const hasProduct = o.items.some(item => item.productId === productId);
+      return isNotCancelled && hasProduct;
+    });
+  }
+
+  create(data: Omit<ProductReview, 'id' | 'createdAt'>): ProductReview {
+    const list = this.getAll();
+    const newReview: ProductReview = {
+      ...data,
+      id: 'rev-' + Date.now(),
+      createdAt: new Date().toLocaleString('vi-VN')
+    };
+    list.unshift(newReview);
+    getSafeStorage().setItem(REVIEWS_STORAGE_KEY, JSON.stringify(list));
+    return newReview;
+  }
+
+  update(id: string, patch: Partial<ProductReview>): boolean {
+    const list = this.getAll();
+    const idx = list.findIndex(r => r.id === id);
+    if (idx === -1) return false;
+    list[idx] = { ...list[idx], ...patch };
+    getSafeStorage().setItem(REVIEWS_STORAGE_KEY, JSON.stringify(list));
+    return true;
+  }
+
+  delete(id: string): boolean {
+    const list = this.getAll();
+    const next = list.filter(r => r.id !== id);
+    if (next.length === list.length) return false;
+    getSafeStorage().setItem(REVIEWS_STORAGE_KEY, JSON.stringify(next));
+    return true;
+  }
+
+  reply(id: string, replyText: string, replierName = 'Ban Quản Trị CSET Store'): boolean {
+    return this.update(id, {
+      adminReply: {
+        reply: replyText.trim(),
+        repliedAt: new Date().toLocaleString('vi-VN'),
+        replierName
+      }
+    });
+  }
+
+  toggleVisibility(id: string): boolean {
+    const list = this.getAll();
+    const target = list.find(r => r.id === id);
+    if (!target) return false;
+    return this.update(id, { hidden: !target.hidden });
+  }
 }
 
 /**
@@ -169,7 +304,21 @@ export class LocalStorageUserRepository implements IUserRepository {
     }
     try {
       const parsed: unknown = JSON.parse(raw);
-      return Array.isArray(parsed) && parsed.length > 0 ? (parsed as User[]) : INITIAL_USERS;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const existingUsers = parsed as User[];
+        let hasNew = false;
+        for (const initU of INITIAL_USERS) {
+          if (!existingUsers.some(u => u.username.toLowerCase() === initU.username.toLowerCase())) {
+            existingUsers.push(initU);
+            hasNew = true;
+          }
+        }
+        if (hasNew) {
+          storage.setItem(USERS_STORAGE_KEY, JSON.stringify(existingUsers));
+        }
+        return existingUsers;
+      }
+      return INITIAL_USERS;
     } catch {
       return INITIAL_USERS;
     }
@@ -236,8 +385,26 @@ export class LocalStorageThemeRepository implements IThemeRepository {
             ...DEFAULT_THEME_CONFIG.visibility,
             ...(p.visibility || {})
           },
-          trustBadges: Array.isArray(p.trustBadges) && p.trustBadges.length > 0 ? p.trustBadges : DEFAULT_THEME_CONFIG.trustBadges,
-          valueProps: Array.isArray(p.valueProps) && p.valueProps.length > 0 ? p.valueProps : DEFAULT_THEME_CONFIG.valueProps
+          trustBadges: Array.isArray(p.trustBadges) ? p.trustBadges : DEFAULT_THEME_CONFIG.trustBadges,
+          valueProps: Array.isArray(p.valueProps) ? p.valueProps : DEFAULT_THEME_CONFIG.valueProps,
+          banners: Array.isArray(p.banners) ? p.banners : DEFAULT_THEME_CONFIG.banners,
+          heroStyle: {
+            ...DEFAULT_THEME_CONFIG.heroStyle,
+            ...(p.heroStyle || {})
+          },
+          productGridStyle: {
+            ...DEFAULT_THEME_CONFIG.productGridStyle,
+            ...(p.productGridStyle || {})
+          },
+          categoryBlockStyle: {
+            ...DEFAULT_THEME_CONFIG.categoryBlockStyle,
+            ...(p.categoryBlockStyle || {})
+          },
+          customTabs: Array.isArray(p.customTabs) ? p.customTabs : DEFAULT_THEME_CONFIG.customTabs,
+          socials: {
+            ...DEFAULT_THEME_CONFIG.socials,
+            ...(p.socials || {})
+          }
         };
       }
       return DEFAULT_THEME_CONFIG;
@@ -253,5 +420,129 @@ export class LocalStorageThemeRepository implements IThemeRepository {
   resetTheme(): ThemeConfig {
     getSafeStorage().setItem(THEME_STORAGE_KEY, JSON.stringify(DEFAULT_THEME_CONFIG));
     return DEFAULT_THEME_CONFIG;
+  }
+}
+
+/**
+ * LocalStorageCategoryRepository: Manages e-commerce categories and subcategories
+ */
+export class LocalStorageCategoryRepository implements ICategoryRepository {
+  getAll(): CategoryOption[] {
+    const storage = getSafeStorage();
+    const raw = storage.getItem(CATEGORIES_STORAGE_KEY);
+    if (!raw) {
+      storage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(INITIAL_CATEGORIES));
+      return INITIAL_CATEGORIES;
+    }
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      return Array.isArray(parsed) && parsed.length > 0 ? (parsed as CategoryOption[]) : INITIAL_CATEGORIES;
+    } catch {
+      return INITIAL_CATEGORIES;
+    }
+  }
+
+  saveAll(categories: CategoryOption[]): void {
+    getSafeStorage().setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(categories));
+  }
+
+  createCategory(cat: CategoryOption): CategoryOption {
+    const list = this.getAll();
+    list.push(cat);
+    this.saveAll(list);
+    return cat;
+  }
+
+  updateCategory(key: string, patch: Partial<CategoryOption>): boolean {
+    const list = this.getAll();
+    const index = list.findIndex(c => c.key === key);
+    if (index === -1) return false;
+    list[index] = { ...list[index], ...patch };
+    this.saveAll(list);
+    return true;
+  }
+
+  deleteCategory(key: string): boolean {
+    const list = this.getAll();
+    const next = list.filter(c => c.key !== key);
+    if (next.length === list.length) return false;
+    this.saveAll(next);
+    return true;
+  }
+
+  resetCategories(): CategoryOption[] {
+    this.saveAll(INITIAL_CATEGORIES);
+    return INITIAL_CATEGORIES;
+  }
+}
+
+/**
+ * LocalStorageCouponRepository: Manages discount codes / coupons
+ */
+export class LocalStorageCouponRepository implements ICouponRepository {
+  getAll(): Coupon[] {
+    const raw = getSafeStorage().getItem(COUPONS_STORAGE_KEY);
+    if (!raw) {
+      getSafeStorage().setItem(COUPONS_STORAGE_KEY, JSON.stringify(INITIAL_COUPONS));
+      return INITIAL_COUPONS;
+    }
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      return Array.isArray(parsed) ? (parsed as Coupon[]) : INITIAL_COUPONS;
+    } catch {
+      return INITIAL_COUPONS;
+    }
+  }
+
+  getByCode(code: string): Coupon | undefined {
+    const list = this.getAll();
+    return list.find(c => c.code.toUpperCase() === code.trim().toUpperCase());
+  }
+
+  create(couponData: Omit<Coupon, 'id' | 'usedCount'>): Coupon {
+    const list = this.getAll();
+    const newCoupon: Coupon = {
+      ...couponData,
+      id: 'coup-' + Date.now().toString(36),
+      code: couponData.code.trim().toUpperCase(),
+      usedCount: 0
+    };
+    list.unshift(newCoupon);
+    getSafeStorage().setItem(COUPONS_STORAGE_KEY, JSON.stringify(list));
+    return newCoupon;
+  }
+
+  update(id: string, patch: Partial<Coupon>): boolean {
+    const list = this.getAll();
+    const index = list.findIndex(c => c.id === id);
+    if (index === -1) return false;
+    if (patch.code) {
+      patch.code = patch.code.trim().toUpperCase();
+    }
+    list[index] = { ...list[index], ...patch };
+    getSafeStorage().setItem(COUPONS_STORAGE_KEY, JSON.stringify(list));
+    return true;
+  }
+
+  delete(id: string): boolean {
+    const list = this.getAll();
+    const next = list.filter(c => c.id !== id);
+    if (next.length === list.length) return false;
+    getSafeStorage().setItem(COUPONS_STORAGE_KEY, JSON.stringify(next));
+    return true;
+  }
+
+  incrementUsage(code: string): boolean {
+    const list = this.getAll();
+    const target = list.find(c => c.code.toUpperCase() === code.trim().toUpperCase());
+    if (!target) return false;
+    target.usedCount = (target.usedCount || 0) + 1;
+    getSafeStorage().setItem(COUPONS_STORAGE_KEY, JSON.stringify(list));
+    return true;
+  }
+
+  resetToDefaults(): Coupon[] {
+    getSafeStorage().setItem(COUPONS_STORAGE_KEY, JSON.stringify(INITIAL_COUPONS));
+    return INITIAL_COUPONS;
   }
 }

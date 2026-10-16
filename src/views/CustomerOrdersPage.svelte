@@ -4,7 +4,7 @@
 
   const statusLabels: Record<string, { label: string; class: string }> = {
     pending: { label: 'Chờ xác nhận', class: 'bg-amber-100 text-amber-800' },
-    processing: { label: 'Đang in / Xử lý', class: 'bg-blue-100 text-blue-900' },
+    processing: { label: 'Đang xử lý / Đóng gói', class: 'bg-blue-100 text-blue-900' },
     completed: { label: 'Đã hoàn tất / Đã giao', class: 'bg-emerald-100 text-emerald-800' },
     cancelled: { label: 'Đã hủy', class: 'bg-red-100 text-red-800' }
   };
@@ -72,22 +72,16 @@
       </div>
       <h3 class="text-xl font-bold text-blue-950">Bạn chưa có đơn hàng nào</h3>
       <p class="text-slate-500 text-sm max-w-md mx-auto">
-        Khám phá các sản phẩm sẵn có hoặc tải file 3D để bắt đầu đặt in ngay hôm nay!
+        Khám phá hàng ngàn sản phẩm chính hãng với nhiều ưu đãi hấp dẫn tại CSET Store ngay hôm nay!
       </p>
-      <div class="flex justify-center gap-3 pt-2">
+      <div class="flex justify-center pt-2">
         <button
           type="button"
           onclick={() => appStore.setTab('shop')}
-          class="px-6 py-3 rounded-xl bg-blue-900 text-white font-bold text-xs hover:bg-blue-800 transition cursor-pointer"
+          class="px-8 py-3.5 rounded-2xl bg-blue-900 text-white font-bold text-xs hover:bg-blue-800 transition cursor-pointer shadow-md flex items-center gap-2"
         >
-          Khám Phá Cửa Hàng
-        </button>
-        <button
-          type="button"
-          onclick={() => appStore.setTab('custom')}
-          class="px-6 py-3 rounded-xl bg-slate-100 text-slate-800 font-bold text-xs hover:bg-slate-200 transition cursor-pointer"
-        >
-          Đặt In Theo Yêu Cầu
+          <i class="fa-solid fa-bag-shopping"></i>
+          <span>Khám Phá Cửa Hàng</span>
         </button>
       </div>
     </div>
@@ -115,10 +109,35 @@
             {#each order.items as item}
               <div class="flex items-center justify-between text-xs py-2 border-b border-slate-50 last:border-none">
                 <div class="flex items-center space-x-3">
-                  <img src={item.image} alt={item.name} class="w-10 h-10 rounded-lg object-cover border border-slate-200" />
+                  {#if item.productId}
+                    <a href="#/product/{item.productId}" title="Xem chi tiết sản phẩm này" class="shrink-0">
+                      <img src={item.image} alt={item.name} class="w-10 h-10 rounded-lg object-cover border border-slate-200 hover:opacity-80 transition" />
+                    </a>
+                  {:else}
+                    <img src={item.image} alt={item.name} class="w-10 h-10 rounded-lg object-cover border border-slate-200 shrink-0" />
+                  {/if}
                   <div>
-                    <span class="font-bold text-blue-950 block">{item.name}</span>
-                    <span class="text-slate-500">Số lượng: x{item.quantity}</span>
+                    {#if item.productId}
+                      <a
+                        href="#/product/{item.productId}"
+                        class="font-bold text-blue-950 hover:text-blue-700 hover:underline inline-flex items-center gap-1.5"
+                        title="Xem trang chi tiết sản phẩm này"
+                      >
+                        <span>{item.name}</span>
+                        <i class="fa-solid fa-arrow-up-right-from-square text-[9px] text-slate-400"></i>
+                      </a>
+                    {:else}
+                      <span class="font-bold text-blue-950 block">{item.name}</span>
+                    {/if}
+                    <div class="flex items-center gap-2 text-slate-500 mt-0.5">
+                      <span>Số lượng: x{item.quantity}</span>
+                      {#if item.selectedVariants && Object.keys(item.selectedVariants).length > 0}
+                        <span>•</span>
+                        <span class="text-blue-900 font-medium">
+                          {Object.entries(item.selectedVariants).map(([k, v]) => `${k}: ${v}`).join(', ')}
+                        </span>
+                      {/if}
+                    </div>
                   </div>
                 </div>
                 <span class="font-bold text-blue-900">{formatCurrency(item.price * item.quantity)}</span>

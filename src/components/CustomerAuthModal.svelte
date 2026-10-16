@@ -1,5 +1,9 @@
 <script lang="ts">
   import { appStore } from '../stores/store.svelte';
+  import { evaluatePasswordStrength } from '../services/authService';
+  import { LocalStorageUserRepository } from '../repositories';
+
+  const userRepo = new LocalStorageUserRepository();
 
   let username = $state('');
   let password = $state('');
@@ -8,6 +12,19 @@
   let address = $state('');
   let errorMsg = $state('');
 
+  let passwordStrength = $derived(evaluatePasswordStrength(password));
+
+  let isUsernameDuplicate = $derived.by(() => {
+    if (!username.trim()) return false;
+    const clean = username.trim().toLowerCase();
+    return userRepo.getAll().some(u => u.username.toLowerCase() === clean);
+  });
+
+  let isPhoneDuplicate = $derived.by(() => {
+    if (!phone.trim()) return false;
+    const clean = phone.trim();
+    return userRepo.getAll().some(u => u.phone && u.phone.trim() === clean);
+  });
   function handleLogin(e: Event) {
     e.preventDefault();
     errorMsg = '';
@@ -24,6 +41,18 @@
       errorMsg = 'Vui lòng điền các trường bắt buộc (*)';
       return;
     }
+    if (isUsernameDuplicate) {
+      errorMsg = 'Tên đăng nhập này đã có người sử dụng, vui lòng chọn tên khác!';
+      return;
+    }
+    if (isPhoneDuplicate) {
+      errorMsg = 'Số điện thoại này đã được đăng ký cho tài khoản khác!';
+      return;
+    }
+    if (passwordStrength.score < 2) {
+      errorMsg = 'Mật khẩu quá yếu! Vui lòng chọn mật khẩu từ 8 ký tự, kết hợp chữ hoa, chữ số hoặc ký tự đặc biệt.';
+      return;
+    }
     const success = appStore.registerCustomer({
       username: username.trim(),
       password,
@@ -32,7 +61,7 @@
       address: address.trim()
     });
     if (!success) {
-      errorMsg = 'Tên đăng nhập này đã tồn tại, vui lòng chọn tên khác!';
+      errorMsg = 'Đăng ký tài khoản không thành công, vui lòng kiểm tra lại thông tin!';
     }
   }
 </script>
@@ -141,17 +170,31 @@
             />
           </div>
 
-          <div class="grid grid-cols-2 gap-3">
+          <div class="space-y-3">
             <div class="space-y-1">
-              <label for="r-user" class="text-xs font-bold text-slate-600 uppercase">Tài Khoản *</label>
+              <div class="flex items-center justify-between">
+                <label for="r-user" class="text-xs font-bold text-slate-600 uppercase">Tên Đăng Nhập *</label>
+                {#if isUsernameDuplicate}
+                  <span class="text-[11px] font-bold text-rose-600 flex items-center gap-1">
+                    <i class="fa-solid fa-circle-xmark"></i> Đã bị trùng
+                  </span>
+                {:else if username.trim().length >= 3}
+                  <span class="text-[11px] font-semibold text-emerald-600 flex items-center gap-1">
+                    <i class="fa-solid fa-circle-check"></i> Hợp lệ
+                  </span>
+                {/if}
+              </div>
               <input
                 id="r-user"
                 type="text"
                 bind:value={username}
                 required
-                placeholder="ten_dang_nhap"
-                class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2 text-sm text-blue-950 focus:outline-none focus:ring-2 focus:ring-blue-900"
+                placeholder="ten_dang_nhap (ví dụ: myaccount2026)"
+                class="w-full bg-slate-50 border rounded-xl px-3.5 py-2 text-sm text-blue-950 focus:outline-none focus:ring-2 {isUsernameDuplicate ? 'border-rose-400 bg-rose-50/30 focus:ring-rose-500' : 'border-slate-300 focus:ring-blue-900'}"
               />
+              {#if isUsernameDuplicate}
+                <p class="text-[11px] text-rose-600 font-semibold">Tên đăng nhập này đã được sử dụng, vui lòng chọn tên khác!</p>
+              {/if}
             </div>
 
             <div class="space-y-1">
@@ -161,21 +204,75 @@
                 type="password"
                 bind:value={password}
                 required
-                placeholder="Mật khẩu..."
+                placeholder="Nhập mật khẩu an toàn..."
                 class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2 text-sm text-blue-950 focus:outline-none focus:ring-2 focus:ring-blue-900"
               />
+
+              <!-- Real-time Password Strength Meter & Checklist -->
+              {#if password}
+                <div class="space-y-2 p-3 rounded-2xl bg-slate-50 border border-slate-200 mt-1.5 animate-in fade-in duration-150">
+                  <div class="flex items-center justify-between text-xs">
+                    <span class="text-slate-600 font-medium text-[11px]">Đánh giá độ mạnh:</span>
+                    <span class="font-black text-xs {passwordStrength.colorClass}">
+                      {passwordStrength.label}
+                    </span>
+                  </div>
+
+                  <!-- Progress bar -->
+                  <div class="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                    <div
+                      class="h-full transition-all duration-300 {passwordStrength.colorClass}"
+                      style="width: {passwordStrength.barWidth}"
+                    ></div>
+                  </div>
+
+                  <!-- Requirement checklist badges -->
+                  <div class="grid grid-cols-2 gap-1.5 text-[10px] pt-0.5 text-slate-600">
+                    <span class="flex items-center gap-1.5 {passwordStrength.hasMinLength ? 'text-emerald-700 font-bold' : 'text-slate-400'}">
+                      <i class="fa-solid {passwordStrength.hasMinLength ? 'fa-check text-emerald-600' : 'fa-circle text-[6px] text-slate-300'}"></i>
+                      Tối thiểu 8 ký tự
+                    </span>
+                    <span class="flex items-center gap-1.5 {passwordStrength.hasUppercase && passwordStrength.hasLowercase ? 'text-emerald-700 font-bold' : 'text-slate-400'}">
+                      <i class="fa-solid {passwordStrength.hasUppercase && passwordStrength.hasLowercase ? 'fa-check text-emerald-600' : 'fa-circle text-[6px] text-slate-300'}"></i>
+                      Chữ hoa & chữ thường
+                    </span>
+                    <span class="flex items-center gap-1.5 {passwordStrength.hasNumber ? 'text-emerald-700 font-bold' : 'text-slate-400'}">
+                      <i class="fa-solid {passwordStrength.hasNumber ? 'fa-check text-emerald-600' : 'fa-circle text-[6px] text-slate-300'}"></i>
+                      Có chữ số (0-9)
+                    </span>
+                    <span class="flex items-center gap-1.5 {passwordStrength.hasSpecial ? 'text-emerald-700 font-bold' : 'text-slate-400'}">
+                      <i class="fa-solid {passwordStrength.hasSpecial ? 'fa-check text-emerald-600' : 'fa-circle text-[6px] text-slate-300'}"></i>
+                      Ký tự đặc biệt (!@#$)
+                    </span>
+                  </div>
+                </div>
+              {/if}
             </div>
           </div>
 
           <div class="space-y-1">
-            <label for="r-phone" class="text-xs font-bold text-slate-600 uppercase">Số Điện Thoại</label>
+            <div class="flex items-center justify-between">
+              <label for="r-phone" class="text-xs font-bold text-slate-600 uppercase">Số Điện Thoại</label>
+              {#if isPhoneDuplicate}
+                <span class="text-[11px] font-bold text-rose-600 flex items-center gap-1">
+                  <i class="fa-solid fa-circle-xmark"></i> Số điện thoại đã được dùng
+                </span>
+              {:else if phone.trim().length >= 9}
+                <span class="text-[11px] font-semibold text-emerald-600 flex items-center gap-1">
+                  <i class="fa-solid fa-circle-check"></i> Hợp lệ
+                </span>
+              {/if}
+            </div>
             <input
               id="r-phone"
               type="tel"
               bind:value={phone}
               placeholder="0901234567..."
-              class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2 text-sm text-blue-950 focus:outline-none focus:ring-2 focus:ring-blue-900"
+              class="w-full bg-slate-50 border rounded-xl px-3.5 py-2 text-sm text-blue-950 focus:outline-none focus:ring-2 {isPhoneDuplicate ? 'border-rose-400 bg-rose-50/30 focus:ring-rose-500' : 'border-slate-300 focus:ring-blue-900'}"
             />
+            {#if isPhoneDuplicate}
+              <p class="text-[11px] text-rose-600 font-semibold">Số điện thoại này đã được đăng ký tài khoản khác!</p>
+            {/if}
           </div>
 
           <div class="space-y-1">
