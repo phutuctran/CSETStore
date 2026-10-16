@@ -4942,19 +4942,18 @@
                     <div class="space-y-1 pt-1">
                       <label for="thm-mess" class="font-semibold text-slate-700 flex items-center gap-1.5">
                         <i class="fa-brands fa-facebook-messenger text-[#006AFF]"></i>
-                        <span>Đường Dẫn Popup Chat Facebook Messenger (Góc dưới bên trái)</span>
+                        <span>ID Trang Facebook (Plugin Chat Messenger Chính Thức Của Meta)</span>
                       </label>
                       <input
                         id="thm-mess"
                         type="text"
                         bind:value={themeDraft.socials.messengerPageId}
-                        placeholder="https://m.me/csetstore hoặc tên username fanpage Facebook"
+                        placeholder="Vd: 106148332115160 hoặc tên fanpage CSETStore"
                         class="w-full border border-slate-300 rounded px-3 py-1.5 bg-white text-xs"
                       />
-                      <p class="text-[10px] text-slate-500">Khách hàng nhấn vào nút tròn Messenger ở góc dưới bên trái sẽ mở liên kết này để nhắn tin trực tiếp với page.</p>
+                      <p class="text-[10px] text-slate-500">Plugin chat Messenger chính thức từ Meta (Facebook SDK) sẽ tải ở góc dưới bên trái, cho phép khách hàng đăng nhập Facebook và nhắn tin trực tiếp với fanpage.</p>
                     </div>
                   </div>
-
                   <div class="space-y-1 sm:col-span-2">
                     <label for="thm-footer" class="font-semibold text-slate-700">Nội Dung Bản Quyền Chân Trang</label>
                     <input id="thm-footer" type="text" bind:value={themeDraft.footerText} class="w-full border border-slate-300 rounded px-3 py-1.5" />
