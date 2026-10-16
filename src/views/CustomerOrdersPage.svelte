@@ -21,13 +21,24 @@
 
     {#if appStore.currentCustomer}
       <div class="flex items-center gap-3 bg-white p-2.5 rounded-2xl border border-slate-200 shadow-xs">
-        <div class="w-10 h-10 bg-blue-100 text-blue-900 rounded-xl flex items-center justify-center font-bold">
-          <i class="fa-solid fa-user"></i>
-        </div>
-        <div>
-          <span class="text-xs font-bold text-blue-950 block">{appStore.currentCustomer.fullName}</span>
-          <span class="text-[11px] text-slate-500 block">@{appStore.currentCustomer.username}</span>
-        </div>
+        <button
+          type="button"
+          onclick={() => appStore.navigateToProfile()}
+          class="flex items-center gap-3 text-left hover:opacity-80 transition cursor-pointer"
+          title="Xem trang cá nhân & đánh giá"
+        >
+          <div class="w-10 h-10 bg-blue-100 text-blue-900 rounded-xl flex items-center justify-center font-bold overflow-hidden">
+            {#if appStore.currentCustomer.avatar}
+              <img src={appStore.currentCustomer.avatar} alt="Avatar" class="w-full h-full object-cover" />
+            {:else}
+              <i class="fa-solid fa-user"></i>
+            {/if}
+          </div>
+          <div>
+            <span class="text-xs font-bold text-blue-950 block">{appStore.currentCustomer.fullName}</span>
+            <span class="text-[11px] text-slate-500 block">@{appStore.currentCustomer.username} • Xem hồ sơ</span>
+          </div>
+        </button>
         <button
           type="button"
           onclick={() => appStore.logoutCustomer()}

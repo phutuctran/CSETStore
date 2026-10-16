@@ -6,7 +6,15 @@ export interface User {
   password?: string;
   fullName: string;
   phone?: string;
+  email?: string;
   address?: string;
+  city?: string;
+  district?: string;
+  ward?: string;
+  gender?: 'male' | 'female' | 'other';
+  birthday?: string;
+  avatar?: string;
+  bio?: string;
   role: Role;
   createdAt: string;
 }

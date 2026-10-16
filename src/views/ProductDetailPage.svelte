@@ -107,7 +107,16 @@
   function handleReviewImageUpload(e: Event) {
     const input = e.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
+      const allowedMimeTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/svg+xml', 'image/gif'];
       Array.from(input.files).forEach(file => {
+        if (!allowedMimeTypes.includes(file.type.toLowerCase())) {
+          appStore.showToast(`File "${file.name}" không hợp lệ. Chỉ chấp nhận các định dạng hình ảnh!`);
+          return;
+        }
+        if (file.size > 3 * 1024 * 1024) {
+          appStore.showToast(`File ảnh "${file.name}" vượt quá giới hạn tối đa 3MB!`);
+          return;
+        }
         const reader = new FileReader();
         reader.onload = (evt) => {
           const b64 = (evt.target?.result as string) || '';
@@ -370,42 +379,6 @@
           </div>
         </div>
 
-        <!-- Specifications & Highlights -->
-        <div class="glass-panel p-5 rounded-2xl border border-slate-200 bg-white space-y-3">
-          <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Thông Số & Chính Sách</h4>
-          <div class="grid grid-cols-2 gap-3 text-xs text-slate-600">
-            <div><strong>Xuất xứ:</strong> {product.origin || 'Chính hãng'}</div>
-            <div><strong>Bảo hành:</strong> {product.warranty || '12 tháng chính hãng'}</div>
-            {#if product.condition}
-              <div><strong>Tình trạng:</strong> {product.condition}</div>
-            {/if}
-            {#if product.weight}
-              <div><strong>Khối lượng:</strong> {product.weight}</div>
-            {/if}
-          </div>
-
-          {#if product.specifications && product.specifications.length > 0}
-            <div class="pt-3 border-t border-slate-100 space-y-1.5">
-              <span class="text-[11px] font-bold text-slate-700 uppercase block">Thông Số Kỹ Thuật Chi Tiết:</span>
-              <div class="space-y-1 text-xs">
-                {#each product.specifications as spec}
-                  <div class="flex justify-between py-1 border-b border-slate-50 last:border-none">
-                    <span class="text-slate-500">{spec.name}:</span>
-                    <strong class="text-slate-800">{spec.value}</strong>
-                  </div>
-                {/each}
-              </div>
-            </div>
-          {/if}
-        </div>
-
-        <!-- Description -->
-        <div class="space-y-2">
-          <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Mô Tả Sản Phẩm</h4>
-          <p class="text-sm text-slate-600 leading-relaxed bg-white p-4 rounded-2xl border border-slate-200">
-            {product.description}
-          </p>
-        </div>
 
         <!-- Product Variant Selection (Màu sắc, kích cỡ,...) -->
         {#if product.variantGroups && product.variantGroups.length > 0}
@@ -529,6 +502,64 @@
         </div>
       </div>
     </div>
+
+    <!-- Specifications & Product Description: 2 Dòng Nối Tiếp (Full-width matching reviews) -->
+    <section class="space-y-6 pt-8 border-t border-slate-200">
+      <!-- Dòng 1: Thông Số & Chính Sách -->
+      <div class="glass-panel p-6 sm:p-8 rounded-3xl border border-slate-200 bg-white space-y-5 shadow-xs">
+        <div class="flex items-center gap-3 border-b border-slate-100 pb-3.5">
+          <div class="w-10 h-10 rounded-2xl bg-blue-50 text-blue-900 flex items-center justify-center text-base font-bold shadow-2xs">
+            <i class="fa-solid fa-list-check"></i>
+          </div>
+          <div>
+            <h3 class="text-lg font-black text-blue-950">Thông Số & Chính Sách</h3>
+            <p class="text-xs text-slate-500">Nguồn gốc xuất xứ, điều kiện bảo hành và thông số kỹ thuật chi tiết</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs text-slate-600 bg-slate-50/80 p-4 sm:p-5 rounded-2xl border border-slate-200/80">
+          <div><span class="text-slate-400 block text-[11px]">Xuất xứ:</span> <strong class="text-slate-800 text-sm">{product.origin || 'Chính hãng'}</strong></div>
+          <div><span class="text-slate-400 block text-[11px]">Bảo hành:</span> <strong class="text-slate-800 text-sm">{product.warranty || '12 tháng chính hãng'}</strong></div>
+          {#if product.condition}
+            <div><span class="text-slate-400 block text-[11px]">Tình trạng:</span> <strong class="text-slate-800 text-sm">{product.condition}</strong></div>
+          {/if}
+          {#if product.weight}
+            <div><span class="text-slate-400 block text-[11px]">Khối lượng:</span> <strong class="text-slate-800 text-sm">{product.weight}</strong></div>
+          {/if}
+        </div>
+
+        {#if product.specifications && product.specifications.length > 0}
+          <div class="space-y-3 pt-2 border-t border-slate-100">
+            <span class="text-xs font-bold text-slate-800 uppercase tracking-wider block">Thông Số Kỹ Thuật Chi Tiết:</span>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+              {#each product.specifications as spec}
+                <div class="flex items-center justify-between p-3.5 bg-slate-50/70 rounded-2xl border border-slate-100 hover:bg-slate-100/60 transition">
+                  <span class="text-slate-500 font-medium">{spec.name}:</span>
+                  <strong class="text-slate-900 text-right">{spec.value}</strong>
+                </div>
+              {/each}
+            </div>
+          </div>
+        {/if}
+      </div>
+
+      <!-- Dòng 2: Mô Tả Sản Phẩm Nối Tiếp -->
+      <div class="glass-panel p-6 sm:p-8 rounded-3xl border border-slate-200 bg-white space-y-4 shadow-xs">
+        <div class="flex items-center gap-3 border-b border-slate-100 pb-3.5">
+          <div class="w-10 h-10 rounded-2xl bg-blue-50 text-blue-900 flex items-center justify-center text-base font-bold shadow-2xs">
+            <i class="fa-solid fa-file-lines"></i>
+          </div>
+          <div>
+            <h3 class="text-lg font-black text-blue-950">Mô Tả Sản Phẩm</h3>
+            <p class="text-xs text-slate-500">Đặc điểm nổi bật và giới thiệu chi tiết sản phẩm</p>
+          </div>
+        </div>
+
+        <div class="text-sm text-slate-700 leading-relaxed bg-slate-50/60 p-5 sm:p-6 rounded-2xl border border-slate-200/80 whitespace-pre-line">
+          <p>{product.description}</p>
+        </div>
+      </div>
+    </section>
 
     <!-- REVIEWS & COMMENTS SECTION -->
     <section class="space-y-8 pt-8 border-t border-slate-200">

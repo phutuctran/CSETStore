@@ -415,6 +415,22 @@ export class LocalStorageThemeRepository implements IThemeRepository {
 
   saveTheme(config: ThemeConfig): void {
     getSafeStorage().setItem(THEME_STORAGE_KEY, JSON.stringify(config));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('cset_theme_updated', { detail: config }));
+      if (typeof BroadcastChannel !== 'undefined') {
+        try {
+          const bc = new BroadcastChannel('cset_theme_sync');
+          bc.postMessage(config);
+        } catch {}
+      }
+      if (typeof fetch === 'function') {
+        fetch('/api/theme', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(config)
+        }).catch(() => {});
+      }
+    }
   }
 
   resetTheme(): ThemeConfig {

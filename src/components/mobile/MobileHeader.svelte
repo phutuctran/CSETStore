@@ -62,11 +62,15 @@
       {#if appStore.currentCustomer}
         <button
           type="button"
-          onclick={() => appStore.openProfileModal()}
-          class="w-9 h-9 rounded-xl bg-blue-900 text-white font-bold text-xs flex items-center justify-center cursor-pointer shadow-xs"
-          title="Thông tin tài khoản"
+          onclick={() => appStore.navigateToProfile()}
+          class="w-9 h-9 rounded-xl bg-blue-900 text-white font-bold text-xs flex items-center justify-center cursor-pointer shadow-xs overflow-hidden"
+          title="Thông tin tài khoản & đánh giá"
         >
-          {appStore.currentCustomer.fullName.charAt(0)}
+          {#if appStore.currentCustomer.avatar}
+            <img src={appStore.currentCustomer.avatar} alt="Avatar" class="w-full h-full object-cover" />
+          {:else}
+            {appStore.currentCustomer.fullName.charAt(0)}
+          {/if}
         </button>
       {:else}
         <button

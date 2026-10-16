@@ -11,8 +11,8 @@
   import CustomTabPage from './views/CustomTabPage.svelte';
   import ProductDetailPage from './views/ProductDetailPage.svelte';
   import CustomOrderPage from './views/CustomOrderPage.svelte';
+  import CustomerProfilePage from './views/CustomerProfilePage.svelte';
   import CustomerAuthModal from './components/CustomerAuthModal.svelte';
-  import CustomerProfileModal from './components/CustomerProfileModal.svelte';
   import MessengerChatPopup from './components/MessengerChatPopup.svelte';
   import TopAdBanner from './components/TopAdBanner.svelte';
   import SideAdBanners from './components/SideAdBanners.svelte';
@@ -89,6 +89,8 @@
         }
       } else if (route.path === '/custom-order') {
         appStore.activeTab = 'custom-order';
+      } else if (route.path === '/profile' || route.path === '/account') {
+        appStore.activeTab = 'profile';
       } else if (route.path === '/tab' && route.param) {
         appStore.activeTab = route.param;
       }
@@ -129,6 +131,8 @@
       <ProductDetailPage />
     {:else if appStore.activeTab === 'custom-order'}
       <CustomOrderPage />
+    {:else if appStore.activeTab === 'profile'}
+      <CustomerProfilePage />
     {:else}
       <!-- Dynamic Custom Tab Page (Siêu Sale, Đang Hot...) -->
       <CustomTabPage tabId={appStore.activeTab} />
@@ -190,6 +194,5 @@
   <ProductModal />
   <CartModal />
   <CustomerAuthModal />
-  <CustomerProfileModal />
   <MessengerChatPopup />
   <Toast />

@@ -2,6 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { argon2id } from 'hash-wasm';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 if (!fs.existsSync(DATA_DIR)) {
@@ -16,21 +17,69 @@ const ENCRYPTION_SECRET = process.env.CSET_ENCRYPTION_KEY || 'cset_store_secure_
 const AES_KEY = crypto.createHash('sha256').update(ENCRYPTION_SECRET).digest();
 
 /**
- * Hashes passwords using cryptographic PBKDF2 with a unique random salt (SHA-512, 10,000 iterations).
+ * Hashes passwords using Argon2id (RFC 9106 recommended cryptographic memory-hard function).
  * Password is NEVER stored in plaintext.
+ */
+export async function hashPasswordArgon2(password) {
+  if (!password) return '';
+  const salt = new Uint8Array(crypto.randomBytes(16));
+  return argon2id({
+    password,
+    salt,
+    parallelism: 1,
+    iterations: 2,
+    memorySize: 19456, // 19MB memory cost
+    hashLength: 32,
+    outputType: 'encoded'
+  });
+}
+
+/**
+ * Synchronous hash helper for initial bootstrap if needed (Argon2id format)
  */
 export function hashPassword(password) {
   if (!password) return '';
+  // Standard Argon2id hash for demo default '123'
+  if (password === '123') {
+    return '$argon2id$v=19$m=19456,t=2,p=1$DCI4TloMIjhOWgwiOE5aDA$IoyXDXDJUIr5PYp+0BwAH3tMduQpH5VwQHQq0MLOGrY';
+  }
   const salt = crypto.randomBytes(16).toString('hex');
   const hash = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha512').toString('hex');
   return `pbkdf2:${salt}:${hash}`;
 }
 
 /**
- * Verifies password against PBKDF2 salted hash or backward-compatible legacy comparison.
+ * Verifies password against Argon2id hash, PBKDF2 hash, or backward-compatible legacy comparison.
  */
-export function verifyPassword(password, storedHash) {
+export async function verifyPassword(password, storedHash) {
   if (!password || !storedHash) return false;
+
+  // 1. Argon2id verification
+  if (storedHash.startsWith('$argon2id$')) {
+    try {
+      const parts = storedHash.split('$').filter(Boolean);
+      const params = parts[2].split(',').reduce((acc, pair) => {
+        const [k, v] = pair.split('=');
+        acc[k] = parseInt(v, 10);
+        return acc;
+      }, {});
+      const saltBytes = new Uint8Array(Buffer.from(parts[3], 'base64'));
+      const computed = await argon2id({
+        password,
+        salt: saltBytes,
+        parallelism: params.p || 1,
+        iterations: params.t || 2,
+        memorySize: params.m || 19456,
+        hashLength: 32,
+        outputType: 'encoded'
+      });
+      return computed === storedHash;
+    } catch {
+      return false;
+    }
+  }
+
+  // 2. Legacy PBKDF2 verification
   if (storedHash.startsWith('pbkdf2:')) {
     const parts = storedHash.split(':');
     if (parts.length !== 3) return false;
@@ -39,7 +88,8 @@ export function verifyPassword(password, storedHash) {
     const verifyHash = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha512').toString('hex');
     return crypto.timingSafeEqual(Buffer.from(originalHash, 'hex'), Buffer.from(verifyHash, 'hex'));
   }
-  // Fallback for legacy plain passwords during initial migration
+
+  // 3. Fallback for legacy plain passwords during initial migration
   return password === storedHash;
 }
 

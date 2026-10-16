@@ -25,16 +25,16 @@
     const clean = phone.trim();
     return userRepo.getAll().some(u => u.phone && u.phone.trim() === clean);
   });
-  function handleLogin(e: Event) {
+  async function handleLogin(e: Event) {
     e.preventDefault();
     errorMsg = '';
-    const success = appStore.loginCustomer(username.trim(), password);
+    const success = await appStore.loginCustomer(username.trim(), password);
     if (!success) {
-      errorMsg = 'Tên đăng nhập hoặc mật khẩu không đúng!';
+      errorMsg = 'Tên đăng nhập hoặc mật khẩu không chính xác!';
     }
   }
 
-  function handleRegister(e: Event) {
+  async function handleRegister(e: Event) {
     e.preventDefault();
     errorMsg = '';
     if (!username.trim() || !password || !fullName.trim()) {
@@ -53,7 +53,7 @@
       errorMsg = 'Mật khẩu quá yếu! Vui lòng chọn mật khẩu từ 8 ký tự, kết hợp chữ hoa, chữ số hoặc ký tự đặc biệt.';
       return;
     }
-    const success = appStore.registerCustomer({
+    const success = await appStore.registerCustomer({
       username: username.trim(),
       password,
       fullName: fullName.trim(),

@@ -18,6 +18,6 @@ export default function handler(req, res) {
     const result = restoreSqlDump(sqlContent);
     return res.status(200).json(result);
   } catch (err) {
-    return res.status(400).json({ success: false, message: err.message });
+    return res.status(400).json({ success: false, message: 'Khôi phục dữ liệu thất bại. File sao lưu không hợp lệ.' });
   }
 }

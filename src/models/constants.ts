@@ -571,7 +571,7 @@ export const INITIAL_USERS: User[] = [
   {
     id: 'USR-SUPER',
     username: 'superadmin',
-    password: '123',
+    password: '$argon2id$v=19$m=19456,t=2,p=1$DCI4TloMIjhOWgwiOE5aDA$IoyXDXDJUIr5PYp+0BwAH3tMduQpH5VwQHQq0MLOGrY',
     fullName: 'Trần Super Admin',
     role: 'super_admin',
     createdAt: '2026-01-01 08:00:00'
@@ -579,7 +579,7 @@ export const INITIAL_USERS: User[] = [
   {
     id: 'USR-SALES',
     username: 'salesadmin',
-    password: '123',
+    password: '$argon2id$v=19$m=19456,t=2,p=1$DCI4TloMIjhOWgwiOE5aDA$IoyXDXDJUIr5PYp+0BwAH3tMduQpH5VwQHQq0MLOGrY',
     fullName: 'Nguyễn Quản Lý Đơn',
     role: 'sales_admin',
     createdAt: '2026-01-02 09:00:00'
@@ -587,7 +587,7 @@ export const INITIAL_USERS: User[] = [
   {
     id: 'USR-INVENTORY',
     username: 'khoadmin',
-    password: '123',
+    password: '$argon2id$v=19$m=19456,t=2,p=1$DCI4TloMIjhOWgwiOE5aDA$IoyXDXDJUIr5PYp+0BwAH3tMduQpH5VwQHQq0MLOGrY',
     fullName: 'Lê Quản Lý Kho & Hàng Hóa',
     role: 'inventory_admin',
     createdAt: '2026-01-03 10:00:00'
@@ -595,7 +595,7 @@ export const INITIAL_USERS: User[] = [
   {
     id: 'USR-CUST-1',
     username: 'khachhang1',
-    password: '123',
+    password: '$argon2id$v=19$m=19456,t=2,p=1$DCI4TloMIjhOWgwiOE5aDA$IoyXDXDJUIr5PYp+0BwAH3tMduQpH5VwQHQq0MLOGrY',
     fullName: 'Khách Hàng Thân Thiết',
     phone: '0909123456',
     address: '456 Hai Bà Trưng, Quận 1, TP. Hồ Chí Minh',
@@ -605,7 +605,7 @@ export const INITIAL_USERS: User[] = [
   {
     id: 'USR-CUST-2',
     username: 'khachhang2',
-    password: '123',
+    password: '$argon2id$v=19$m=19456,t=2,p=1$DCI4TloMIjhOWgwiOE5aDA$IoyXDXDJUIr5PYp+0BwAH3tMduQpH5VwQHQq0MLOGrY',
     fullName: 'Hoàng Minh Tuấn',
     phone: '0918234567',
     address: '120 Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh',
@@ -615,7 +615,7 @@ export const INITIAL_USERS: User[] = [
   {
     id: 'USR-CUST-3',
     username: 'khachhang3',
-    password: '123',
+    password: '$argon2id$v=19$m=19456,t=2,p=1$DCI4TloMIjhOWgwiOE5aDA$IoyXDXDJUIr5PYp+0BwAH3tMduQpH5VwQHQq0MLOGrY',
     fullName: 'Phạm Thùy Linh',
     phone: '0987654321',
     address: '25 Hàng Bài, Phường Tràng Tiền, Quận Hoàn Kiếm, Hà Nội',
@@ -625,7 +625,7 @@ export const INITIAL_USERS: User[] = [
   {
     id: 'USR-CUST-4',
     username: 'khachhang4',
-    password: '123',
+    password: '$argon2id$v=19$m=19456,t=2,p=1$DCI4TloMIjhOWgwiOE5aDA$IoyXDXDJUIr5PYp+0BwAH3tMduQpH5VwQHQq0MLOGrY',
     fullName: 'Võ Quốc Huy',
     phone: '0933112233',
     address: '88 Trần Phú, Phường Hải Châu 1, Quận Hải Châu, Đà Nẵng',
@@ -635,7 +635,7 @@ export const INITIAL_USERS: User[] = [
   {
     id: 'USR-CUST-5',
     username: 'khachhang5',
-    password: '123',
+    password: '$argon2id$v=19$m=19456,t=2,p=1$DCI4TloMIjhOWgwiOE5aDA$IoyXDXDJUIr5PYp+0BwAH3tMduQpH5VwQHQq0MLOGrY',
     fullName: 'Đặng Thu Thảo',
     phone: '0977889900',
     address: '34 Lê Lợi, Phường Phú Nhuận, TP. Huế, Thừa Thiên Huế',
@@ -645,7 +645,7 @@ export const INITIAL_USERS: User[] = [
   {
     id: 'USR-CUST-6',
     username: 'khachhang6',
-    password: '123',
+    password: '$argon2id$v=19$m=19456,t=2,p=1$DCI4TloMIjhOWgwiOE5aDA$IoyXDXDJUIr5PYp+0BwAH3tMduQpH5VwQHQq0MLOGrY',
     fullName: 'Bùi Anh Dũng',
     phone: '0908123789',
     address: '56 Đường 30/4, Phường An Phú, Quận Ninh Kiều, Cần Thơ',

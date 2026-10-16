@@ -61,10 +61,10 @@
   }
 
   // Auth actions
-  function handleLogin(e: Event) {
+  async function handleLogin(e: Event) {
     e.preventDefault();
     loginError = '';
-    const res = authService.loginAdmin(loginUsername.trim(), loginPassword);
+    const res = await authService.loginAdmin(loginUsername.trim(), loginPassword);
     if (res.success && res.user) {
       currentAdmin = res.user;
       products = productRepo.getAll();

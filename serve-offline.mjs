@@ -1,8 +1,9 @@
 import http from 'http';
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 
-const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 5174;
+const PORT = 5174;
 const DIST = path.join(import.meta.dirname, 'dist');
 import {
   sqlGetProducts,
@@ -21,7 +22,11 @@ import {
   sqlGetUsers,
   exportSqlDump,
   restoreSqlDump,
-  sqlAutoSelectTop5BestSellers
+  sqlAutoSelectTop5BestSellers,
+  sqlGetTheme,
+  sqlSaveTheme,
+  verifyPassword,
+  sqlGetUserByUsername
 } from './server/database.js';
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -33,23 +38,104 @@ const MIME_TYPES = {
   '.jpeg': 'image/jpeg',
   '.json': 'application/json'
 };
+// In-memory Login Rate Limiting (5 failed attempts per 15 min per IP/username)
+const loginAttempts = new Map();
+const MAX_FAILED_ATTEMPTS = 5;
+const LOCKOUT_MS = 15 * 60 * 1000;
+
+// Automated 12-Hour Periodic Database Backup
+const BACKUP_DIR = path.join(import.meta.dirname, 'backups');
+if (!fs.existsSync(BACKUP_DIR)) {
+  fs.mkdirSync(BACKUP_DIR, { recursive: true });
+}
+
+function runAutoBackup() {
+  try {
+    const dump = exportSqlDump();
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const filename = `cset_store_auto_backup_${timestamp}.sql`;
+    const fullPath = path.join(BACKUP_DIR, filename);
+    fs.writeFileSync(fullPath, dump, 'utf-8');
+
+    // Rotate backups: keep 10 most recent snapshots
+    const files = fs.readdirSync(BACKUP_DIR).filter(f => f.startsWith('cset_store_auto_backup_'));
+    if (files.length > 10) {
+      files.sort();
+      for (let i = 0; i < files.length - 10; i++) {
+        try { fs.unlinkSync(path.join(BACKUP_DIR, files[i])); } catch {}
+      }
+    }
+  } catch {}
+}
+
+// Run initial auto-backup on server launch and schedule every 12 hours
+runAutoBackup();
+const TWELVE_HOURS_MS = 12 * 60 * 60 * 1000;
+setInterval(runAutoBackup, TWELVE_HOURS_MS);
+
+const SECURITY_HEADERS = {
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'SAMEORIGIN',
+  'X-XSS-Protection': '1; mode=block',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+  'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+  'Content-Security-Policy': "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://cdnjs.cloudflare.com https://fonts.googleapis.com https://fonts.gstatic.com; img-src 'self' data: blob: https:; font-src 'self' data: https://cdnjs.cloudflare.com https://fonts.gstatic.com; connect-src 'self' http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:*;"
+};
 
 const server = http.createServer((req, res) => {
-  const [reqPath, queryString] = (req.url || '/').split('?');
+  const [reqPath] = (req.url || '/').split('?');
+
+  // Apply security headers to every response
+  Object.entries(SECURITY_HEADERS).forEach(([k, v]) => {
+    res.setHeader(k, v);
+  });
+
+  // Strict CORS: Only allow main trusted origins
+  const origin = req.headers.origin;
+  const allowedOrigins = [
+    'http://localhost:5174',
+    'http://127.0.0.1:5174',
+    'http://localhost:5175',
+    'http://127.0.0.1:5175',
+    'http://localhost:5173',
+    'http://127.0.0.1:5173'
+  ];
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  } else if (!origin) {
+    res.setHeader('Access-Control-Allow-Origin', 'http://127.0.0.1:5174');
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+
+  // Database Protection: Block direct access to database, backups, server files, .env
+  const normalizedPath = reqPath.toLowerCase();
+  if (
+    normalizedPath.includes('.sqlite') ||
+    normalizedPath.includes('.db') ||
+    normalizedPath.includes('.sql') ||
+    normalizedPath.includes('.env') ||
+    normalizedPath.includes('/server/') ||
+    normalizedPath.includes('/data/') ||
+    normalizedPath.includes('/backups/') ||
+    normalizedPath.includes('/.git')
+  ) {
+    res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify({ success: false, message: 'Truy cập bị từ chối' }));
+    return;
+  }
 
   // API Endpoints
   if (reqPath.startsWith('/api/')) {
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-    if (req.method === 'OPTIONS') {
-      res.writeHead(204);
-      res.end();
-      return;
-    }
-
     // GET /api/backup/download (Exports real SQL database backup)
     if (req.method === 'GET' && (reqPath === '/api/backup/download' || reqPath === '/api/backup/sql')) {
       const sqlDump = exportSqlDump();
@@ -178,6 +264,34 @@ const server = http.createServer((req, res) => {
       req.on('end', () => {
         try {
           const data = JSON.parse(body);
+          if (!data.productId || !data.comment) {
+            res.writeHead(400);
+            res.end(JSON.stringify({ success: false, message: 'Thông tin đánh giá không hợp lệ' }));
+            return;
+          }
+          if (data.rating < 1 || data.rating > 5) {
+            res.writeHead(400);
+            res.end(JSON.stringify({ success: false, message: 'Số sao đánh giá phải từ 1 đến 5' }));
+            return;
+          }
+          // Giới hạn loại file hình ảnh khách hàng được up, giới hạn dung lượng file không quá 3MB
+          if (Array.isArray(data.images)) {
+            for (const img of data.images) {
+              if (typeof img === 'string') {
+                if (!img.startsWith('data:image/')) {
+                  res.writeHead(400);
+                  res.end(JSON.stringify({ success: false, message: 'Chỉ chấp nhận file định dạng hình ảnh!' }));
+                  return;
+                }
+                const approxBytes = img.length * 0.75;
+                if (approxBytes > 3 * 1024 * 1024) {
+                  res.writeHead(400);
+                  res.end(JSON.stringify({ success: false, message: 'Dung lượng ảnh vượt quá giới hạn tối đa 3MB!' }));
+                  return;
+                }
+              }
+            }
+          }
           const created = sqlCreateReview(data);
           res.writeHead(201);
           res.end(JSON.stringify({ success: true, data: created }));
@@ -257,6 +371,111 @@ const server = http.createServer((req, res) => {
       const users = sqlGetUsers();
       res.writeHead(200);
       res.end(JSON.stringify({ success: true, data: users }));
+      return;
+    }
+
+    // GET /api/theme
+    if (req.method === 'GET' && reqPath === '/api/theme') {
+      const theme = sqlGetTheme();
+      res.writeHead(200);
+      res.end(JSON.stringify({ success: true, data: theme }));
+      return;
+    }
+
+    // POST /api/theme
+    if (req.method === 'POST' && reqPath === '/api/theme') {
+      let body = '';
+      req.on('data', chunk => body += chunk);
+      req.on('end', () => {
+        try {
+          const theme = JSON.parse(body);
+          const saved = sqlSaveTheme(theme);
+          res.writeHead(200);
+          res.end(JSON.stringify({ success: true, data: saved }));
+        } catch (err) {
+          res.writeHead(400);
+          res.end(JSON.stringify({ success: false, message: 'Dữ liệu không hợp lệ' }));
+        }
+      });
+      return;
+    }
+
+    // POST /api/auth/login (Secure rate-limited authentication with Argon2id)
+    if (req.method === 'POST' && reqPath === '/api/auth/login') {
+      const clientIp = req.socket.remoteAddress || '127.0.0.1';
+      let body = '';
+      req.on('data', chunk => body += chunk);
+      req.on('end', async () => {
+        try {
+          const { username, password } = JSON.parse(body);
+          if (!username || !password) {
+            res.writeHead(400);
+            res.end(JSON.stringify({ success: false, message: 'Vui lòng cung cấp đầy đủ tên đăng nhập và mật khẩu' }));
+            return;
+          }
+
+          const rateKey = `${clientIp}:${username.toLowerCase().trim()}`;
+          const now = Date.now();
+          const rate = loginAttempts.get(rateKey) || { count: 0, lockoutUntil: 0 };
+          if (rate.lockoutUntil && now < rate.lockoutUntil) {
+            const waitMinutes = Math.ceil((rate.lockoutUntil - now) / 60000);
+            res.writeHead(429);
+            res.end(JSON.stringify({
+              success: false,
+              message: `Tài khoản tạm thời bị khóa do nhập sai nhiều lần. Vui lòng thử lại sau ${waitMinutes} phút.`
+            }));
+            return;
+          }
+
+          const user = sqlGetUserByUsername(username);
+          if (!user) {
+            rate.count = (rate.count || 0) + 1;
+            if (rate.count >= MAX_FAILED_ATTEMPTS) {
+              rate.lockoutUntil = now + LOCKOUT_MS;
+              rate.count = 0;
+            }
+            loginAttempts.set(rateKey, rate);
+            res.writeHead(401);
+            res.end(JSON.stringify({ success: false, message: 'Tên đăng nhập hoặc mật khẩu không chính xác' }));
+            return;
+          }
+
+          const isValid = await verifyPassword(password, user.password_hash);
+          if (!isValid) {
+            rate.count = (rate.count || 0) + 1;
+            if (rate.count >= MAX_FAILED_ATTEMPTS) {
+              rate.lockoutUntil = now + LOCKOUT_MS;
+              rate.count = 0;
+            }
+            loginAttempts.set(rateKey, rate);
+            res.writeHead(401);
+            res.end(JSON.stringify({ success: false, message: 'Tên đăng nhập hoặc mật khẩu không chính xác' }));
+            return;
+          }
+
+          loginAttempts.delete(rateKey);
+
+          const sessionToken = crypto.randomBytes(32).toString('hex');
+          res.setHeader('Set-Cookie', `cset_session=${sessionToken}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=43200`);
+
+          res.writeHead(200);
+          res.end(JSON.stringify({
+            success: true,
+            data: {
+              id: user.id,
+              username: user.username,
+              fullName: user.fullName,
+              phone: user.phone,
+              address: user.address,
+              role: user.role,
+              createdAt: user.createdAt
+            }
+          }));
+        } catch {
+          res.writeHead(400);
+          res.end(JSON.stringify({ success: false, message: 'Yêu cầu không hợp lệ' }));
+        }
+      });
       return;
     }
   }

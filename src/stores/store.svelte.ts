@@ -157,16 +157,28 @@ class StoreState {
     this.isAuthModalOpen = false;
   }
 
+  navigateToProfile() {
+    if (!this.currentCustomer) {
+      this.openAuthModal('login');
+      return;
+    }
+    this.activeTab = 'profile';
+    routerService.navigate('/profile');
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
+
   openProfileModal() {
-    this.isProfileModalOpen = true;
+    this.navigateToProfile();
   }
 
   closeProfileModal() {
     this.isProfileModalOpen = false;
   }
 
-  loginCustomer(username: string, pass: string) {
-    const res = authService.loginCustomer(username, pass);
+  async loginCustomer(username: string, pass: string) {
+    const res = await authService.loginCustomer(username, pass);
     if (res.success && res.user) {
       this.currentCustomer = res.user;
       this.orders = orderRepo.getAll();
@@ -178,8 +190,8 @@ class StoreState {
     return false;
   }
 
-  registerCustomer(data: { username: string; password?: string; fullName: string; phone?: string; address?: string }) {
-    const res = authService.registerCustomer(data);
+  async registerCustomer(data: { username: string; password?: string; fullName: string; phone?: string; address?: string }) {
+    const res = await authService.registerCustomer(data);
     if (res.success && res.user) {
       this.currentCustomer = res.user;
       this.orders = orderRepo.getAll();
@@ -200,12 +212,11 @@ class StoreState {
     this.showToast('Đã đăng xuất tài khoản khách hàng!');
   }
 
-  updateCustomerProfile(patch: { fullName: string; phone: string; address: string; password?: string }) {
+  async updateCustomerProfile(patch: Partial<User>) {
     if (!this.currentCustomer) return false;
-    const updated = authService.updateCustomerProfile(this.currentCustomer.id, patch);
+    const updated = await authService.updateCustomerProfile(this.currentCustomer.id, patch);
     if (updated) {
       this.currentCustomer = updated;
-      this.closeProfileModal();
       this.showToast('Đã cập nhật thông tin cá nhân thành công!');
       return true;
     }

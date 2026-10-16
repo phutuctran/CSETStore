@@ -134,12 +134,12 @@
                     type="button"
                     onclick={() => {
                       closeDropdown();
-                      appStore.openProfileModal();
+                      appStore.navigateToProfile();
                     }}
                     class="w-full text-left px-4 py-2 text-slate-700 hover:bg-slate-50 hover:text-blue-900 font-semibold flex items-center gap-2.5 transition cursor-pointer"
                   >
                     <i class="fa-solid fa-id-card text-blue-900 w-4 text-center"></i>
-                    <span>Thông Tin & Chỉnh Sửa</span>
+                    <span>Tài Khoản & Đánh Giá</span>
                   </button>
 
                   <button

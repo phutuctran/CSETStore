@@ -28,4 +28,6 @@ dist-ssr
 
 *.sqlite-shm
 *.sqlite-wal
+backups/
+*.sqlite
 data/test.sqlite

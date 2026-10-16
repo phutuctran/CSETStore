@@ -8,6 +8,7 @@
   import ShopPage from '../../views/ShopPage.svelte';
   import CustomerOrdersPage from '../../views/CustomerOrdersPage.svelte';
   import CustomOrderPage from '../../views/CustomOrderPage.svelte';
+  import CustomerProfilePage from '../../views/CustomerProfilePage.svelte';
   import CustomTabPage from '../../views/CustomTabPage.svelte';
 </script>
 
@@ -34,6 +35,10 @@
     {:else if appStore.activeTab === 'custom-order'}
       <div class="space-y-4 pb-20">
         <CustomOrderPage />
+      </div>
+    {:else if appStore.activeTab === 'profile'}
+      <div class="space-y-4 pb-20">
+        <CustomerProfilePage />
       </div>
     {:else}
       <div class="space-y-4 pb-20">

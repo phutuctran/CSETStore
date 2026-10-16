@@ -1,9 +1,74 @@
 import type { User, Role } from '../models/types';
 import { LocalStorageUserRepository } from '../repositories';
+import { hashPasswordArgon2, verifyPasswordArgon2, sanitizeUser } from './cryptoService';
 
 const userRepo = new LocalStorageUserRepository();
 const ADMIN_SESSION_KEY = 'cset_admin_session';
 const CUSTOMER_SESSION_KEY = 'cset_customer_session';
+const RATE_LIMIT_KEY = 'cset_login_rate_limits';
+
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes lockout
+const ADMIN_SESSION_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours
+const CUSTOMER_SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+interface SessionEnvelope {
+  user: User;
+  expiresAt: number;
+}
+
+interface RateLimitMap {
+  [key: string]: {
+    attempts: number;
+    lockoutUntil: number;
+  };
+}
+
+function getRateLimits(): RateLimitMap {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = localStorage.getItem(RATE_LIMIT_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function checkRateLimit(key: string): { locked: boolean; waitMinutes?: number } {
+  const map = getRateLimits();
+  const entry = map[key.toLowerCase()];
+  if (!entry) return { locked: false };
+  if (entry.lockoutUntil && Date.now() < entry.lockoutUntil) {
+    const remainingMs = entry.lockoutUntil - Date.now();
+    return { locked: true, waitMinutes: Math.ceil(remainingMs / 60000) };
+  }
+  return { locked: false };
+}
+
+function recordFailedAttempt(key: string): void {
+  if (typeof window === 'undefined') return;
+  const map = getRateLimits();
+  const k = key.toLowerCase();
+  const entry = map[k] || { attempts: 0, lockoutUntil: 0 };
+  entry.attempts = (entry.attempts || 0) + 1;
+  if (entry.attempts >= MAX_LOGIN_ATTEMPTS) {
+    entry.lockoutUntil = Date.now() + LOCKOUT_DURATION_MS;
+    entry.attempts = 0;
+  }
+  map[k] = entry;
+  try {
+    localStorage.setItem(RATE_LIMIT_KEY, JSON.stringify(map));
+  } catch {}
+}
+
+function clearRateLimit(key: string): void {
+  if (typeof window === 'undefined') return;
+  const map = getRateLimits();
+  delete map[key.toLowerCase()];
+  try {
+    localStorage.setItem(RATE_LIMIT_KEY, JSON.stringify(map));
+  } catch {}
+}
 
 
 export interface PasswordStrengthResult {
@@ -68,13 +133,18 @@ export function evaluatePasswordStrength(password: string): PasswordStrengthResu
   return { score: 5, level: 'very_strong', label: 'Rất mạnh', colorClass: 'bg-emerald-500 text-emerald-600', barWidth: '100%', hasMinLength, hasUppercase, hasLowercase, hasNumber, hasSpecial, suggestions };
 }
 export class AuthService {
-  // Session handling
+  // Session handling with expiration (TTL)
   getAdminSession(): User | null {
     if (typeof window === 'undefined') return null;
     const raw = localStorage.getItem(ADMIN_SESSION_KEY);
     if (!raw) return null;
     try {
-      return JSON.parse(raw);
+      const envelope: SessionEnvelope = JSON.parse(raw);
+      if (envelope.expiresAt && Date.now() > envelope.expiresAt) {
+        localStorage.removeItem(ADMIN_SESSION_KEY);
+        return null;
+      }
+      return envelope.user || (envelope as unknown as User);
     } catch {
       return null;
     }
@@ -85,7 +155,12 @@ export class AuthService {
     const raw = localStorage.getItem(CUSTOMER_SESSION_KEY);
     if (!raw) return null;
     try {
-      return JSON.parse(raw);
+      const envelope: SessionEnvelope = JSON.parse(raw);
+      if (envelope.expiresAt && Date.now() > envelope.expiresAt) {
+        localStorage.removeItem(CUSTOMER_SESSION_KEY);
+        return null;
+      }
+      return envelope.user || (envelope as unknown as User);
     } catch {
       return null;
     }
@@ -94,7 +169,11 @@ export class AuthService {
   setAdminSession(user: User | null): void {
     if (typeof window === 'undefined') return;
     if (user) {
-      localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify(user));
+      const envelope: SessionEnvelope = {
+        user: sanitizeUser(user) as User,
+        expiresAt: Date.now() + ADMIN_SESSION_TTL_MS
+      };
+      localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify(envelope));
     } else {
       localStorage.removeItem(ADMIN_SESSION_KEY);
     }
@@ -103,53 +182,86 @@ export class AuthService {
   setCustomerSession(user: User | null): void {
     if (typeof window === 'undefined') return;
     if (user) {
-      localStorage.setItem(CUSTOMER_SESSION_KEY, JSON.stringify(user));
+      const envelope: SessionEnvelope = {
+        user: sanitizeUser(user) as User,
+        expiresAt: Date.now() + CUSTOMER_SESSION_TTL_MS
+      };
+      localStorage.setItem(CUSTOMER_SESSION_KEY, JSON.stringify(envelope));
     } else {
       localStorage.removeItem(CUSTOMER_SESSION_KEY);
     }
   }
 
-  // Authentication
-  loginAdmin(username: string, pass: string): { success: boolean; user?: User; message?: string } {
+  // Authentication with Argon2id and Rate Limiting
+  async loginAdmin(username: string, pass: string): Promise<{ success: boolean; user?: User; message?: string }> {
+    const rate = checkRateLimit(username);
+    if (rate.locked) {
+      return {
+        success: false,
+        message: `Tài khoản tạm thời bị khóa do đăng nhập sai nhiều lần. Vui lòng thử lại sau ${rate.waitMinutes} phút.`
+      };
+    }
+
     let user = userRepo.getByUsername(username);
     if (!user && username.toLowerCase().trim() === 'admin') {
       user = userRepo.getByUsername('superadmin');
     }
     if (!user) {
-      return { success: false, message: 'Tên đăng nhập không tồn tại!' };
+      recordFailedAttempt(username);
+      return { success: false, message: 'Tên đăng nhập hoặc mật khẩu không chính xác!' };
     }
-    if (user.password !== pass) {
-      return { success: false, message: 'Mật khẩu không chính xác!' };
+
+    const isValidPass = await verifyPasswordArgon2(pass, user.password);
+    if (!isValidPass) {
+      recordFailedAttempt(username);
+      return { success: false, message: 'Tên đăng nhập hoặc mật khẩu không chính xác!' };
     }
+
     if (user.role === 'customer') {
       return { success: false, message: 'Tài khoản khách hàng không có quyền truy cập hệ thống quản trị!' };
     }
+
+    clearRateLimit(username);
     this.setAdminSession(user);
-    return { success: true, user };
+    return { success: true, user: sanitizeUser(user) as User };
   }
 
-  loginCustomer(username: string, pass: string): { success: boolean; user?: User; message?: string } {
+  async loginCustomer(username: string, pass: string): Promise<{ success: boolean; user?: User; message?: string }> {
+    const rate = checkRateLimit(username);
+    if (rate.locked) {
+      return {
+        success: false,
+        message: `Tài khoản tạm thời bị khóa do đăng nhập sai nhiều lần. Vui lòng thử lại sau ${rate.waitMinutes} phút.`
+      };
+    }
+
     let user = userRepo.getByUsername(username);
     if (!user && username.toLowerCase().trim() === 'admin') {
       user = userRepo.getByUsername('superadmin');
     }
     if (!user) {
-      return { success: false, message: 'Tên đăng nhập không tồn tại!' };
+      recordFailedAttempt(username);
+      return { success: false, message: 'Tên đăng nhập hoặc mật khẩu không chính xác!' };
     }
-    if (user.password !== pass) {
-      return { success: false, message: 'Mật khẩu không chính xác!' };
+
+    const isValidPass = await verifyPasswordArgon2(pass, user.password);
+    if (!isValidPass) {
+      recordFailedAttempt(username);
+      return { success: false, message: 'Tên đăng nhập hoặc mật khẩu không chính xác!' };
     }
+
+    clearRateLimit(username);
     this.setCustomerSession(user);
-    return { success: true, user };
+    return { success: true, user: sanitizeUser(user) as User };
   }
 
-  registerCustomer(data: {
+  async registerCustomer(data: {
     username: string;
     password?: string;
     fullName: string;
     phone?: string;
     address?: string;
-  }): { success: boolean; user?: User; message?: string } {
+  }): Promise<{ success: boolean; user?: User; message?: string }> {
     const exists = userRepo.getByUsername(data.username);
     if (exists) {
       return { success: false, message: 'Tên đăng nhập này đã được sử dụng, vui lòng chọn tên khác!' };
@@ -169,25 +281,30 @@ export class AuthService {
         return { success: false, message: 'Mật khẩu quá yếu! Vui lòng chọn mật khẩu từ 8 ký tự, kết hợp chữ, số hoặc ký tự đặc biệt.' };
       }
     }
+
+    const passHash = await hashPasswordArgon2(data.password || '123');
     const newUser = userRepo.create({
       username: data.username.trim(),
-      password: data.password || '123',
+      password: passHash,
       fullName: data.fullName.trim(),
       phone: data.phone?.trim() || '',
       address: data.address?.trim() || '',
       role: 'customer'
     });
     this.setCustomerSession(newUser);
-    return { success: true, user: newUser };
+    return { success: true, user: sanitizeUser(newUser) as User };
   }
 
-  updateCustomerProfile(id: string, patch: { fullName: string; phone: string; address: string; password?: string }): User | null {
+  async updateCustomerProfile(id: string, patch: Partial<User>): Promise<User | null> {
+    if (patch.password) {
+      patch.password = await hashPasswordArgon2(patch.password);
+    }
     const success = userRepo.update(id, patch);
     if (success) {
       const updated = userRepo.getById(id);
       if (updated) {
         this.setCustomerSession(updated);
-        return updated;
+        return sanitizeUser(updated) as User;
       }
     }
     return null;

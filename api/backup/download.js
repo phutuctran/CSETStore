@@ -16,6 +16,6 @@ export default function handler(req, res) {
     res.setHeader('Content-Disposition', `attachment; filename="cset_store_backup_${dateStr}.sql"`);
     return res.status(200).send(sqlDump);
   } catch (err) {
-    return res.status(500).json({ success: false, message: err.message });
+    return res.status(500).json({ success: false, message: 'Không thể xuất file sao lưu. Vui lòng thử lại sau.' });
   }
 }

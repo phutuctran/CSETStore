@@ -6,7 +6,7 @@
       appStore.openCart();
     } else if (tabId === 'account') {
       if (appStore.currentCustomer) {
-        appStore.openProfileModal();
+        appStore.navigateToProfile();
       } else {
         appStore.openAuthModal('login');
       }
@@ -93,7 +93,7 @@
   <button
     type="button"
     onclick={() => handleTabClick('account')}
-    class="flex flex-col items-center justify-center flex-1 py-1 transition-all duration-200 cursor-pointer text-slate-400 hover:text-blue-900 font-medium"
+    class="flex flex-col items-center justify-center flex-1 py-1 transition-all duration-200 cursor-pointer {appStore.activeTab === 'profile' ? 'text-blue-900 font-bold scale-105' : 'text-slate-400 hover:text-blue-900 font-medium'}"
   >
     <div class="relative">
       {#if appStore.currentCustomer}
