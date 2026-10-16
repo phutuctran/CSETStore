@@ -1,9 +1,10 @@
-import type { Product, Order, User } from '../models/types';
-import { INITIAL_PRODUCTS, INITIAL_USERS } from '../models/constants';
+import type { Product, Order, User, ThemeConfig } from '../models/types';
+import { INITIAL_PRODUCTS, INITIAL_USERS, DEFAULT_THEME_CONFIG } from '../models/constants';
 
 const PRODUCTS_STORAGE_KEY = 'cset_products_v2';
 const ORDERS_STORAGE_KEY = 'cset_orders_v2';
 const USERS_STORAGE_KEY = 'cset_users_v2';
+const THEME_STORAGE_KEY = 'cset_theme_config_v2';
 
 export interface IStorageProvider {
   getItem(key: string): string | null;
@@ -43,6 +44,12 @@ export interface IOrderRepository {
   getByCustomerId(customerId: string): Order[];
   create(order: Omit<Order, 'id' | 'createdAt'>): Order;
   updateStatus(id: string, status: Order['status']): boolean;
+}
+
+export interface IThemeRepository {
+  getTheme(): ThemeConfig;
+  saveTheme(config: ThemeConfig): void;
+  resetTheme(): ThemeConfig;
 }
 
 export interface IUserRepository {
@@ -206,3 +213,35 @@ export class LocalStorageUserRepository implements IUserRepository {
   }
 }
 
+
+/**
+ * LocalStorageThemeRepository: Implements Repository Pattern for Web Storefront Customizer
+ */
+export class LocalStorageThemeRepository implements IThemeRepository {
+  getTheme(): ThemeConfig {
+    const storage = getSafeStorage();
+    const raw = storage.getItem(THEME_STORAGE_KEY);
+    if (!raw) {
+      storage.setItem(THEME_STORAGE_KEY, JSON.stringify(DEFAULT_THEME_CONFIG));
+      return DEFAULT_THEME_CONFIG;
+    }
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') {
+        return { ...DEFAULT_THEME_CONFIG, ...(parsed as Partial<ThemeConfig>) };
+      }
+      return DEFAULT_THEME_CONFIG;
+    } catch {
+      return DEFAULT_THEME_CONFIG;
+    }
+  }
+
+  saveTheme(config: ThemeConfig): void {
+    getSafeStorage().setItem(THEME_STORAGE_KEY, JSON.stringify(config));
+  }
+
+  resetTheme(): ThemeConfig {
+    getSafeStorage().setItem(THEME_STORAGE_KEY, JSON.stringify(DEFAULT_THEME_CONFIG));
+    return DEFAULT_THEME_CONFIG;
+  }
+}

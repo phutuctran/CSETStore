@@ -1,10 +1,11 @@
 <script lang="ts">
-  import type { User, Product, Order, Role } from './models/types';
-  import { CATEGORIES, ROLE_LABELS } from './models/constants';
+  import type { User, Product, Order, Role, ThemeConfig } from './models/types';
+  import { CATEGORIES, ROLE_LABELS, DEFAULT_THEME_CONFIG } from './models/constants';
   import {
     LocalStorageProductRepository,
     LocalStorageOrderRepository,
-    LocalStorageUserRepository
+    LocalStorageUserRepository,
+    LocalStorageThemeRepository
   } from './repositories';
   import { authService } from './services/authService';
   import { formatCurrency } from './services/pricingService';
@@ -12,7 +13,7 @@
   const productRepo = new LocalStorageProductRepository();
   const orderRepo = new LocalStorageOrderRepository();
   const userRepo = new LocalStorageUserRepository();
-
+  const themeRepo = new LocalStorageThemeRepository();
   // Session
   let currentAdmin = $state<User | null>(authService.getAdminSession());
 
@@ -22,8 +23,11 @@
   let loginError = $state('');
 
   // Active navigation tab inside admin portal
-  let activeTab = $state<'orders' | 'inventory' | 'users'>('orders');
+  let activeTab = $state<'orders' | 'inventory' | 'theme' | 'users'>('orders');
 
+  // Theme Customizer State
+  let themeDraft = $state<ThemeConfig>(themeRepo.getTheme());
+  let themePreviewImage = $state('');
   // Repositories state
   let products = $state<Product[]>(productRepo.getAll());
   let orders = $state<Order[]>(orderRepo.getAll());
@@ -31,13 +35,17 @@
   let toastMsg = $state<string | null>(null);
 
   // Auto pick initial tab according to role
+  // Pick initial tab once on login
+  let initializedAdminRole = $state<string | null>(null);
   $effect(() => {
-    if (currentAdmin) {
+    if (currentAdmin && initializedAdminRole !== currentAdmin.role) {
+      initializedAdminRole = currentAdmin.role;
       if (currentAdmin.role === 'inventory_admin') {
         activeTab = 'inventory';
       } else {
         activeTab = 'orders';
       }
+      themeDraft = themeRepo.getTheme();
     }
   });
 
@@ -179,6 +187,32 @@
       showToast('Đã khôi phục dữ liệu hàng hóa mẫu!');
     }
   }
+
+  // --- TAB: THEME CUSTOMIZER (SUPER ADMIN ONLY) ---
+  function handleHeroImageUpload(e: Event) {
+    const input = e.target as HTMLInputElement;
+    if (input.files && input.files[0]) {
+      const file = input.files[0];
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        themeDraft.heroImage = (evt.target?.result as string) || themeDraft.heroImage;
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  function handleSaveTheme(e: Event) {
+    e.preventDefault();
+    themeRepo.saveTheme(themeDraft);
+    showToast('Đã lưu và áp dụng giao diện mới cho toàn bộ Website Cửa Hàng!');
+  }
+
+  function handleResetTheme() {
+    if (confirm('Khôi phục cấu hình giao diện mặc định ban đầu của CSET Store?')) {
+      themeDraft = themeRepo.resetTheme();
+      showToast('Đã khôi phục giao diện mặc định!');
+    }
+  }
 </script>
 
 {#if !currentAdmin}
@@ -318,6 +352,17 @@
             {#if authService.canManageUsers(currentAdmin.role)}
               <button
                 type="button"
+                onclick={() => activeTab = 'theme'}
+                class="px-5 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center {activeTab === 'theme'
+                  ? 'bg-purple-600 text-white shadow-sm'
+                  : 'text-slate-300 hover:text-white'}"
+              >
+                <i class="fa-solid fa-paintbrush mr-2"></i>
+                Tùy Chỉnh Giao Diện
+              </button>
+
+              <button
+                type="button"
                 onclick={() => activeTab = 'users'}
                 class="px-5 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center {activeTab === 'users'
                   ? 'bg-amber-600 text-white shadow-sm'
@@ -380,6 +425,13 @@
             </button>
           {/if}
           {#if authService.canManageUsers(currentAdmin.role)}
+            <button
+              type="button"
+              onclick={() => activeTab = 'theme'}
+              class="whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-bold {activeTab === 'theme' ? 'bg-purple-600 text-white' : 'text-slate-400'}"
+            >
+              Giao diện
+            </button>
             <button
               type="button"
               onclick={() => activeTab = 'users'}
@@ -809,6 +861,370 @@
               </table>
             </div>
           </div>
+        </div>
+      {:else if activeTab === 'theme' && authService.canManageUsers(currentAdmin.role)}
+        <!-- THEME CUSTOMIZER STUDIO (SUPER ADMIN ONLY) -->
+        <div class="space-y-8">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+            <div>
+              <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-xs font-bold uppercase tracking-wider mb-2">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                <span>Live Customizer Studio</span>
+              </div>
+              <h2 class="text-2xl font-black text-white flex items-center gap-2">
+                <i class="fa-solid fa-paintbrush text-purple-400"></i>
+                Tùy Chỉnh Giao Diện Web Bán Hàng Chi Tiết
+              </h2>
+              <p class="text-xs text-slate-400 mt-1">
+                Thay đổi màu sắc thương hiệu, banner hero, khẩu hiệu, thông số in 3D và thông tin liên hệ. Mọi thay đổi áp dụng tức thì sang trang bán lẻ.
+              </p>
+            </div>
+
+            <div class="flex items-center gap-3">
+              <button
+                type="button"
+                onclick={handleResetTheme}
+                class="px-4 py-2.5 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 font-bold transition cursor-pointer"
+              >
+                <i class="fa-solid fa-arrow-rotate-left mr-1.5"></i>
+                Đặt Lại Mặc Định
+              </button>
+
+              <a
+                href="./index.html"
+                target="_blank"
+                class="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-xs text-white font-bold transition shadow flex items-center gap-1.5"
+              >
+                <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                <span>Xem Trang Bán Lẻ</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- Form Grid + Live Preview Box -->
+          <form onsubmit={handleSaveTheme} class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Settings Column (2 Cols) -->
+            <div class="lg:col-span-2 space-y-6">
+              <!-- SECTION 1: BRANDING & COLORS -->
+              <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8 space-y-5">
+                <h3 class="text-base font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-3">
+                  <i class="fa-solid fa-palette text-purple-400"></i>
+                  1. Nhận Diện Thương Hiệu & Màu Sắc Chủ Đạo
+                </h3>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div class="space-y-1.5">
+                    <label for="thm-name" class="text-xs font-bold text-slate-300 uppercase">Tên Cửa Hàng (Store Name)</label>
+                    <input
+                      id="thm-name"
+                      type="text"
+                      bind:value={themeDraft.storeName}
+                      required
+                      class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-purple-500"
+                    />
+                  </div>
+
+                  <div class="space-y-1.5">
+                    <label for="thm-tagline" class="text-xs font-bold text-slate-300 uppercase">Slogan Phụ / Tagline</label>
+                    <input
+                      id="thm-tagline"
+                      type="text"
+                      bind:value={themeDraft.storeTagline}
+                      required
+                      class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-purple-500"
+                    />
+                  </div>
+
+                  <div class="space-y-1.5">
+                    <label for="thm-icon" class="text-xs font-bold text-slate-300 uppercase">Icon Logo (FontAwesome)</label>
+                    <select
+                      id="thm-icon"
+                      bind:value={themeDraft.logoIcon}
+                      class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-purple-500"
+                    >
+                      <option value="fa-cube">Khối 3D (fa-cube)</option>
+                      <option value="fa-cubes">Cụm Khối (fa-cubes)</option>
+                      <option value="fa-print">Máy In (fa-print)</option>
+                      <option value="fa-wand-magic-sparkles">Ma Thuật (fa-wand-magic-sparkles)</option>
+                      <option value="fa-layer-group">Lớp In Layer (fa-layer-group)</option>
+                      <option value="fa-shapes">Hình Học (fa-shapes)</option>
+                    </select>
+                  </div>
+
+                  <div class="space-y-1.5">
+                    <label for="thm-color-primary" class="text-xs font-bold text-slate-300 uppercase flex items-center justify-between">
+                      <span>Màu Chủ Đạo (Primary Color)</span>
+                      <span class="font-mono text-purple-400">{themeDraft.primaryColor}</span>
+                    </label>
+                    <div class="flex items-center gap-3">
+                      <input
+                        id="thm-color-primary"
+                        type="color"
+                        bind:value={themeDraft.primaryColor}
+                        class="w-12 h-10 rounded-xl border border-slate-700 bg-slate-800 cursor-pointer p-0.5"
+                      />
+                      <input
+                        type="text"
+                        bind:value={themeDraft.primaryColor}
+                        class="flex-grow bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-xs font-mono text-white"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- SECTION 2: HERO BANNER & TEXT -->
+              <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8 space-y-5">
+                <h3 class="text-base font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-3">
+                  <i class="fa-solid fa-image text-purple-400"></i>
+                  2. Hero Banner & Thông Điệp Trang Chủ
+                </h3>
+
+                <div class="space-y-4">
+                  <div class="space-y-1.5">
+                    <label for="thm-badge" class="text-xs font-bold text-slate-300 uppercase">Huy Hiệu Khuyến Mãi (Badge Header)</label>
+                    <input
+                      id="thm-badge"
+                      type="text"
+                      bind:value={themeDraft.badgeText}
+                      class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none"
+                    />
+                  </div>
+
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="space-y-1.5">
+                      <label for="thm-htitle" class="text-xs font-bold text-slate-300 uppercase">Tiêu Đề Dòng 1 (Hero Title)</label>
+                      <input
+                        id="thm-htitle"
+                        type="text"
+                        bind:value={themeDraft.heroTitle}
+                        class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none"
+                      />
+                    </div>
+
+                    <div class="space-y-1.5">
+                      <label for="thm-hsub" class="text-xs font-bold text-slate-300 uppercase">Tiêu Đề Nhấn Mạnh Dòng 2</label>
+                      <input
+                        id="thm-hsub"
+                        type="text"
+                        bind:value={themeDraft.heroSubtitle}
+                        class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="space-y-1.5">
+                    <label for="thm-hdesc" class="text-xs font-bold text-slate-300 uppercase">Mô Tả Giới Thiệu Công Nghệ In</label>
+                    <textarea
+                      id="thm-hdesc"
+                      bind:value={themeDraft.heroDescription}
+                      rows={3}
+                      class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none"
+                    ></textarea>
+                  </div>
+
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="space-y-1.5">
+                      <label for="thm-model" class="text-xs font-bold text-slate-300 uppercase">Tên Hệ Thống Máy In</label>
+                      <input
+                        id="thm-model"
+                        type="text"
+                        bind:value={themeDraft.printerModel}
+                        class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none"
+                      />
+                    </div>
+
+                    <div class="space-y-1.5">
+                      <label for="thm-speed" class="text-xs font-bold text-slate-300 uppercase">Tốc Độ & Công Nghệ</label>
+                      <input
+                        id="thm-speed"
+                        type="text"
+                        bind:value={themeDraft.printerSpeedText}
+                        class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="space-y-1.5">
+                    <label for="thm-img-file" class="text-xs font-bold text-slate-300 uppercase">Hình Ảnh Banner Máy In (Tải từ máy hoặc nhập URL)</label>
+                    <div class="space-y-2">
+                      <input
+                        id="thm-img-file"
+                        type="file"
+                        accept="image/*"
+                        onchange={handleHeroImageUpload}
+                        class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-1.5 text-xs text-slate-300"
+                      />
+                      <input
+                        type="text"
+                        bind:value={themeDraft.heroImage}
+                        placeholder="Hoặc dán URL ảnh trực tiếp..."
+                        class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-xs text-slate-300"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- SECTION 3: TRUST BADGES & CONTACT -->
+              <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8 space-y-5">
+                <h3 class="text-base font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-3">
+                  <i class="fa-solid fa-address-book text-purple-400"></i>
+                  3. Cam Kết Chất Lượng & Thông Tin Liên Hệ
+                </h3>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div class="space-y-1.5">
+                    <label for="thm-prec" class="text-xs font-bold text-slate-300 uppercase">Thông Số Độ Chính Xác</label>
+                    <input
+                      id="thm-prec"
+                      type="text"
+                      bind:value={themeDraft.precisionText}
+                      class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                    />
+                  </div>
+
+                  <div class="space-y-1.5">
+                    <label for="thm-supp" class="text-xs font-bold text-slate-300 uppercase">Thời Gian Phục Vụ</label>
+                    <input
+                      id="thm-supp"
+                      type="text"
+                      bind:value={themeDraft.supportText}
+                      class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                    />
+                  </div>
+
+                  <div class="space-y-1.5">
+                    <label for="thm-pnote" class="text-xs font-bold text-slate-300 uppercase">Ghi Chú Giá In</label>
+                    <input
+                      id="thm-pnote"
+                      type="text"
+                      bind:value={themeDraft.pricingNote}
+                      class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                    />
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                  <div class="space-y-1.5">
+                    <label for="thm-hotline" class="text-xs font-bold text-slate-300 uppercase">Hotline Hỗ Trợ</label>
+                    <input
+                      id="thm-hotline"
+                      type="text"
+                      bind:value={themeDraft.hotline}
+                      class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white"
+                    />
+                  </div>
+
+                  <div class="space-y-1.5">
+                    <label for="thm-email" class="text-xs font-bold text-slate-300 uppercase">Email Liên Hệ</label>
+                    <input
+                      id="thm-email"
+                      type="email"
+                      bind:value={themeDraft.contactEmail}
+                      class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white"
+                    />
+                  </div>
+                </div>
+
+                <div class="space-y-1.5">
+                  <label for="thm-addr" class="text-xs font-bold text-slate-300 uppercase">Địa Chỉ Showroom / Xưởng In</label>
+                  <input
+                    id="thm-addr"
+                    type="text"
+                    bind:value={themeDraft.storeAddress}
+                    class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white"
+                  />
+                </div>
+
+                <div class="space-y-1.5">
+                  <label for="thm-footer" class="text-xs font-bold text-slate-300 uppercase">Nội Dung Chân Trang (Footer)</label>
+                  <input
+                    id="thm-footer"
+                    type="text"
+                    bind:value={themeDraft.footerText}
+                    class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                class="w-full py-4 rounded-2xl bg-purple-600 hover:bg-purple-500 text-white font-black text-sm uppercase tracking-wider cursor-pointer shadow-xl transition flex items-center justify-center gap-2"
+              >
+                <i class="fa-solid fa-floppy-disk text-base"></i>
+                <span>Lưu & Đồng Bộ Giao Diện Cửa Hàng Ngay</span>
+              </button>
+            </div>
+
+            <!-- Live Preview Column (1 Col Sticky) -->
+            <div class="space-y-4">
+              <div class="sticky top-28 bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-5">
+                <h4 class="text-sm font-bold text-purple-400 flex items-center justify-between border-b border-slate-800 pb-3">
+                  <span><i class="fa-solid fa-eye mr-2"></i>Xem Trước Thời Gian Thực</span>
+                  <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                </h4>
+
+                <!-- Preview Card Box -->
+                <div class="bg-white rounded-2xl p-5 text-slate-800 border border-slate-200 shadow-md space-y-4">
+                  <!-- Mini Header Preview -->
+                  <div class="flex items-center space-x-2.5 border-b border-slate-100 pb-3">
+                    <div
+                      class="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs shadow-xs"
+                      style="background-color: {themeDraft.primaryColor}"
+                    >
+                      <i class="fa-solid {themeDraft.logoIcon}"></i>
+                    </div>
+                    <div>
+                      <span class="text-xs font-black text-slate-900 block leading-tight">{themeDraft.storeName}</span>
+                      <span class="text-[9px] font-bold text-slate-500 block uppercase">{themeDraft.storeTagline}</span>
+                    </div>
+                  </div>
+
+                  <!-- Mini Hero Preview -->
+                  <div class="space-y-2">
+                    <span class="inline-block text-[9px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-900 border border-blue-200 uppercase">
+                      {themeDraft.badgeText}
+                    </span>
+                    <h5 class="text-sm font-black text-slate-900 leading-tight">
+                      {themeDraft.heroTitle} <br />
+                      <span style="color: {themeDraft.primaryColor}">{themeDraft.heroSubtitle}</span>
+                    </h5>
+                    <p class="text-[10px] text-slate-500 line-clamp-3 leading-relaxed">
+                      {themeDraft.heroDescription}
+                    </p>
+                  </div>
+
+                  <!-- Mini Banner Image Preview -->
+                  <div class="h-28 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 relative">
+                    <img
+                      src={themeDraft.heroImage}
+                      alt="Hero Preview"
+                      class="w-full h-full object-cover"
+                    />
+                    <div class="absolute bottom-1.5 left-1.5 right-1.5 bg-white/90 backdrop-blur-xs p-1.5 rounded-lg text-[9px] flex items-center justify-between">
+                      <span class="font-bold text-slate-900">{themeDraft.printerModel}</span>
+                      <span class="text-slate-500">{themeDraft.printerSpeedText.split('-')[0]}</span>
+                    </div>
+                  </div>
+
+                  <!-- Mini Button Preview -->
+                  <div
+                    class="w-full py-2 rounded-xl text-white text-xs font-bold text-center shadow-xs"
+                    style="background-color: {themeDraft.primaryColor}"
+                  >
+                    Nút Khám Phá Sản Phẩm
+                  </div>
+                </div>
+
+                <!-- Info notice -->
+                <div class="text-[11px] text-slate-400 space-y-2 bg-slate-800/40 p-3.5 rounded-xl border border-slate-800">
+                  <p class="font-semibold text-slate-300"><i class="fa-solid fa-circle-info mr-1.5 text-purple-400"></i>Cơ chế đồng bộ động:</p>
+                  <p>Sau khi bấm lưu, Web Cửa Hàng sẽ cập nhật tức thì màu sắc, banner và thương hiệu mà không cần khởi động lại máy chủ.</p>
+                </div>
+              </div>
+            </div>
+          </form>
         </div>
       {/if}
     </main>

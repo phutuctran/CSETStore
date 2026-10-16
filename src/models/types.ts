@@ -57,3 +57,39 @@ export interface CategoryOption {
   label: string;
   icon?: string;
 }
+
+export interface ThemeConfig {
+  // Branding
+  storeName: string;
+  storeTagline: string;
+  logoIcon: string; // FontAwesome icon class
+
+  // Colors
+  primaryColor: string; // e.g. #1e3a8a
+  accentColor: string; // e.g. #1e40af
+  backgroundColor: string; // e.g. #f8fafc
+
+  // Hero Section
+  badgeText: string;
+  heroTitle: string;
+  heroSubtitle: string;
+  heroDescription: string;
+  heroImage: string;
+  printerModel: string;
+  printerSpeedText: string;
+
+  // Pricing & Announcement
+  pricePerGram: number; // default 1500
+  promoNotice: string;
+
+  // Trust Badges
+  precisionText: string;
+  supportText: string;
+  pricingNote: string;
+
+  // Contact & Footer
+  hotline: string;
+  contactEmail: string;
+  storeAddress: string;
+  footerText: string;
+}

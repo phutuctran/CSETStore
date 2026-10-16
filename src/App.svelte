@@ -1,5 +1,6 @@
 <script lang="ts">
   import { appStore } from './stores/store.svelte';
+  import { themeStore } from './stores/themeStore.svelte';
   import Header from './components/Header.svelte';
   import Toast from './components/Toast.svelte';
   import ProductModal from './components/ProductModal.svelte';
@@ -35,12 +36,17 @@
   <Toast />
   <!-- Footer -->
   <footer class="glass-panel border-t border-slate-200 mt-20 py-8 bg-white text-center text-xs text-slate-500">
-    <div class="max-w-7xl mx-auto px-4 space-y-2">
+    <div class="max-w-7xl mx-auto px-4 space-y-3">
       <div class="flex items-center justify-center space-x-2 text-blue-950 font-bold">
-        <i class="fa-solid fa-cube text-blue-900"></i>
-        <span>CSET STORE - 3D Printing Studio</span>
+        <i class="fa-solid {themeStore.theme.logoIcon} text-blue-900"></i>
+        <span>{themeStore.theme.storeName} - {themeStore.theme.storeTagline}</span>
       </div>
-      <p>© 2026 CSET Store. Đồ án xây dựng Website In 3D sử dụng Svelte 5 và Kiến trúc Layered Component.</p>
+      <div class="flex flex-wrap items-center justify-center gap-4 text-[11px] text-slate-600">
+        <span><i class="fa-solid fa-phone mr-1 text-blue-900"></i>Hotline: <strong>{themeStore.theme.hotline}</strong></span>
+        <span><i class="fa-solid fa-envelope mr-1 text-blue-900"></i>Email: <strong>{themeStore.theme.contactEmail}</strong></span>
+        <span><i class="fa-solid fa-location-dot mr-1 text-blue-900"></i>{themeStore.theme.storeAddress}</span>
+      </div>
+      <p>{themeStore.theme.footerText}</p>
     </div>
   </footer>
 </div>

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { appStore } from '../stores/store.svelte';
-
+  import { themeStore } from '../stores/themeStore.svelte';
   const navItems = [
     { id: 'home', label: 'Trang Chủ', icon: 'fa-solid fa-house' },
     { id: 'shop', label: 'Cửa Hàng', icon: 'fa-solid fa-store' },
@@ -18,12 +18,15 @@
         onclick={() => appStore.setTab('home')}
         class="flex items-center space-x-3 text-left cursor-pointer group focus:outline-none"
       >
-        <div class="w-10 h-10 bg-blue-900 rounded-xl flex items-center justify-center shadow-md group-hover:bg-blue-800 transition">
-          <i class="fa-solid fa-cube text-white text-xl"></i>
+        <div
+          class="w-10 h-10 rounded-xl flex items-center justify-center shadow-md transition"
+          style="background-color: {themeStore.theme.primaryColor}"
+        >
+          <i class="fa-solid {themeStore.theme.logoIcon} text-white text-xl"></i>
         </div>
         <div>
-          <span class="text-xl font-black tracking-wider text-blue-950 block">CSET STORE</span>
-          <span class="block text-[10px] text-blue-800 font-bold tracking-widest uppercase">3D Printing Studio</span>
+          <span class="text-xl font-black tracking-wider text-blue-950 block">{themeStore.theme.storeName}</span>
+          <span class="block text-[10px] text-blue-800 font-bold tracking-widest uppercase">{themeStore.theme.storeTagline}</span>
         </div>
       </button>
 
@@ -41,16 +44,6 @@
             {item.label}
           </button>
         {/each}
-
-        <!-- Link to Dedicated Admin Web Portal -->
-        <a
-          href="./admin.html"
-          class="px-4 py-2.5 rounded-xl text-sm font-semibold transition cursor-pointer flex items-center text-amber-700 hover:text-amber-900 hover:bg-amber-100/50 border border-amber-200/60 ml-2"
-          title="Mở cổng thông tin quản trị CSET Store"
-        >
-          <i class="fa-solid fa-user-shield mr-2"></i>
-          Trang Admin
-        </a>
       </nav>
 
       <!-- Right Actions: Customer Account & Cart -->
@@ -115,13 +108,6 @@
           {item.label}
         </button>
       {/each}
-      <a
-        href="./admin.html"
-        class="whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center shrink-0 text-amber-700 bg-amber-50"
-      >
-        <i class="fa-solid fa-user-shield mr-1.5"></i>
-        Admin
-      </a>
     </div>
   </div>
 </header>

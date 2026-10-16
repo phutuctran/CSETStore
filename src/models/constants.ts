@@ -1,4 +1,4 @@
-import type { Product, Order, User, Role } from './types';
+import type { Product, Order, User, Role, ThemeConfig } from './types';
 
 export const INITIAL_PRODUCTS: Product[] = [
   {
@@ -114,4 +114,34 @@ export const ROLE_LABELS: Record<Role, string> = {
   sales_admin: 'Admin Bán Hàng (Xem & Quản lý đơn)',
   inventory_admin: 'Admin Hàng Hóa (Quản lý sản phẩm)',
   customer: 'Khách Hàng'
+};
+
+export const DEFAULT_THEME_CONFIG: ThemeConfig = {
+  storeName: 'CSET STORE',
+  storeTagline: '3D Printing Studio',
+  logoIcon: 'fa-cube',
+
+  primaryColor: '#1e3a8a', // Deep Blue
+  accentColor: '#2563eb',  // Royal Blue
+  backgroundColor: '#f8fafc', // Slate 50
+
+  badgeText: 'Đồng Giá In 1.500đ / gam nhựa',
+  heroTitle: 'CSET Store',
+  heroSubtitle: 'In 3D Thông Minh & Nhanh Chóng',
+  heroDescription: 'Sử dụng hệ thống máy in cao cấp Bambu Lab A1 Combo với công nghệ đa màu sắc nét. Tải file .stl, .3mf, .obj, .step trực tiếp lên web để tính khối lượng và báo giá chuẩn xác trong 1 giây.',
+  heroImage: 'https://images.unsplash.com/photo-1615655406736-b37c4fabf923?w=800&auto=format&fit=crop&q=80',
+  printerModel: 'Bambu Lab A1 Combo',
+  printerSpeedText: 'In 4 màu - Tốc độ 500mm/s',
+
+  pricePerGram: 1500,
+  promoNotice: 'Giảm 10% cho đơn hàng in 3D trên 500g',
+
+  precisionText: '0.08mm - Độ chính xác cao',
+  supportText: '24/7 - In liên tục giao nhanh',
+  pricingNote: '1.500đ - Giá rẻ minh bạch / gam',
+
+  hotline: '0909.123.456',
+  contactEmail: 'support@csetstore.vn',
+  storeAddress: 'Khu Công Nghệ Cao, TP. Thủ Đức, TP. Hồ Chí Minh',
+  footerText: '© 2026 CSET Store. Đồ án xây dựng Website In 3D sử dụng Svelte 5 và Kiến trúc Layered Component.'
 };
