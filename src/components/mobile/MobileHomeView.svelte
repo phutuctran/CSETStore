@@ -2,6 +2,7 @@
   import { appStore } from '../../stores/store.svelte';
   import { themeStore } from '../../stores/themeStore.svelte';
   import { LocalStorageCategoryRepository } from '../../repositories';
+  import type { AdItem } from '../../models/types';
   import ProductCard from '../ProductCard.svelte';
 
   const categoryRepo = new LocalStorageCategoryRepository();
@@ -20,6 +21,25 @@
   let visibleCount = $state<number>(6);
   let isLoadingMore = $state<boolean>(false);
   let sentinelEl = $state<HTMLDivElement | null>(null);
+  function isBannerActive(b: AdItem): boolean {
+    if (!b.enabled) return false;
+    const now = Date.now();
+    if (b.startDate) {
+      const start = new Date(b.startDate).getTime();
+      if (!isNaN(start) && now < start) return false;
+    }
+    if (b.endDate) {
+      const end = new Date(b.endDate).getTime();
+      if (!isNaN(end) && now > end) return false;
+    }
+    return true;
+  }
+
+  let mobileSideBanners = $derived(
+    themeStore.theme.visibility.showSideAdBanners
+      ? (themeStore.theme.banners?.filter(b => (b.position === 'side-left' || b.position === 'side-right') && isBannerActive(b)) || [])
+      : []
+  );
 
   // Products featured list based on auto top 5 or manual pinned
   let baseFeaturedProducts = $derived.by(() => {
@@ -101,58 +121,59 @@
     </div>
   </div>
 
-  <!-- 2. Promotional Banner Carousel (Layout inspired by Promo Card in Image #1) -->
-  <div class="flex gap-3 overflow-x-auto pb-1 scrollbar-none px-1">
-    <!-- Card 1: Main Discount Promo Banner -->
-    <div class="min-w-[280px] sm:min-w-[320px] rounded-3xl p-5 bg-gradient-to-r from-blue-950 to-blue-900 text-white flex items-center justify-between shadow-lg relative overflow-hidden shrink-0">
-      <div class="space-y-2 z-10 max-w-[170px]">
-        <span class="px-2.5 py-0.5 rounded-lg text-[10px] font-black bg-rose-600 text-white shadow">
-          ƯU ĐÃI ĐẾN 40%
-        </span>
-        <h4 class="font-black text-base leading-tight">Siêu Hội Mua Sắm 2026</h4>
-        <p class="text-[11px] text-blue-200">Áp dụng cho mọi đơn từ 300.000đ</p>
-        <button
-          type="button"
-          onclick={() => appStore.setTab('shop')}
-          class="mt-1 px-3.5 py-1.5 rounded-xl bg-white text-blue-950 font-bold text-xs shadow-xs hover:bg-blue-50 transition cursor-pointer"
-        >
-          Mua Ngay &rarr;
-        </button>
-      </div>
-      <div class="w-24 h-24 rounded-2xl overflow-hidden shadow-md shrink-0 border border-white/20">
-        <img
-          src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&auto=format&fit=crop&q=80"
-          alt="Promo banner"
-          class="w-full h-full object-cover"
-        />
+  <!-- 2. Configured Side Ad Banners for Mobile (Same as Desktop Side Banners, toggled by showSideAdBanners) -->
+  {#if themeStore.theme.visibility.showSideAdBanners && mobileSideBanners.length > 0}
+    <div class="space-y-2">
+      <div class="flex gap-3 overflow-x-auto pb-1 scrollbar-none px-1">
+        {#each mobileSideBanners as banner (banner.id)}
+          {#if banner.type === 'image' && banner.imageUrl}
+            <a
+              href={banner.linkUrl || '#'}
+              class="min-w-[280px] sm:min-w-[320px] rounded-3xl overflow-hidden border border-slate-200 shadow-md relative group shrink-0 bg-slate-900 block"
+            >
+              <div class="relative h-36 w-full overflow-hidden">
+                <img
+                  src={banner.imageUrl}
+                  alt={banner.title}
+                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div class="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent p-4 flex flex-col justify-end text-white">
+                  <span class="px-2 py-0.5 rounded text-[10px] font-black bg-rose-600 text-white w-fit mb-1 shadow-xs">
+                    {banner.position === 'side-left' ? 'Khuyến Mãi' : 'Nổi Bật'}
+                  </span>
+                  <h4 class="font-black text-sm text-white leading-tight line-clamp-1">{banner.title}</h4>
+                  {#if banner.subtitle}
+                    <p class="text-[11px] text-slate-200 line-clamp-1">{banner.subtitle}</p>
+                  {/if}
+                </div>
+              </div>
+            </a>
+          {:else}
+            <!-- Text Banner -->
+            <a
+              href={banner.linkUrl || '#'}
+              class="min-w-[280px] sm:min-w-[320px] rounded-3xl p-5 flex flex-col justify-between shadow-md shrink-0 block border border-slate-200"
+              style="background-color: {banner.bgColor || '#1e3a8a'}; color: {banner.textColor || '#ffffff'};"
+            >
+              <div class="space-y-1">
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-white/20 backdrop-blur-xs w-fit inline-block">
+                  {banner.position === 'side-left' ? 'Banner Trái' : 'Banner Phải'}
+                </span>
+                <h4 class="font-black text-base leading-tight">{banner.title}</h4>
+                {#if banner.subtitle}
+                  <p class="text-xs opacity-90">{banner.subtitle}</p>
+                {/if}
+              </div>
+              <span class="mt-3 text-xs font-bold underline inline-flex items-center gap-1">
+                <span>Xem chi tiết</span>
+                <i class="fa-solid fa-arrow-right text-[10px]"></i>
+              </span>
+            </a>
+          {/if}
+        {/each}
       </div>
     </div>
-
-    <!-- Card 2: Hot Deal Banner -->
-    <div class="min-w-[280px] sm:min-w-[320px] rounded-3xl p-5 bg-gradient-to-r from-purple-950 to-blue-950 text-white flex items-center justify-between shadow-lg relative overflow-hidden shrink-0">
-      <div class="space-y-2 z-10 max-w-[170px]">
-        <span class="px-2.5 py-0.5 rounded-lg text-[10px] font-black bg-amber-500 text-white shadow">
-          TRENDING TECH
-        </span>
-        <h4 class="font-black text-base leading-tight">Công Nghệ Đỉnh Cao</h4>
-        <p class="text-[11px] text-purple-200">Bảo hành 12-24 tháng đổi mới</p>
-        <button
-          type="button"
-          onclick={() => appStore.setTab('shop')}
-          class="mt-1 px-3.5 py-1.5 rounded-xl bg-white text-blue-950 font-bold text-xs shadow-xs hover:bg-slate-100 transition cursor-pointer"
-        >
-          Khám Phá &rarr;
-        </button>
-      </div>
-      <div class="w-24 h-24 rounded-2xl overflow-hidden shadow-md shrink-0 border border-white/20">
-        <img
-          src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=300&auto=format&fit=crop&q=80"
-          alt="Tech banner"
-          class="w-full h-full object-cover"
-        />
-      </div>
-    </div>
-  </div>
+  {/if}
 
   <!-- 3. Top Best-Selling / Featured Products (Layout inspired by Top Restaurants/Items in Image #1) -->
   <div class="space-y-3">

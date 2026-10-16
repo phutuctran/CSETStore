@@ -38,7 +38,7 @@
             <i class="fa-solid {themeStore.theme.logoIcon} text-white text-xl"></i>
           </div>
         {/if}
-        <div>
+        <div class="hidden 2xl:block">
           <span class="text-xl font-black tracking-wider text-blue-950 block">{themeStore.theme.storeName}</span>
           <span class="block text-[10px] text-blue-800 font-bold tracking-widest uppercase">{themeStore.theme.storeTagline}</span>
         </div>
@@ -50,12 +50,13 @@
           <button
             type="button"
             onclick={() => appStore.setTab(item.id)}
-            class="px-5 py-2.5 rounded-xl text-sm font-semibold transition cursor-pointer flex items-center {appStore.activeTab === item.id
+            class="px-3 2xl:px-5 py-2.5 rounded-xl text-sm font-semibold transition cursor-pointer flex items-center {appStore.activeTab === item.id
               ? 'bg-blue-900 text-white shadow-sm'
               : 'text-slate-600 hover:text-blue-900 hover:bg-slate-200/50'}"
+            title={item.label}
           >
-            <i class="{item.icon} mr-2"></i>
-            {item.label}
+            <i class="{item.icon} text-base 2xl:mr-2"></i>
+            <span class="hidden 2xl:inline whitespace-nowrap">{item.label}</span>
           </button>
         {/each}
 
@@ -65,12 +66,13 @@
             <button
               type="button"
               onclick={() => appStore.setTab(cTab.id)}
-              class="px-5 py-2.5 rounded-xl text-sm font-bold transition cursor-pointer flex items-center {appStore.activeTab === cTab.id
+              class="px-3 2xl:px-5 py-2.5 rounded-xl text-sm font-bold transition cursor-pointer flex items-center {appStore.activeTab === cTab.id
                 ? 'bg-red-600 text-white shadow-sm'
                 : 'text-red-700 hover:text-red-900 hover:bg-red-50'}"
+              title={cTab.name}
             >
-              <i class="fa-solid {cTab.icon || 'fa-fire'} mr-2 text-amber-500"></i>
-              <span>{cTab.name}</span>
+              <i class="fa-solid {cTab.icon || 'fa-fire'} text-base text-amber-500 2xl:mr-2"></i>
+              <span class="hidden 2xl:inline whitespace-nowrap">{cTab.name}</span>
             </button>
           {/each}
         {/if}
@@ -80,12 +82,13 @@
           <button
             type="button"
             onclick={() => appStore.setTab('custom-order')}
-            class="px-5 py-2.5 rounded-xl text-sm font-semibold transition cursor-pointer flex items-center {appStore.activeTab === 'custom-order'
+            class="px-3 2xl:px-5 py-2.5 rounded-xl text-sm font-semibold transition cursor-pointer flex items-center {appStore.activeTab === 'custom-order'
               ? 'bg-blue-900 text-white shadow-sm'
               : 'text-slate-600 hover:text-blue-900 hover:bg-slate-200/50'}"
+            title="Đặt Hàng Theo Yêu Cầu"
           >
-            <i class="fa-solid fa-wand-magic-sparkles mr-2 text-amber-500"></i>
-            <span>Đặt Hàng Theo Yêu Cầu</span>
+            <i class="fa-solid fa-wand-magic-sparkles text-base text-amber-500 2xl:mr-2"></i>
+            <span class="hidden 2xl:inline whitespace-nowrap">Đặt Hàng Theo Yêu Cầu</span>
           </button>
         {/if}
       </nav>
@@ -98,12 +101,13 @@
             <button
               type="button"
               onclick={toggleDropdown}
-              class="flex items-center gap-2 bg-blue-50 hover:bg-blue-100/70 px-3.5 py-2 rounded-xl border border-blue-200 transition cursor-pointer text-xs font-bold text-blue-950 focus:outline-none"
+              class="flex items-center gap-2 bg-blue-50 hover:bg-blue-100/70 px-2.5 2xl:px-3.5 py-2 rounded-xl border border-blue-200 transition cursor-pointer text-xs font-bold text-blue-950 focus:outline-none"
+              title={appStore.currentCustomer.fullName}
             >
               <div class="w-6 h-6 rounded-full bg-blue-900 text-white flex items-center justify-center text-[10px]">
                 <i class="fa-solid fa-user"></i>
               </div>
-              <span class="max-w-[150px] truncate">{appStore.currentCustomer.fullName}</span>
+              <span class="max-w-[140px] truncate hidden 2xl:inline">{appStore.currentCustomer.fullName}</span>
               <i class="fa-solid fa-chevron-down text-[10px] text-blue-800 transition-transform duration-200 {isDropdownOpen ? 'rotate-180' : ''}"></i>
             </button>
 
@@ -172,10 +176,11 @@
           <button
             type="button"
             onclick={() => appStore.openAuthModal('login')}
-            class="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-blue-950 transition cursor-pointer border border-slate-200"
+            class="hidden sm:flex items-center gap-1.5 px-3 2xl:px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-blue-950 transition cursor-pointer border border-slate-200"
+            title="Tài Khoản"
           >
             <i class="fa-solid fa-user text-blue-900"></i>
-            <span>Tài Khoản</span>
+            <span class="hidden 2xl:inline">Tài Khoản</span>
           </button>
         {/if}
 
