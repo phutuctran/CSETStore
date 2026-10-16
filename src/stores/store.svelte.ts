@@ -1,12 +1,18 @@
-import type { Product, CartItem, Order, CategoryKey } from '../models/types';
+import type { Product, CartItem, Order, CategoryKey, User } from '../models/types';
 import { LocalStorageProductRepository, LocalStorageOrderRepository } from '../repositories';
+import { authService } from '../services/authService';
 
 const productRepo = new LocalStorageProductRepository();
 const orderRepo = new LocalStorageOrderRepository();
 
 class StoreState {
   // Navigation State
-  activeTab = $state<'home' | 'shop' | 'custom' | 'admin'>('home');
+  activeTab = $state<'home' | 'shop' | 'custom' | 'orders'>('home');
+
+  // Customer Auth State
+  currentCustomer = $state<User | null>(authService.getCustomerSession());
+  isAuthModalOpen = $state<boolean>(false);
+  authMode = $state<'login' | 'register'>('login');
 
   // Products State
   products = $state<Product[]>(productRepo.getAll());
@@ -45,10 +51,61 @@ class StoreState {
   );
 
   // Navigation Actions
-  setTab(tab: 'home' | 'shop' | 'custom' | 'admin') {
+  setTab(tab: 'home' | 'shop' | 'custom' | 'orders') {
     this.activeTab = tab;
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
+
+  // Customer Auth Actions
+  openAuthModal(mode: 'login' | 'register' = 'login') {
+    this.authMode = mode;
+    this.isAuthModalOpen = true;
+  }
+
+  closeAuthModal() {
+    this.isAuthModalOpen = false;
+  }
+
+  loginCustomer(username: string, pass: string) {
+    const res = authService.loginCustomer(username, pass);
+    if (res.success && res.user) {
+      this.currentCustomer = res.user;
+      this.orders = orderRepo.getAll();
+      this.closeAuthModal();
+      this.showToast(`Xin chào, ${res.user.fullName}!`);
+      return true;
+    }
+    this.showToast(res.message || 'Đăng nhập thất bại!');
+    return false;
+  }
+
+  registerCustomer(data: { username: string; password?: string; fullName: string; phone?: string; address?: string }) {
+    const res = authService.registerCustomer(data);
+    if (res.success && res.user) {
+      this.currentCustomer = res.user;
+      this.orders = orderRepo.getAll();
+      this.closeAuthModal();
+      this.showToast(`Đăng ký tài khoản thành công! Xin chào ${res.user.fullName}!`);
+      return true;
+    }
+    this.showToast(res.message || 'Đăng ký thất bại!');
+    return false;
+  }
+
+  logoutCustomer() {
+    authService.setCustomerSession(null);
+    this.currentCustomer = null;
+    if (this.activeTab === 'orders') {
+      this.activeTab = 'home';
+    }
+    this.showToast('Đã đăng xuất tài khoản khách hàng!');
+  }
+
+  customerOrders = $derived(
+    this.currentCustomer
+      ? this.orders.filter((o) => o.customerId === this.currentCustomer?.id || o.phone === this.currentCustomer?.phone)
+      : []
+  );
 
   // Toast Helpers
   showToast(msg: string) {
@@ -168,13 +225,14 @@ class StoreState {
   }
 
   // Checkout Action
-  checkout(customer: { name: string; phone: string; address: string }): Order | null {
+  checkout(customer: { name: string; phone: string; address: string; isGuest?: boolean }): Order | null {
     if (this.cart.length === 0) {
       this.showToast('Giỏ hàng của bạn đang trống!');
       return null;
     }
 
     const newOrder = orderRepo.create({
+      customerId: !customer.isGuest && this.currentCustomer ? this.currentCustomer.id : undefined,
       customerName: customer.name,
       phone: customer.phone,
       address: customer.address,

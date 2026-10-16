@@ -5,7 +5,7 @@
     { id: 'home', label: 'Trang Chủ', icon: 'fa-solid fa-house' },
     { id: 'shop', label: 'Cửa Hàng', icon: 'fa-solid fa-store' },
     { id: 'custom', label: 'Đặt In Theo Yêu Cầu', icon: 'fa-solid fa-sliders' },
-    { id: 'admin', label: 'Quản Trị (Admin)', icon: 'fa-solid fa-user-shield', isAdmin: true }
+    { id: 'orders', label: 'Đơn Hàng Của Tôi', icon: 'fa-solid fa-box-archive' },
   ] as const;
 </script>
 
@@ -34,17 +34,57 @@
             type="button"
             onclick={() => appStore.setTab(item.id)}
             class="px-5 py-2.5 rounded-xl text-sm font-semibold transition cursor-pointer flex items-center {appStore.activeTab === item.id
-              ? (item.isAdmin ? 'bg-amber-700 text-white shadow-sm' : 'bg-blue-900 text-white shadow-sm')
-              : (item.isAdmin ? 'text-amber-700 hover:text-amber-900 hover:bg-amber-50' : 'text-slate-600 hover:text-blue-900 hover:bg-slate-200/50')}"
+              ? 'bg-blue-900 text-white shadow-sm'
+              : 'text-slate-600 hover:text-blue-900 hover:bg-slate-200/50'}"
           >
             <i class="{item.icon} mr-2"></i>
             {item.label}
           </button>
         {/each}
+
+        <!-- Link to Dedicated Admin Web Portal -->
+        <a
+          href="./admin.html"
+          class="px-4 py-2.5 rounded-xl text-sm font-semibold transition cursor-pointer flex items-center text-amber-700 hover:text-amber-900 hover:bg-amber-100/50 border border-amber-200/60 ml-2"
+          title="Mở cổng thông tin quản trị CSET Store"
+        >
+          <i class="fa-solid fa-user-shield mr-2"></i>
+          Trang Admin
+        </a>
       </nav>
 
-      <!-- Right Actions: Cart & Mobile toggle -->
+      <!-- Right Actions: Customer Account & Cart -->
       <div class="flex items-center space-x-3">
+        {#if appStore.currentCustomer}
+          <div class="hidden sm:flex items-center gap-2 bg-blue-50 px-3 py-1.5 rounded-xl border border-blue-200">
+            <button
+              type="button"
+              onclick={() => appStore.setTab('orders')}
+              class="text-xs font-bold text-blue-950 hover:text-blue-800 transition cursor-pointer flex items-center gap-1.5"
+            >
+              <i class="fa-solid fa-user-circle text-blue-900 text-sm"></i>
+              <span>{appStore.currentCustomer.fullName.split(' ').pop()}</span>
+            </button>
+            <button
+              type="button"
+              onclick={() => appStore.logoutCustomer()}
+              class="text-[11px] text-slate-400 hover:text-red-600 ml-1 cursor-pointer"
+              title="Đăng xuất"
+            >
+              <i class="fa-solid fa-arrow-right-from-bracket"></i>
+            </button>
+          </div>
+        {:else}
+          <button
+            type="button"
+            onclick={() => appStore.openAuthModal('login')}
+            class="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-blue-950 transition cursor-pointer border border-slate-200"
+          >
+            <i class="fa-solid fa-user text-blue-900"></i>
+            <span>Tài Khoản</span>
+          </button>
+        {/if}
+
         <button
           type="button"
           onclick={() => appStore.openCart()}
@@ -68,13 +108,20 @@
           type="button"
           onclick={() => appStore.setTab(item.id)}
           class="whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center shrink-0 {appStore.activeTab === item.id
-            ? (item.isAdmin ? 'bg-amber-700 text-white' : 'bg-blue-900 text-white')
-            : (item.isAdmin ? 'text-amber-700' : 'text-slate-600')}"
+            ? 'bg-blue-900 text-white'
+            : 'text-slate-600'}"
         >
           <i class="{item.icon} mr-1.5"></i>
           {item.label}
         </button>
       {/each}
+      <a
+        href="./admin.html"
+        class="whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center shrink-0 text-amber-700 bg-amber-50"
+      >
+        <i class="fa-solid fa-user-shield mr-1.5"></i>
+        Admin
+      </a>
     </div>
   </div>
 </header>

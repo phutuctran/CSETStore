@@ -1,3 +1,16 @@
+export type Role = 'super_admin' | 'sales_admin' | 'inventory_admin' | 'customer';
+
+export interface User {
+  id: string;
+  username: string;
+  password?: string;
+  fullName: string;
+  phone?: string;
+  address?: string;
+  role: Role;
+  createdAt: string;
+}
+
 export interface Product {
   id: number;
   name: string;
@@ -27,13 +40,14 @@ export interface CartItem {
 
 export interface Order {
   id: string;
-  createdAt: string;
+  customerId?: string; // null if Guest order
   customerName: string;
   phone: string;
   address: string;
   items: CartItem[];
   totalAmount: number;
   status: 'pending' | 'processing' | 'completed' | 'cancelled';
+  createdAt: string;
 }
 
 export type CategoryKey = 'all' | 'anime' | 'decor' | 'tech';

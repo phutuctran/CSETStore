@@ -7,7 +7,8 @@
   import HomePage from './views/HomePage.svelte';
   import ShopPage from './views/ShopPage.svelte';
   import CustomOrderPage from './views/CustomOrderPage.svelte';
-  import AdminPage from './views/AdminPage.svelte';
+  import CustomerOrdersPage from './views/CustomerOrdersPage.svelte';
+  import CustomerAuthModal from './components/CustomerAuthModal.svelte';
 </script>
 
 <div class="min-h-screen flex flex-col justify-between bg-slate-50 text-slate-800">
@@ -22,16 +23,16 @@
       <ShopPage />
     {:else if appStore.activeTab === 'custom'}
       <CustomOrderPage />
-    {:else if appStore.activeTab === 'admin'}
-      <AdminPage />
+    {:else if appStore.activeTab === 'orders'}
+      <CustomerOrdersPage />
     {/if}
   </main>
 
   <!-- Global Modals -->
   <ProductModal />
   <CartModal />
+  <CustomerAuthModal />
   <Toast />
-
   <!-- Footer -->
   <footer class="glass-panel border-t border-slate-200 mt-20 py-8 bg-white text-center text-xs text-slate-500">
     <div class="max-w-7xl mx-auto px-4 space-y-2">

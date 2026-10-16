@@ -8,4 +8,4 @@ if [ ! -d "dist" ]; then
     npm run build
 fi
 echo "Khoi chay Offline server tai http://localhost:5174"
-npx serve dist -s -l 5174
+node serve-offline.mjs

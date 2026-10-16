@@ -1,4 +1,4 @@
-import type { Product, Order } from './types';
+import type { Product, Order, User, Role } from './types';
 
 export const INITIAL_PRODUCTS: Product[] = [
   {
@@ -71,3 +71,47 @@ export const CATEGORIES = [
 ] as const;
 
 export const PRICE_PER_GRAM = 1500; // 1.500 VNĐ / gam
+
+export const INITIAL_USERS: User[] = [
+  {
+    id: 'USR-SUPER',
+    username: 'superadmin',
+    password: '123',
+    fullName: 'Trần Super Admin',
+    role: 'super_admin',
+    createdAt: '2026-01-01 08:00:00'
+  },
+  {
+    id: 'USR-SALES',
+    username: 'salesadmin',
+    password: '123',
+    fullName: 'Nguyễn Quản Lý Đơn',
+    role: 'sales_admin',
+    createdAt: '2026-01-02 09:00:00'
+  },
+  {
+    id: 'USR-INVENTORY',
+    username: 'khoadmin',
+    password: '123',
+    fullName: 'Lê Quản Lý Kho & Sản Phẩm',
+    role: 'inventory_admin',
+    createdAt: '2026-01-03 10:00:00'
+  },
+  {
+    id: 'USR-CUST-1',
+    username: 'khachhang1',
+    password: '123',
+    fullName: 'Khách Hàng Thân Thiết',
+    phone: '0909123456',
+    address: '456 Hai Bà Trưng, Quận 1, TP. Hồ Chí Minh',
+    role: 'customer',
+    createdAt: '2026-01-10 14:00:00'
+  }
+];
+
+export const ROLE_LABELS: Record<Role, string> = {
+  super_admin: 'Super Admin (Toàn quyền)',
+  sales_admin: 'Admin Bán Hàng (Xem & Quản lý đơn)',
+  inventory_admin: 'Admin Hàng Hóa (Quản lý sản phẩm)',
+  customer: 'Khách Hàng'
+};

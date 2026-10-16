@@ -1,8 +1,9 @@
-import type { Product, Order } from '../models/types';
-import { INITIAL_PRODUCTS } from '../models/constants';
+import type { Product, Order, User } from '../models/types';
+import { INITIAL_PRODUCTS, INITIAL_USERS } from '../models/constants';
 
 const PRODUCTS_STORAGE_KEY = 'cset_products_v2';
 const ORDERS_STORAGE_KEY = 'cset_orders_v2';
+const USERS_STORAGE_KEY = 'cset_users_v2';
 
 export interface IStorageProvider {
   getItem(key: string): string | null;
@@ -39,10 +40,19 @@ export interface IProductRepository {
 
 export interface IOrderRepository {
   getAll(): Order[];
+  getByCustomerId(customerId: string): Order[];
   create(order: Omit<Order, 'id' | 'createdAt'>): Order;
   updateStatus(id: string, status: Order['status']): boolean;
 }
 
+export interface IUserRepository {
+  getAll(): User[];
+  getById(id: string): User | undefined;
+  getByUsername(username: string): User | undefined;
+  create(user: Omit<User, 'id' | 'createdAt'>): User;
+  update(id: string, patch: Partial<User>): boolean;
+  delete(id: string): boolean;
+}
 /**
  * LocalStorageProductRepository: Implements Repository Pattern for Products
  */
@@ -113,6 +123,9 @@ export class LocalStorageOrderRepository implements IOrderRepository {
       return [];
     }
   }
+  getByCustomerId(customerId: string): Order[] {
+    return this.getAll().filter((o) => o.customerId === customerId);
+  }
 
   create(orderData: Omit<Order, 'id' | 'createdAt'>): Order {
     const list = this.getAll();
@@ -135,3 +148,61 @@ export class LocalStorageOrderRepository implements IOrderRepository {
     return true;
   }
 }
+
+/**
+ * LocalStorageUserRepository: Implements Repository Pattern for Users
+ */
+export class LocalStorageUserRepository implements IUserRepository {
+  getAll(): User[] {
+    const storage = getSafeStorage();
+    const raw = storage.getItem(USERS_STORAGE_KEY);
+    if (!raw) {
+      storage.setItem(USERS_STORAGE_KEY, JSON.stringify(INITIAL_USERS));
+      return INITIAL_USERS;
+    }
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      return Array.isArray(parsed) && parsed.length > 0 ? (parsed as User[]) : INITIAL_USERS;
+    } catch {
+      return INITIAL_USERS;
+    }
+  }
+
+  getById(id: string): User | undefined {
+    return this.getAll().find((u) => u.id === id);
+  }
+
+  getByUsername(username: string): User | undefined {
+    return this.getAll().find((u) => u.username.toLowerCase() === username.toLowerCase().trim());
+  }
+
+  create(userData: Omit<User, 'id' | 'createdAt'>): User {
+    const list = this.getAll();
+    const newUser: User = {
+      ...userData,
+      id: 'USR-' + Date.now().toString(36).toUpperCase(),
+      createdAt: new Date().toLocaleString('vi-VN')
+    };
+    list.unshift(newUser);
+    getSafeStorage().setItem(USERS_STORAGE_KEY, JSON.stringify(list));
+    return newUser;
+  }
+
+  update(id: string, patch: Partial<User>): boolean {
+    const list = this.getAll();
+    const index = list.findIndex((u) => u.id === id);
+    if (index === -1) return false;
+    list[index] = { ...list[index], ...patch };
+    getSafeStorage().setItem(USERS_STORAGE_KEY, JSON.stringify(list));
+    return true;
+  }
+
+  delete(id: string): boolean {
+    const list = this.getAll();
+    const next = list.filter((u) => u.id !== id);
+    if (next.length === list.length) return false;
+    getSafeStorage().setItem(USERS_STORAGE_KEY, JSON.stringify(next));
+    return true;
+  }
+}
+

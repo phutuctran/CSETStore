@@ -6,6 +6,15 @@
   let phone = $state('');
   let address = $state('');
   let isSubmitting = $state(false);
+  let isGuestOrder = $state(false);
+
+  $effect(() => {
+    if (appStore.isCartOpen && appStore.currentCustomer) {
+      customerName = appStore.currentCustomer.fullName;
+      phone = appStore.currentCustomer.phone || '';
+      address = appStore.currentCustomer.address || '';
+    }
+  });
 
   function handleSubmitCheckout(e: Event) {
     e.preventDefault();
@@ -23,7 +32,8 @@
     const order = appStore.checkout({
       name: customerName.trim(),
       phone: phone.trim(),
-      address: address.trim()
+      address: address.trim(),
+      isGuest: isGuestOrder
     });
 
     isSubmitting = false;
@@ -158,8 +168,32 @@
             <h4 class="font-bold text-blue-950 text-sm flex items-center">
               <i class="fa-solid fa-address-card mr-2 text-blue-900"></i>
               Thông Tin Giao Hàng
+              {#if appStore.currentCustomer}
+                <span class="ml-auto text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                  Đã đăng nhập ({appStore.currentCustomer.username})
+                </span>
+              {:else}
+                <span class="ml-auto text-xs font-semibold text-slate-500 bg-slate-200 px-2 py-0.5 rounded-md">
+                  Đặt hàng dạng Khách (Guest)
+                </span>
+              {/if}
             </h4>
 
+            {#if !appStore.currentCustomer}
+              <div class="p-3 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between text-xs">
+                <span class="text-blue-950 font-medium">Bạn đã có tài khoản CSET Store?</span>
+                <button
+                  type="button"
+                  onclick={() => {
+                    appStore.closeCart();
+                    appStore.openAuthModal('login');
+                  }}
+                  class="text-blue-900 font-bold hover:underline cursor-pointer"
+                >
+                  Đăng nhập để tích điểm & theo dõi đơn &rarr;
+                </button>
+              </div>
+            {/if}
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div class="space-y-1">
                 <label for="c-name" class="text-xs font-bold text-slate-600 uppercase">Họ và Tên *</label>
