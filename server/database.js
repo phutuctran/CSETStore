@@ -116,9 +116,10 @@ export function initDatabaseSchema() {
       condition TEXT,
       specifications_json TEXT,
       variant_groups_json TEXT,
-      rating REAL DEFAULT 5.0
+      rating REAL DEFAULT 5.0,
+      sold_count INTEGER DEFAULT 0,
+      show_on_home INTEGER DEFAULT 0
     );
-
     CREATE TABLE IF NOT EXISTS orders (
       id TEXT PRIMARY KEY,
       customer_id TEXT,
@@ -175,6 +176,22 @@ export function initDatabaseSchema() {
       updated_at TEXT NOT NULL
     );
   `);
+  try { db.exec("ALTER TABLE products ADD COLUMN sold_count INTEGER DEFAULT 0;"); } catch {}
+  try { db.exec("ALTER TABLE products ADD COLUMN show_on_home INTEGER DEFAULT 0;"); } catch {}
+
+
+  try {
+    db.exec(`
+      UPDATE products SET sold_count = 480, show_on_home = 1 WHERE id = 1 AND (sold_count IS NULL OR sold_count = 0);
+      UPDATE products SET sold_count = 650, show_on_home = 1 WHERE id = 2 AND (sold_count IS NULL OR sold_count = 0);
+      UPDATE products SET sold_count = 390 WHERE id = 3 AND (sold_count IS NULL OR sold_count = 0);
+      UPDATE products SET sold_count = 820, show_on_home = 1 WHERE id = 4 AND (sold_count IS NULL OR sold_count = 0);
+      UPDATE products SET sold_count = 710, show_on_home = 1 WHERE id = 5 AND (sold_count IS NULL OR sold_count = 0);
+      UPDATE products SET sold_count = 210 WHERE id = 6 AND (sold_count IS NULL OR sold_count = 0);
+      UPDATE products SET sold_count = 340 WHERE id = 7 AND (sold_count IS NULL OR sold_count = 0);
+      UPDATE products SET sold_count = 560, show_on_home = 1 WHERE id = 8 AND (sold_count IS NULL OR sold_count = 0);
+    `);
+  } catch {}
 }
 
 // Initial Data Seed & Migration
@@ -348,7 +365,9 @@ export function sqlGetProducts() {
     condition: r.condition || undefined,
     specifications: r.specifications_json ? JSON.parse(r.specifications_json) : undefined,
     variantGroups: r.variant_groups_json ? JSON.parse(r.variant_groups_json) : undefined,
-    rating: r.rating
+    rating: r.rating,
+    soldCount: r.sold_count || 0,
+    showOnHome: r.show_on_home === 1
   }));
 }
 
@@ -377,7 +396,9 @@ export function sqlGetProductById(id) {
     condition: r.condition || undefined,
     specifications: r.specifications_json ? JSON.parse(r.specifications_json) : undefined,
     variantGroups: r.variant_groups_json ? JSON.parse(r.variant_groups_json) : undefined,
-    rating: r.rating
+    rating: r.rating,
+    soldCount: r.sold_count || 0,
+    showOnHome: r.show_on_home === 1
   };
 }
 
@@ -385,8 +406,8 @@ export function sqlCreateProduct(p) {
   const maxId = db.prepare('SELECT MAX(id) as maxId FROM products').get()?.maxId || 0;
   const newId = p.id || maxId + 1;
   db.prepare(`
-    INSERT INTO products (id, name, category, sub_category, price, original_price, discount_percent, discount_start_date, discount_end_date, image, images_json, description, brand, sku, stock, origin, warranty, weight, condition, specifications_json, variant_groups_json, rating)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO products (id, name, category, sub_category, price, original_price, discount_percent, discount_start_date, discount_end_date, image, images_json, description, brand, sku, stock, origin, warranty, weight, condition, specifications_json, variant_groups_json, rating, sold_count, show_on_home)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     newId,
     p.name,
@@ -409,7 +430,9 @@ export function sqlCreateProduct(p) {
     p.condition || null,
     p.specifications ? JSON.stringify(p.specifications) : null,
     p.variantGroups ? JSON.stringify(p.variantGroups) : null,
-    p.rating || 5.0
+    p.rating || 5.0,
+    p.soldCount || 0,
+    p.showOnHome ? 1 : 0
   );
   return sqlGetProductById(newId);
 }
@@ -423,7 +446,8 @@ export function sqlUpdateProduct(id, patch) {
       name = ?, category = ?, sub_category = ?, price = ?, original_price = ?,
       discount_percent = ?, discount_start_date = ?, discount_end_date = ?, image = ?,
       images_json = ?, description = ?, brand = ?, sku = ?, stock = ?, origin = ?,
-      warranty = ?, weight = ?, condition = ?, specifications_json = ?, variant_groups_json = ?
+      warranty = ?, weight = ?, condition = ?, specifications_json = ?, variant_groups_json = ?,
+      sold_count = ?, show_on_home = ?
     WHERE id = ?
   `).run(
     merged.name,
@@ -446,6 +470,8 @@ export function sqlUpdateProduct(id, patch) {
     merged.condition || null,
     merged.specifications ? JSON.stringify(merged.specifications) : null,
     merged.variantGroups ? JSON.stringify(merged.variantGroups) : null,
+    merged.soldCount || 0,
+    merged.showOnHome ? 1 : 0,
     id
   );
   return true;
@@ -454,6 +480,12 @@ export function sqlUpdateProduct(id, patch) {
 export function sqlDeleteProduct(id) {
   const res = db.prepare('DELETE FROM products WHERE id = ?').run(id);
   return res.changes > 0;
+}
+
+export function sqlAutoSelectTop5BestSellers() {
+  db.exec('UPDATE products SET show_on_home = 0;');
+  db.exec('UPDATE products SET show_on_home = 1 WHERE id IN (SELECT id FROM products ORDER BY sold_count DESC, id ASC LIMIT 5);');
+  return sqlGetProducts();
 }
 
 // Users

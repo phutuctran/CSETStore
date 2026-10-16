@@ -261,6 +261,34 @@ class StoreState {
     this.showToast('Đã khôi phục dữ liệu mẫu ban đầu!');
   }
 
+  toggleProductShowOnHome(productId: number) {
+    const item = this.products.find((p) => p.id === productId);
+    if (!item) return;
+    const nextVal = !item.showOnHome;
+    item.showOnHome = nextVal;
+    productRepo.update(productId, { showOnHome: nextVal });
+    this.products = productRepo.getAll();
+    this.showToast(nextVal ? `Đã ghim "${item.name}" hiển thị tại trang chủ!` : `Đã bỏ ghim "${item.name}" khỏi trang chủ!`);
+  }
+
+  autoSelectTop5BestSellers() {
+    const sorted = [...this.products].sort((a, b) => (b.soldCount || 0) - (a.soldCount || 0));
+    const top5Ids = new Set(sorted.slice(0, 5).map(p => p.id));
+
+    for (const p of this.products) {
+      const shouldShow = top5Ids.has(p.id);
+      if (p.showOnHome !== shouldShow) {
+        p.showOnHome = shouldShow;
+        productRepo.update(p.id, { showOnHome: shouldShow });
+      }
+    }
+    this.products = productRepo.getAll();
+    if (typeof window !== 'undefined' && typeof fetch === 'function') {
+      fetch('/api/products/auto-top5', { method: 'POST' }).catch(() => {});
+    }
+    this.showToast('Đã tự động chọn 5 sản phẩm có lượt bán cao nhất hiển thị tại trang chủ!');
+  }
+
   // Cart Actions
   openCart() {
     this.isCartOpen = true;

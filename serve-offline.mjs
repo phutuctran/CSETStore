@@ -20,7 +20,8 @@ import {
   sqlUpdateOrderStatus,
   sqlGetUsers,
   exportSqlDump,
-  restoreSqlDump
+  restoreSqlDump,
+  sqlAutoSelectTop5BestSellers
 } from './server/database.js';
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -122,6 +123,14 @@ const server = http.createServer((req, res) => {
       const success = sqlDeleteProduct(prodId);
       res.writeHead(200);
       res.end(JSON.stringify({ success }));
+      return;
+    }
+
+    // POST /api/products/auto-top5
+    if (req.method === 'POST' && reqPath === '/api/products/auto-top5') {
+      const updatedProds = sqlAutoSelectTop5BestSellers();
+      res.writeHead(200);
+      res.end(JSON.stringify({ success: true, data: updatedProds }));
       return;
     }
 

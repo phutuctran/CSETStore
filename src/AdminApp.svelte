@@ -440,7 +440,10 @@
   let pSpecs = $state<ProductSpecification[]>([
     { name: '', value: '' }
   ]);
-
+  let pSoldCount = $state<number>(0);
+  let pShowOnHome = $state<boolean>(false);
+  let edPSoldCount = $state<number>(0);
+  let edPShowOnHome = $state<boolean>(false);
   interface VariantGroupDraft {
     name: string;
     optionsStr: string;
@@ -509,6 +512,30 @@
     categories.find(c => c.key === pCategory)?.subcategories || []
   );
 
+
+  function handleToggleShowOnHome(p: Product) {
+    const nextVal = !p.showOnHome;
+    productRepo.update(p.id, { showOnHome: nextVal });
+    products = productRepo.getAll();
+    showToast(nextVal ? `Đã ghim "${p.name}" hiển thị tại trang chủ!` : `Đã bỏ ghim "${p.name}" khỏi trang chủ!`);
+  }
+
+  function handleAutoSelectTop5() {
+    const sorted = [...products].sort((a, b) => (b.soldCount || 0) - (a.soldCount || 0));
+    const top5Ids = new Set(sorted.slice(0, 5).map(p => p.id));
+    for (const p of products) {
+      const shouldShow = top5Ids.has(p.id);
+      if (p.showOnHome !== shouldShow) {
+        p.showOnHome = shouldShow;
+        productRepo.update(p.id, { showOnHome: shouldShow });
+      }
+    }
+    products = productRepo.getAll();
+    if (typeof window !== 'undefined' && typeof fetch === 'function') {
+      fetch('/api/products/auto-top5', { method: 'POST' }).catch(() => {});
+    }
+    showToast('Đã tự động chọn 5 sản phẩm có lượt bán cao nhất hiển thị tại trang chủ!');
+  }
   function addSpecField() {
     pSpecs = [...pSpecs, { name: '', value: '' }];
   }
@@ -568,6 +595,8 @@
       stock: pStock || 50,
       specifications: validSpecs.length > 0 ? validSpecs : undefined,
       variantGroups: validVariantGroups.length > 0 ? validVariantGroups : undefined,
+      soldCount: pSoldCount || 0,
+      showOnHome: pShowOnHome,
       image,
       images: pImagesList.length > 0 ? pImagesList : [image],
       description: pDesc.trim() || 'Sản phẩm chính hãng chất lượng cao tại CSET Store.'
@@ -592,6 +621,8 @@
     pImagesList = [];
     pSpecs = [{ name: '', value: '' }];
     pVariantGroups = [];
+    pSoldCount = 0;
+    pShowOnHome = false;
   }
 
   function handleOpenEditProduct(p: Product) {
@@ -618,6 +649,8 @@
     edPVariantGroups = p.variantGroups && p.variantGroups.length > 0
       ? p.variantGroups.map(vg => ({ name: vg.name, optionsStr: vg.options.join(', ') }))
       : [];
+    edPSoldCount = p.soldCount || 0;
+    edPShowOnHome = Boolean(p.showOnHome);
   }
   function handleEditProductMultipleImages(e: Event) {
     const input = e.target as HTMLInputElement;
@@ -667,7 +700,8 @@
       images: edPImagesList.length > 0 ? edPImagesList : [editingProduct.image],
       specifications: validSpecs.length > 0 ? validSpecs : undefined,
       variantGroups: validEdVariantGroups.length > 0 ? validEdVariantGroups : undefined,
-      description: edPDesc.trim() || editingProduct.description
+      soldCount: edPSoldCount || 0,
+      showOnHome: edPShowOnHome,
     });
     products = productRepo.getAll();
     showToast(`Đã lưu thay đổi cho sản phẩm "${edPName}"!`);
@@ -1761,6 +1795,25 @@
                   />
                 </div>
                 <div class="space-y-1">
+                  <label for="inv-sold" class="font-semibold text-slate-700">Lượt bán đã đạt (Số lượng)</label>
+                  <input
+                    id="inv-sold"
+                    type="number"
+                    min="0"
+                    bind:value={pSoldCount}
+                    placeholder="Ví dụ: 350"
+                    class="w-full border border-slate-300 rounded px-3 py-1.5 text-xs text-slate-900 focus:outline-none"
+                  />
+                </div>
+
+                <div class="space-y-1">
+                  <span class="font-semibold text-slate-700 block text-xs">Hiển Thị Nổi Bật Trang Chủ</span>
+                  <label class="flex items-center gap-2 p-1.5 rounded border border-slate-300 bg-white cursor-pointer hover:bg-slate-50">
+                    <input type="checkbox" bind:checked={pShowOnHome} class="w-4 h-4 accent-amber-500 cursor-pointer" />
+                    <span class="text-xs font-semibold text-slate-800">Ghim vào khối nổi bật trang chủ</span>
+                  </label>
+                </div>
+                <div class="space-y-1">
                   <label for="inv-origin" class="font-semibold text-slate-700">Xuất xứ sản phẩm</label>
                   <input
                     id="inv-origin"
@@ -2015,12 +2068,40 @@
 
           <!-- Product Table Card with Category Filter -->
           <div class="bg-white border border-slate-300 rounded-lg p-4 space-y-3.5">
+            <!-- Home Featured Products Configuration Bar -->
+            <div class="p-3.5 bg-amber-50/70 border border-amber-200 rounded-lg flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+              <div class="space-y-0.5">
+                <span class="font-bold text-slate-900 flex items-center gap-1.5">
+                  <i class="fa-solid fa-sparkles text-amber-500"></i>
+                  Cấu Hình Khối Sản Phẩm Bán Chạy & Nổi Bật Trang Chủ
+                </span>
+                <p class="text-[11px] text-slate-500">
+                  Tự động chọn ra 5 sản phẩm có lượt bán cao nhất hoặc tự chọn các sản phẩm ghim hiển thị tại trang chủ
+                </p>
+              </div>
+
+              <div class="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onclick={handleAutoSelectTop5}
+                  class="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs cursor-pointer shadow-xs transition flex items-center gap-1.5"
+                  title="Tự động quét và chọn 5 sản phẩm có lượt bán cao nhất"
+                >
+                  <i class="fa-solid fa-bolt"></i>
+                  <span>Auto Chọn 5 Bán Chạy</span>
+                </button>
+
+                <span class="px-2.5 py-1 rounded bg-white border border-amber-200 text-slate-700 font-bold text-[11px]">
+                  Đang ghim trang chủ: <strong class="text-blue-900">{products.filter(p => p.showOnHome).length}</strong> SP
+                </span>
+              </div>
+            </div>
+
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-3">
               <div>
                 <h3 class="text-sm font-bold text-slate-900">Danh Sách Sản Phẩm ({filteredInventoryProducts.length} / {products.length})</h3>
                 <span class="text-xs text-slate-500">Lọc theo ngành hàng hoặc loại danh mục chi tiết</span>
               </div>
-
               <!-- Filters -->
               <div class="flex items-center gap-2">
                 <select
@@ -2057,6 +2138,8 @@
                   <tr>
                     <th class="p-2.5">Ảnh</th>
                     <th class="p-2.5">Tên Sản Phẩm</th>
+                    <th class="p-2.5 text-center">Ghim Trang Chủ</th>
+                    <th class="p-2.5 text-center">Lượt Bán</th>
                     <th class="p-2.5">Link Sản Phẩm & Share</th>
                     <th class="p-2.5">Ngành & Loại</th>
                     <th class="p-2.5">Giá Bán</th>
@@ -2088,6 +2171,24 @@
                           {#if p.sku}
                             <span class="text-[10px] text-slate-400 font-mono">SKU: {p.sku}</span>
                           {/if}
+                        </td>
+                        <td class="p-2.5 text-center">
+                          <button
+                            type="button"
+                            onclick={() => handleToggleShowOnHome(p)}
+                            class="px-2.5 py-1 rounded-full text-[10px] font-bold cursor-pointer transition inline-flex items-center gap-1 {p.showOnHome
+                              ? 'bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs hover:bg-amber-200'
+                              : 'bg-slate-100 text-slate-500 border border-slate-200 hover:bg-slate-200'}"
+                            title={p.showOnHome ? 'Bấm để bỏ ghim khỏi trang chủ' : 'Bấm để ghim sản phẩm này lên khối nổi bật trang chủ'}
+                          >
+                            <i class="fa-solid {p.showOnHome ? 'fa-star text-amber-500' : 'fa-plus text-slate-400'}"></i>
+                            <span>{p.showOnHome ? 'Đang Ghim' : 'Chưa Ghim'}</span>
+                          </button>
+                        </td>
+                        <td class="p-2.5 text-center">
+                          <span class="font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded text-[11px]">
+                            {p.soldCount || 0}
+                          </span>
                         </td>
                         <td class="p-2.5">
                           <div class="flex items-center gap-1.5 max-w-xs">
@@ -2237,6 +2338,19 @@
                     <div class="space-y-1">
                       <label for="ed-pr-stock" class="font-semibold text-slate-700">Số lượng tồn kho</label>
                       <input id="ed-pr-stock" type="number" bind:value={edPStock} class="w-full border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-900 focus:outline-none" />
+                    </div>
+
+                    <div class="space-y-1">
+                      <label for="ed-pr-sold" class="font-semibold text-slate-700">Lượt bán đã đạt</label>
+                      <input id="ed-pr-sold" type="number" min="0" bind:value={edPSoldCount} class="w-full border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-900 focus:outline-none" />
+                    </div>
+
+                    <div class="space-y-1">
+                      <span class="font-semibold text-slate-700 block text-xs">Ghim Khối Nổi Bật Trang Chủ</span>
+                      <label class="flex items-center gap-2 p-1.5 rounded border border-slate-300 bg-white cursor-pointer hover:bg-slate-50">
+                        <input type="checkbox" bind:checked={edPShowOnHome} class="w-4 h-4 accent-amber-500 cursor-pointer" />
+                        <span class="text-xs font-semibold text-slate-800">Hiển thị ở trang chủ</span>
+                      </label>
                     </div>
 
                     <!-- Timed Discount Configuration in Edit Modal -->

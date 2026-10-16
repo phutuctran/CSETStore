@@ -9,16 +9,32 @@
   let homeIsLoadingMore = $state<boolean>(false);
   let homeSentinelEl = $state<HTMLDivElement | null>(null);
 
+  let baseFeaturedProducts = $derived.by(() => {
+    const mode = themeStore.theme.productGridStyle?.homeDisplayMode || 'auto_top5';
+    if (mode === 'auto_top5') {
+      return [...appStore.products]
+        .sort((a, b) => (b.soldCount || 0) - (a.soldCount || 0))
+        .slice(0, 5);
+    }
+    const manualPicks = appStore.products.filter(p => p.showOnHome);
+    if (manualPicks.length > 0) {
+      return manualPicks;
+    }
+    return [...appStore.products]
+      .sort((a, b) => (b.soldCount || 0) - (a.soldCount || 0))
+      .slice(0, 5);
+  });
+
   let featuredProducts = $derived(
-    appStore.products.slice(0, homeVisibleCount)
+    baseFeaturedProducts.slice(0, homeVisibleCount)
   );
-  let homeHasMore = $derived(homeVisibleCount < appStore.products.length);
+  let homeHasMore = $derived(homeVisibleCount < baseFeaturedProducts.length);
 
   function loadMoreHome() {
     if (homeIsLoadingMore || !homeHasMore) return;
     homeIsLoadingMore = true;
     setTimeout(() => {
-      homeVisibleCount = Math.min(appStore.products.length, homeVisibleCount + 6);
+      homeVisibleCount = Math.min(baseFeaturedProducts.length, homeVisibleCount + 6);
       homeIsLoadingMore = false;
     }, 250);
   }

@@ -59,6 +59,8 @@ export interface Product {
   specifications?: ProductSpecification[]; // Danh sách thông số kỹ thuật chi tiết
   variantGroups?: ProductVariantGroup[];   // Các nhóm biến thể (Màu sắc, Size, ...)
   rating?: number;
+  soldCount?: number;     // Số lượng đã bán (lượt bán)
+  showOnHome?: boolean;   // Thẻ chọn sản phẩm hiển thị tại trang chủ
 }
 
 export interface CartItem {
@@ -197,6 +199,7 @@ export interface ProductGridStyle {
   showStockStatus: boolean;
   showRating: boolean;
   buyButtonText: string;
+  homeDisplayMode?: 'auto_top5' | 'manual'; // Tự động top 5 bán chạy nhất hoặc tùy chọn thủ công
 }
 
 export interface CategoryBlockStyle {

@@ -5,6 +5,7 @@ export function sqlGetProductById(id: number): Product | null;
 export function sqlCreateProduct(p: Omit<Product, 'id'> & { id?: number }): Product | null;
 export function sqlUpdateProduct(id: number, patch: Partial<Product>): boolean;
 export function sqlDeleteProduct(id: number): boolean;
+export function sqlAutoSelectTop5BestSellers(): Product[];
 
 export function sqlGetUsers(): User[];
 export function sqlGetUserByUsername(username: string): (User & { password_hash?: string }) | null;
