@@ -12,7 +12,7 @@
 </script>
 
 <!-- Floating Circular Messenger Button (Bottom-Left Corner) - Directly Opens Messenger -->
-<aside class="fixed bottom-6 left-6 z-50 select-none font-sans" aria-label="Hỗ trợ chat Messenger">
+<aside class="fixed bottom-20 left-4 md:bottom-6 md:left-6 z-40 select-none font-sans" aria-label="Hỗ trợ chat Messenger">
   <div class="relative group">
     <a
       href={messengerUrl}

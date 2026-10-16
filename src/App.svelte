@@ -16,7 +16,22 @@
   import MessengerChatPopup from './components/MessengerChatPopup.svelte';
   import TopAdBanner from './components/TopAdBanner.svelte';
   import SideAdBanners from './components/SideAdBanners.svelte';
+  import MobileLayout from './components/mobile/MobileLayout.svelte';
   import { routerService } from './services/routerService';
+
+  // Responsive device viewport detection: automatically adapt to mobile devices (< 768px)
+  let isMobile = $state(false);
+
+  $effect(() => {
+    if (typeof window === 'undefined') return;
+    const mql = window.matchMedia('(max-width: 767px)');
+    isMobile = mql.matches;
+    const handler = (e: MediaQueryListEvent) => {
+      isMobile = e.matches;
+    };
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
+  });
   // Check if side banners are currently enabled to determine full width expansion
   let hasSideBanners = $derived(
     themeStore.theme.visibility.showSideAdBanners &&
@@ -60,7 +75,11 @@
     return () => window.removeEventListener('hashchange', syncFromHash);
   });
 </script>
-<div class="min-h-screen flex flex-col justify-between bg-slate-50 text-slate-800 relative">
+{#if isMobile}
+  <!-- Dedicated Mobile App Layout (Inspired by Image #1) -->
+  <MobileLayout />
+{:else}
+  <div class="min-h-screen flex flex-col justify-between bg-slate-50 text-slate-800 relative">
   <!-- Top Advertising / Announcement Banner -->
   <TopAdBanner />
 
@@ -88,13 +107,6 @@
     {/if}
   </main>
 
-  <!-- Global Modals -->
-  <ProductModal />
-  <CartModal />
-  <CustomerAuthModal />
-  <CustomerProfileModal />
-  <MessengerChatPopup />
-  <Toast />
   <!-- Footer -->
   <footer class="glass-panel border-t border-slate-200 mt-20 py-8 bg-white text-center text-xs text-slate-500 w-full transition-all">
     <div class="w-full {containerWidthClass} mx-auto px-4 sm:px-6 lg:px-8 2xl:px-12 space-y-3 transition-all">
@@ -144,4 +156,12 @@
       <p>{themeStore.theme.footerText}</p>
     </div>
   </footer>
-</div>
+  </div>
+{/if}
+  <!-- Global Modals -->
+  <ProductModal />
+  <CartModal />
+  <CustomerAuthModal />
+  <CustomerProfileModal />
+  <MessengerChatPopup />
+  <Toast />
