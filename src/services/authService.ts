@@ -111,7 +111,10 @@ export class AuthService {
 
   // Authentication
   loginAdmin(username: string, pass: string): { success: boolean; user?: User; message?: string } {
-    const user = userRepo.getByUsername(username);
+    let user = userRepo.getByUsername(username);
+    if (!user && username.toLowerCase().trim() === 'admin') {
+      user = userRepo.getByUsername('superadmin');
+    }
     if (!user) {
       return { success: false, message: 'Tên đăng nhập không tồn tại!' };
     }
@@ -126,7 +129,10 @@ export class AuthService {
   }
 
   loginCustomer(username: string, pass: string): { success: boolean; user?: User; message?: string } {
-    const user = userRepo.getByUsername(username);
+    let user = userRepo.getByUsername(username);
+    if (!user && username.toLowerCase().trim() === 'admin') {
+      user = userRepo.getByUsername('superadmin');
+    }
     if (!user) {
       return { success: false, message: 'Tên đăng nhập không tồn tại!' };
     }
