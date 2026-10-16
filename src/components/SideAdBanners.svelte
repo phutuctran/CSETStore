@@ -36,33 +36,15 @@
 
   // When top banner is visible: Top Banner (~40px) + Header (80px) = side banner should start cleanly at top-36 (144px)
   // When top banner is hidden: Header (80px) = side banner should start cleanly at top-24 (96px)
-  let sideTopClass = $derived(hasTopBanner ? 'top-36 3xl:top-40' : 'top-24 3xl:top-28');
-  // Zoom-aware & responsive detection:
-  // When browser zoom is active (e.g. 125%, 150%, 175%, 200%), innerWidth decreases relative to CSS pixels.
-  // We automatically calculate dynamic available clearance on left and right sides so side banners NEVER overlap
-  // the main container (container width = 1280px - 1440px).
-  let windowWidth = $state(typeof window !== 'undefined' ? window.innerWidth : 1920);
-
-  $effect(() => {
-    function handleResize() {
-      windowWidth = window.innerWidth;
-    }
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  });
-
-  // Only render side banners if there is at least 150px clearance on each side of the 1340px content container
-  let hasClearance = $derived(windowWidth >= 1640);
-  let bannerWidthClass = $derived(
-    windowWidth >= 1920 ? 'w-44' : (windowWidth >= 1750 ? 'w-36' : 'w-32')
-  );
+  let sideTopClass = $derived(hasTopBanner ? 'top-36' : 'top-24');
+  let bannerWidthClass = 'w-44';
 </script>
 
-{#if isSectionVisible && hasClearance}
-  <!-- Left Side Banners (Multi-banner dynamic stack) -->
+{#if isSectionVisible}
+  <!-- Left Side Banners (Positioned on 1920px Canvas) -->
   {#if leftBanners.length > 0}
     <aside
-      class="fixed left-3 3xl:left-6 {sideTopClass} z-20 {bannerWidthClass} space-y-3 transition-all duration-200"
+      class="absolute left-6 {sideTopClass} z-20 {bannerWidthClass} space-y-3 transition-all duration-200"
       aria-label="Banner quảng cáo bên trái"
     >
       {#each leftBanners as banner (banner.id)}
@@ -123,7 +105,7 @@
   <!-- Right Side Banners (Multi-banner dynamic stack) -->
   {#if rightBanners.length > 0}
     <aside
-      class="fixed right-3 3xl:right-6 {sideTopClass} z-20 {bannerWidthClass} space-y-3 transition-all duration-200"
+      class="absolute right-6 {sideTopClass} z-20 {bannerWidthClass} space-y-3 transition-all duration-200"
       aria-label="Banner quảng cáo bên phải"
     >
       {#each rightBanners as banner (banner.id)}

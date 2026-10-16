@@ -32,7 +32,28 @@
     mql.addEventListener('change', handler);
     return () => mql.removeEventListener('change', handler);
   });
-  // Check if side banners are currently enabled to determine full width expansion
+
+  // Window width tracking for proportional Full HD desktop scaling
+  let windowWidth = $state<number>(typeof window !== 'undefined' ? window.innerWidth : 1920);
+
+  $effect(() => {
+    if (typeof window === 'undefined') return;
+    function updateDimensions() {
+      windowWidth = window.innerWidth;
+    }
+    window.addEventListener('resize', updateDimensions);
+    return () => window.removeEventListener('resize', updateDimensions);
+  });
+
+  // Proportional scaling for desktop interface:
+  // Fixed at 1920px Full HD base width. Scales down seamlessly without breaking layout.
+  let desktopScale = $derived.by(() => {
+    if (typeof window === 'undefined') return 1;
+    if (windowWidth < 1920) {
+      return windowWidth / 1920;
+    }
+    return 1;
+  });
   let hasSideBanners = $derived(
     themeStore.theme.visibility.showSideAdBanners &&
     (themeStore.theme.banners?.some(b => (b.position === 'side-left' || b.position === 'side-right') && b.enabled) ?? false)
@@ -79,7 +100,11 @@
   <!-- Dedicated Mobile App Layout (Inspired by Image #1) -->
   <MobileLayout />
 {:else}
-  <div class="min-h-screen flex flex-col justify-between bg-slate-50 text-slate-800 relative">
+  <!-- Fixed Full HD (1920px) Desktop Layout with Proportional Auto-Scaling -->
+  <div
+    class="min-h-screen flex flex-col justify-between bg-slate-50 text-slate-800 relative origin-top mx-auto"
+    style="width: 1920px; min-width: 1920px; zoom: {desktopScale};"
+  >
   <!-- Top Advertising / Announcement Banner -->
   <TopAdBanner />
 
