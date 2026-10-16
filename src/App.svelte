@@ -13,6 +13,7 @@
   import CustomOrderPage from './views/CustomOrderPage.svelte';
   import CustomerAuthModal from './components/CustomerAuthModal.svelte';
   import CustomerProfileModal from './components/CustomerProfileModal.svelte';
+  import MessengerChatPopup from './components/MessengerChatPopup.svelte';
   import TopAdBanner from './components/TopAdBanner.svelte';
   import SideAdBanners from './components/SideAdBanners.svelte';
   import { routerService } from './services/routerService';
@@ -92,6 +93,7 @@
   <CartModal />
   <CustomerAuthModal />
   <CustomerProfileModal />
+  <MessengerChatPopup />
   <Toast />
   <!-- Footer -->
   <footer class="glass-panel border-t border-slate-200 mt-20 py-8 bg-white text-center text-xs text-slate-500 w-full transition-all">
@@ -105,6 +107,38 @@
           <span><i class="fa-solid fa-phone mr-1 text-blue-900"></i>Hotline: <strong>{themeStore.theme.hotline}</strong></span>
           <span><i class="fa-solid fa-envelope mr-1 text-blue-900"></i>Email: <strong>{themeStore.theme.contactEmail}</strong></span>
           <span><i class="fa-solid fa-location-dot mr-1 text-blue-900"></i>{themeStore.theme.storeAddress}</span>
+        </div>
+      {/if}
+      <!-- Social Media Connections (Facebook, Zalo) -->
+      {#if themeStore.theme.socials?.facebook || themeStore.theme.socials?.zalo}
+        <div class="flex flex-wrap items-center justify-center gap-2 text-xs pt-1">
+          <span class="text-slate-600 font-medium">
+            {themeStore.theme.socials.socialText || 'Kết nối cùng CSET Store qua Facebook & Zalo:'}
+          </span>
+          {#if themeStore.theme.socials?.facebook}
+            <a
+              href={themeStore.theme.socials.facebook}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-900 border border-blue-200 hover:bg-blue-100 font-semibold transition cursor-pointer"
+              title="Trang Facebook CSET Store"
+            >
+              <i class="fa-brands fa-facebook text-[#1877F2] text-sm"></i>
+              <span>Facebook</span>
+            </a>
+          {/if}
+          {#if themeStore.theme.socials?.zalo}
+            <a
+              href={themeStore.theme.socials.zalo}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-50 text-cyan-900 border border-cyan-200 hover:bg-cyan-100 font-semibold transition cursor-pointer"
+              title="Chat Zalo cùng CSET Store"
+            >
+              <i class="fa-solid fa-comment-dots text-[#0068FF] text-sm"></i>
+              <span>Zalo</span>
+            </a>
+          {/if}
         </div>
       {/if}
       <p>{themeStore.theme.footerText}</p>

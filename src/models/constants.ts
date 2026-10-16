@@ -853,9 +853,11 @@ export const DEFAULT_THEME_CONFIG: ThemeConfig = {
   footerText: '© 2026 CSET Store. Nền tảng thương mại điện tử đa ngành hàng hiện đại xây dựng trên Svelte 5.',
   socials: {
     facebook: 'https://facebook.com',
-    zalo: 'https://zalo.me',
+    zalo: 'https://zalo.me/0909123456',
     tiktok: 'https://tiktok.com',
     youtube: 'https://youtube.com',
-    workingHours: '08:00 - 21:30 (Thứ 2 - Chủ Nhật)'
+    workingHours: '08:00 - 21:30 (Thứ 2 - Chủ Nhật)',
+    socialText: 'Kết nối cùng CSET Store qua Facebook & Zalo:',
+    messengerPageId: 'https://m.me'
   }
 };

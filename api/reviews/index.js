@@ -1,5 +1,4 @@
-import fs from 'fs';
-import path from 'path';
+import { sqlGetReviews } from '../../server/database.js';
 
 export default function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -11,18 +10,11 @@ export default function handler(req, res) {
     return res.status(204).end();
   }
 
-  const { productId } = req.query;
+  const { productId, all } = req.query;
 
   try {
-    const filePath = path.join(process.cwd(), 'data', 'reviews.json');
-    if (fs.existsSync(filePath)) {
-      let list = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-      if (productId) {
-        list = list.filter(r => r.productId === parseInt(productId, 10));
-      }
-      return res.status(200).json({ success: true, data: list });
-    }
-    return res.status(200).json({ success: true, data: [] });
+    const list = sqlGetReviews(productId, all === '1');
+    return res.status(200).json({ success: true, data: list });
   } catch (err) {
     return res.status(500).json({ success: false, message: 'Lỗi máy chủ' });
   }

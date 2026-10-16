@@ -1,5 +1,4 @@
-import fs from 'fs';
-import path from 'path';
+import { sqlGetProductById } from '../../server/database.js';
 
 export default function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -15,13 +14,9 @@ export default function handler(req, res) {
   const prodId = parseInt(id, 10);
 
   try {
-    const filePath = path.join(process.cwd(), 'data', 'products.json');
-    if (fs.existsSync(filePath)) {
-      const list = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-      const product = list.find(p => p.id === prodId);
-      if (product) {
-        return res.status(200).json({ success: true, data: product });
-      }
+    const product = sqlGetProductById(prodId);
+    if (product) {
+      return res.status(200).json({ success: true, data: product });
     }
     return res.status(404).json({ success: false, message: 'Không tìm thấy sản phẩm' });
   } catch (err) {

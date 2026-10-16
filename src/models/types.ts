@@ -211,6 +211,8 @@ export interface FooterSocials {
   tiktok?: string;
   youtube?: string;
   workingHours?: string;
+  socialText?: string;
+  messengerPageId?: string;
 }
 
 export interface CustomNavTab {
