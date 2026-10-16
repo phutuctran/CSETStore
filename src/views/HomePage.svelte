@@ -50,20 +50,16 @@
         </div>
 
         <!-- Trust Badges (Conditional) -->
-        {#if themeStore.theme.visibility.showTrustBadges}
-          <div class="pt-6 grid grid-cols-1 sm:grid-cols-3 gap-4 border-t border-slate-200/80 text-left">
-            <div>
-              <span class="block text-base font-black text-blue-950"><i class="fa-solid fa-shield-check text-blue-900 mr-1.5"></i>Chính Hãng</span>
-              <span class="text-xs text-slate-500 font-medium">{themeStore.theme.guaranteeText.split(' - ')[1] || 'Cam kết chất lượng 100%'}</span>
-            </div>
-            <div>
-              <span class="block text-base font-black text-blue-950"><i class="fa-solid fa-truck-fast text-blue-900 mr-1.5"></i>Giao Nhanh 2H</span>
-              <span class="text-xs text-slate-500 font-medium">{themeStore.theme.shippingText.split(' - ')[1] || 'Đóng gói cẩn thận'}</span>
-            </div>
-            <div>
-              <span class="block text-base font-black text-blue-950"><i class="fa-solid fa-rotate-left text-blue-900 mr-1.5"></i>Đổi Trả 7 Ngày</span>
-              <span class="text-xs text-slate-500 font-medium">{themeStore.theme.returnPolicyText.split(' - ')[1] || 'Thủ tục tiện lợi'}</span>
-            </div>
+        {#if themeStore.theme.visibility.showTrustBadges && themeStore.theme.trustBadges?.length > 0}
+          <div class="pt-6 flex flex-wrap gap-6 border-t border-slate-200/80 text-left">
+            {#each themeStore.theme.trustBadges as tb (tb.id)}
+              <div class="flex-1 min-w-[140px]">
+                <span class="block text-sm font-black text-blue-950">
+                  <i class="fa-solid {tb.icon} text-blue-900 mr-1.5"></i>{tb.title}
+                </span>
+                <span class="text-xs text-slate-500 font-medium block mt-0.5">{tb.subtitle}</span>
+              </div>
+            {/each}
           </div>
         {/if}
       </div>
@@ -155,37 +151,19 @@
   {/if}
 
   <!-- Value Propositions Banner (Conditional) -->
-  {#if themeStore.theme.visibility.showValueProps}
-    <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div class="glass-panel p-6 rounded-2xl border border-slate-200 bg-white space-y-3">
-        <div class="w-12 h-12 bg-blue-50 text-blue-900 rounded-xl flex items-center justify-center text-xl">
-          <i class="fa-solid fa-tags"></i>
+  {#if themeStore.theme.visibility.showValueProps && themeStore.theme.valueProps?.length > 0}
+    <section class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+      {#each themeStore.theme.valueProps as vp (vp.id)}
+        <div class="glass-panel p-6 rounded-2xl border border-slate-200 bg-white space-y-3">
+          <div class="w-12 h-12 bg-blue-50 text-blue-900 rounded-xl flex items-center justify-center text-xl">
+            <i class="fa-solid {vp.icon}"></i>
+          </div>
+          <h3 class="font-bold text-blue-950 text-base">{vp.title}</h3>
+          <p class="text-slate-600 text-xs leading-relaxed">
+            {vp.description}
+          </p>
         </div>
-        <h3 class="font-bold text-blue-950 text-base">Giá Cả Cạnh Tranh & Nhiều Ưu Đãi</h3>
-        <p class="text-slate-600 text-xs leading-relaxed">
-          Cập nhật mã giảm giá mỗi ngày, chương trình flash sale và tích lũy điểm thưởng cho thành viên.
-        </p>
-      </div>
-
-      <div class="glass-panel p-6 rounded-2xl border border-slate-200 bg-white space-y-3">
-        <div class="w-12 h-12 bg-blue-50 text-blue-900 rounded-xl flex items-center justify-center text-xl">
-          <i class="fa-solid fa-certificate"></i>
-        </div>
-        <h3 class="font-bold text-blue-950 text-base">Sản Phẩm Đảm Bảo 100% Chính Hãng</h3>
-        <p class="text-slate-600 text-xs leading-relaxed">
-          Nguồn gốc xuất xứ rõ ràng từ các thương hiệu uy tín hàng đầu, đầy đủ hóa đơn bảo hành.
-        </p>
-      </div>
-
-      <div class="glass-panel p-6 rounded-2xl border border-slate-200 bg-white space-y-3">
-        <div class="w-12 h-12 bg-blue-50 text-blue-900 rounded-xl flex items-center justify-center text-xl">
-          <i class="fa-solid fa-headset"></i>
-        </div>
-        <h3 class="font-bold text-blue-950 text-base">Chăm Sóc Khách Hàng Tận Tâm</h3>
-        <p class="text-slate-600 text-xs leading-relaxed">
-          Đội ngũ chuyên viên tư vấn giàu kinh nghiệm, hỗ trợ giải đáp mọi thắc mắc 24/7.
-        </p>
-      </div>
+      {/each}
     </section>
   {/if}
 </div>

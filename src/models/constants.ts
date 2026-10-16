@@ -191,11 +191,48 @@ export const DEFAULT_THEME_CONFIG: ThemeConfig = {
   heroImage: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=800&auto=format&fit=crop&q=80',
   heroHighlightTitle: 'Bộ Sưu Tập Mới 2026',
   heroHighlightSub: 'Giảm đến 40% cho thành viên',
+  // Customizable Blocks (Deep customization)
+  trustBadges: [
+    {
+      id: 'tb-1',
+      icon: 'fa-shield-check',
+      title: 'Chính Hãng 100%',
+      subtitle: 'Hoàn tiền 200% nếu phát hiện hàng giả'
+    },
+    {
+      id: 'tb-2',
+      icon: 'fa-truck-fast',
+      title: 'Giao Nhanh 2H',
+      subtitle: 'Nhận hàng hỏa tốc trong 2 giờ nội thành'
+    },
+    {
+      id: 'tb-3',
+      icon: 'fa-rotate-left',
+      title: 'Đổi Trả 7 Ngày',
+      subtitle: 'Miễn phí đổi trả nếu không hài lòng'
+    }
+  ],
 
-  guaranteeText: '100% Chính Hãng - Hoàn tiền 200% nếu phát hiện hàng giả',
-  shippingText: 'Giao Hàng Siêu Tốc - Nhận hàng hỏa tốc trong 2 giờ',
-  returnPolicyText: 'Đổi Trả 7 Ngày - Miễn phí đổi trả nếu không hài lòng',
-
+  valueProps: [
+    {
+      id: 'vp-1',
+      icon: 'fa-tags',
+      title: 'Giá Cả Cạnh Tranh & Nhiều Ưu Đãi',
+      description: 'Cập nhật mã giảm giá mỗi ngày, chương trình flash sale và tích lũy điểm thưởng cho thành viên.'
+    },
+    {
+      id: 'vp-2',
+      icon: 'fa-certificate',
+      title: 'Sản Phẩm Đảm Bảo 100% Chính Hãng',
+      description: 'Nguồn gốc xuất xứ rõ ràng từ các thương hiệu uy tín hàng đầu, đầy đủ hóa đơn bảo hành.'
+    },
+    {
+      id: 'vp-3',
+      icon: 'fa-headset',
+      title: 'Chăm Sóc Khách Hàng Tận Tâm',
+      description: 'Đội ngũ chuyên viên tư vấn giàu kinh nghiệm, hỗ trợ giải đáp mọi thắc mắc 24/7.'
+    }
+  ],
   hotline: '1900.6868',
   contactEmail: 'hotro@csetstore.vn',
   storeAddress: 'Tòa nhà CSET Center, 123 Đại Lộ Ánh Sáng, Quận 1, TP. Hồ Chí Minh',

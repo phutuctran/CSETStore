@@ -235,7 +235,9 @@ export class LocalStorageThemeRepository implements IThemeRepository {
           visibility: {
             ...DEFAULT_THEME_CONFIG.visibility,
             ...(p.visibility || {})
-          }
+          },
+          trustBadges: Array.isArray(p.trustBadges) && p.trustBadges.length > 0 ? p.trustBadges : DEFAULT_THEME_CONFIG.trustBadges,
+          valueProps: Array.isArray(p.valueProps) && p.valueProps.length > 0 ? p.valueProps : DEFAULT_THEME_CONFIG.valueProps
         };
       }
       return DEFAULT_THEME_CONFIG;

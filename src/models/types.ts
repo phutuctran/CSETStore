@@ -58,10 +58,24 @@ export interface SectionVisibility {
   showPromoBadge: boolean;      // Huy hiệu khuyến mãi đầu trang
   showHeroSection: boolean;     // Khối banner Hero chính
   showHeroImage: boolean;       // Khối hình ảnh banner bên phải
-  showTrustBadges: boolean;     // 3 cam kết dịch vụ (Chính hãng, Giao nhanh, Đổi trả)
+  showTrustBadges: boolean;     // Cam kết dịch vụ
   showFeaturedProducts: boolean;// Lưới sản phẩm nổi bật trang chủ
-  showValueProps: boolean;      // 3 khối lợi ích mua sắm
+  showValueProps: boolean;      // Khối giá trị & lợi ích mua sắm
   showFooterContact: boolean;   // Hotline, Email, Địa chỉ ở chân trang
+}
+
+export interface TrustBadgeItem {
+  id: string;
+  icon: string;
+  title: string;
+  subtitle: string;
+}
+
+export interface ValuePropItem {
+  id: string;
+  icon: string;
+  title: string;
+  description: string;
 }
 
 export interface ThemeConfig {
@@ -88,10 +102,9 @@ export interface ThemeConfig {
   heroHighlightTitle: string;
   heroHighlightSub: string;
 
-  // Trust Badges
-  guaranteeText: string;
-  shippingText: string;
-  returnPolicyText: string;
+  // Customizable Blocks (Deep customization)
+  trustBadges: TrustBadgeItem[];
+  valueProps: ValuePropItem[];
 
   // Contact & Footer
   hotline: string;
