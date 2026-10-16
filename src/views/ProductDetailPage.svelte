@@ -287,7 +287,7 @@
     <!-- Main Product Layout Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
       <!-- Left Column: Image Gallery Preview -->
-      <div class="space-y-4 sticky top-24">
+      <div class="space-y-4 relative lg:landscape:sticky lg:landscape:top-24">
         <div class="aspect-square rounded-3xl overflow-hidden bg-white border border-slate-200 shadow-md flex items-center justify-center relative">
           <img
             src={selectedImage || product.image}

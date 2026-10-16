@@ -28,14 +28,28 @@
     themeStore.theme.visibility.showTopAdBanner &&
     (themeStore.theme.banners?.some(b => b.position === 'top' && isBannerActive(b)) ?? false)
   );
+  let windowWidth = $state(typeof window !== 'undefined' ? window.innerWidth : 1920);
+  let isLandscape = $state(typeof window !== 'undefined' ? window.innerWidth > window.innerHeight : true);
+
+  $effect(() => {
+    if (typeof window === 'undefined') return;
+    function handleResize() {
+      windowWidth = window.innerWidth;
+      isLandscape = window.innerWidth > window.innerHeight;
+    }
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  });
+
+  // Side banners strictly require wide landscape clearance (>= 1600px and landscape)
+  // They will NEVER render on portrait screens (like iPad) to prevent overlapping content
+  let hasClearance = $derived(windowWidth >= 1600 && isLandscape);
+
   let isSectionVisible = $derived(
-    themeStore.theme.visibility.showSideAdBanners && (leftBanners.length > 0 || rightBanners.length > 0)
+    themeStore.theme.visibility.showSideAdBanners && hasClearance && (leftBanners.length > 0 || rightBanners.length > 0)
   );
 
   let closedIds = $state<string[]>([]);
-
-  // When top banner is visible: Top Banner (~40px) + Header (80px) = side banner should start cleanly at top-36 (144px)
-  // When top banner is hidden: Header (80px) = side banner should start cleanly at top-24 (96px)
   let sideTopClass = $derived(hasTopBanner ? 'top-36' : 'top-24');
   let bannerWidthClass = 'w-44';
 </script>

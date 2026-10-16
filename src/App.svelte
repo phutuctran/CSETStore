@@ -33,22 +33,25 @@
     return () => mql.removeEventListener('change', handler);
   });
 
-  // Window width tracking for proportional Full HD desktop scaling
+  // Window dimensions and orientation tracking
   let windowWidth = $state<number>(typeof window !== 'undefined' ? window.innerWidth : 1920);
+  let isLandscape = $state<boolean>(typeof window !== 'undefined' ? window.innerWidth > window.innerHeight : true);
 
   $effect(() => {
     if (typeof window === 'undefined') return;
     function updateDimensions() {
       windowWidth = window.innerWidth;
+      isLandscape = window.innerWidth > window.innerHeight;
     }
     window.addEventListener('resize', updateDimensions);
     return () => window.removeEventListener('resize', updateDimensions);
   });
 
-  // Proportional scaling for desktop interface:
-  // Fixed at 1920px Full HD base width. Scales down seamlessly without breaking layout.
+  // Proportional Full HD scaling is active on landscape desktop screens (>= 1200px)
+  // On portrait tablets (like iPad 1067x1536) or vertical screens, use fluid 100% width
+  let isDesktopScaled = $derived(!isMobile && isLandscape && windowWidth >= 1200);
   let desktopScale = $derived.by(() => {
-    if (typeof window === 'undefined') return 1;
+    if (!isDesktopScaled) return 1;
     if (windowWidth < 1920) {
       return windowWidth / 1920;
     }
@@ -100,10 +103,10 @@
   <!-- Dedicated Mobile App Layout (Inspired by Image #1) -->
   <MobileLayout />
 {:else}
-  <!-- Fixed Full HD (1920px) Desktop Layout with Proportional Auto-Scaling -->
+  <!-- Desktop Layout (Full HD scaled in landscape, fluid responsive in portrait/tablets) -->
   <div
     class="min-h-screen flex flex-col justify-between bg-slate-50 text-slate-800 relative origin-top mx-auto"
-    style="width: 1920px; min-width: 1920px; zoom: {desktopScale};"
+    style={isDesktopScaled ? `width: 1920px; min-width: 1920px; zoom: ${desktopScale};` : 'width: 100%; max-width: 100%;'}
   >
   <!-- Top Advertising / Announcement Banner -->
   <TopAdBanner />
