@@ -189,6 +189,18 @@
   }
 
   // --- TAB: THEME CUSTOMIZER (SUPER ADMIN ONLY) ---
+  function handleLogoUpload(e: Event) {
+    const input = e.target as HTMLInputElement;
+    if (input.files && input.files[0]) {
+      const file = input.files[0];
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        themeDraft.logoImage = (evt.target?.result as string) || '';
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
   function handleHeroImageUpload(e: Event) {
     const input = e.target as HTMLInputElement;
     if (input.files && input.files[0]) {
@@ -200,7 +212,6 @@
       reader.readAsDataURL(file);
     }
   }
-
   function handleSaveTheme(e: Event) {
     e.preventDefault();
     themeRepo.saveTheme(themeDraft);
@@ -935,8 +946,47 @@
                     />
                   </div>
 
+                  <div class="space-y-1.5 sm:col-span-2 bg-slate-800/40 p-4 rounded-2xl border border-slate-700/60">
+                    <label for="thm-logo-file" class="text-xs font-bold text-slate-300 uppercase flex items-center justify-between">
+                      <span>Logo Tải Lên Từ Máy Tính (PNG, SVG, JPG, WebP)</span>
+                      {#if themeDraft.logoImage}
+                        <button
+                          type="button"
+                          onclick={() => themeDraft.logoImage = ''}
+                          class="text-[11px] text-red-400 hover:text-red-300 font-normal cursor-pointer"
+                        >
+                          <i class="fa-solid fa-trash mr-1"></i>Xóa logo ảnh, dùng icon
+                        </button>
+                      {/if}
+                    </label>
+                    <div class="flex items-center gap-4 mt-2">
+                      {#if themeDraft.logoImage}
+                        <div class="w-14 h-14 rounded-xl overflow-hidden bg-white border border-slate-600 p-1 shrink-0">
+                          <img src={themeDraft.logoImage} alt="Logo Preview" class="w-full h-full object-contain" />
+                        </div>
+                      {:else}
+                        <div
+                          class="w-14 h-14 rounded-xl flex items-center justify-center text-white text-2xl shrink-0"
+                          style="background-color: {themeDraft.primaryColor}"
+                        >
+                          <i class="fa-solid {themeDraft.logoIcon}"></i>
+                        </div>
+                      {/if}
+                      <div class="flex-grow space-y-1">
+                        <input
+                          id="thm-logo-file"
+                          type="file"
+                          accept="image/*"
+                          onchange={handleLogoUpload}
+                          class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-300"
+                        />
+                        <p class="text-[10px] text-slate-500">Tải ảnh logo sắc nét để thay thế biểu tượng khối 3D mặc định trên Header.</p>
+                      </div>
+                    </div>
+                  </div>
+
                   <div class="space-y-1.5">
-                    <label for="thm-icon" class="text-xs font-bold text-slate-300 uppercase">Icon Logo (FontAwesome)</label>
+                    <label for="thm-icon" class="text-xs font-bold text-slate-300 uppercase">Icon Thay Thế (Khi không có ảnh logo)</label>
                     <select
                       id="thm-icon"
                       bind:value={themeDraft.logoIcon}
@@ -970,6 +1020,112 @@
                       />
                     </div>
                   </div>
+                </div>
+              </div>
+
+              <!-- SECTION: VISIBILITY TOGGLES (BẬT / TẮT TỪNG VÙNG HIỂN THỊ) -->
+              <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8 space-y-5">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <h3 class="text-base font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-toggle-on text-purple-400"></i>
+                    2. Quản Lý Bật / Tắt Từng Vùng Hiển Thị Trên Web Bán Hàng
+                  </h3>
+                  <span class="text-[11px] font-semibold text-purple-300 bg-purple-500/10 px-2.5 py-1 rounded-full border border-purple-500/20">
+                    7 Vùng Giao Diện
+                  </span>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <!-- Toggle 1: Hero Section -->
+                  <label class="flex items-center justify-between p-3.5 rounded-2xl bg-slate-800/60 border border-slate-700/60 cursor-pointer hover:bg-slate-800 transition">
+                    <div class="space-y-0.5 pr-3">
+                      <span class="text-xs font-bold text-white block">Khối Banner Hero Chính</span>
+                      <span class="text-[10px] text-slate-400 block">Tiêu đề, slogan và 2 nút khám phá</span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      bind:checked={themeDraft.visibility.showHeroSection}
+                      class="w-5 h-5 accent-purple-600 rounded cursor-pointer"
+                    />
+                  </label>
+
+                  <!-- Toggle 2: Promo Badge -->
+                  <label class="flex items-center justify-between p-3.5 rounded-2xl bg-slate-800/60 border border-slate-700/60 cursor-pointer hover:bg-slate-800 transition">
+                    <div class="space-y-0.5 pr-3">
+                      <span class="text-xs font-bold text-white block">Huy Hiệu Khuyến Mãi</span>
+                      <span class="text-[10px] text-slate-400 block">Badge đồng giá 1.500đ / gam</span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      bind:checked={themeDraft.visibility.showPromoBadge}
+                      class="w-5 h-5 accent-purple-600 rounded cursor-pointer"
+                    />
+                  </label>
+
+                  <!-- Toggle 3: Hero Printer Image -->
+                  <label class="flex items-center justify-between p-3.5 rounded-2xl bg-slate-800/60 border border-slate-700/60 cursor-pointer hover:bg-slate-800 transition">
+                    <div class="space-y-0.5 pr-3">
+                      <span class="text-xs font-bold text-white block">Hình Ảnh Máy In 3D Hero</span>
+                      <span class="text-[10px] text-slate-400 block">Ảnh máy Bambu Lab A1 bên phải</span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      bind:checked={themeDraft.visibility.showHeroPrinter}
+                      class="w-5 h-5 accent-purple-600 rounded cursor-pointer"
+                    />
+                  </label>
+
+                  <!-- Toggle 4: Trust Badges -->
+                  <label class="flex items-center justify-between p-3.5 rounded-2xl bg-slate-800/60 border border-slate-700/60 cursor-pointer hover:bg-slate-800 transition">
+                    <div class="space-y-0.5 pr-3">
+                      <span class="text-xs font-bold text-white block">3 Thông Số Cam Kết Kỹ Thuật</span>
+                      <span class="text-[10px] text-slate-400 block">Độ chính xác 0.08mm, in 24/7, giá rẻ</span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      bind:checked={themeDraft.visibility.showTrustBadges}
+                      class="w-5 h-5 accent-purple-600 rounded cursor-pointer"
+                    />
+                  </label>
+
+                  <!-- Toggle 5: Featured Products -->
+                  <label class="flex items-center justify-between p-3.5 rounded-2xl bg-slate-800/60 border border-slate-700/60 cursor-pointer hover:bg-slate-800 transition">
+                    <div class="space-y-0.5 pr-3">
+                      <span class="text-xs font-bold text-white block">Lưới Sản Phẩm Nổi Bật</span>
+                      <span class="text-[10px] text-slate-400 block">4 mô hình 3D bán chạy ở trang chủ</span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      bind:checked={themeDraft.visibility.showFeaturedProducts}
+                      class="w-5 h-5 accent-purple-600 rounded cursor-pointer"
+                    />
+                  </label>
+
+                  <!-- Toggle 6: Value Props -->
+                  <label class="flex items-center justify-between p-3.5 rounded-2xl bg-slate-800/60 border border-slate-700/60 cursor-pointer hover:bg-slate-800 transition">
+                    <div class="space-y-0.5 pr-3">
+                      <span class="text-xs font-bold text-white block">3 Khối Giá Trị & Lợi Ích</span>
+                      <span class="text-[10px] text-slate-400 block">Vật liệu đa dạng, báo giá tự động, giao nhanh</span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      bind:checked={themeDraft.visibility.showValueProps}
+                      class="w-5 h-5 accent-purple-600 rounded cursor-pointer"
+                    />
+                  </label>
+
+                  <!-- Toggle 7: Footer Contact -->
+                  <label class="flex items-center justify-between p-3.5 rounded-2xl bg-slate-800/60 border border-slate-700/60 cursor-pointer hover:bg-slate-800 transition sm:col-span-2">
+                    <div class="space-y-0.5 pr-3">
+                      <span class="text-xs font-bold text-white block">Thông Tin Liên Hệ Chân Trang (Footer)</span>
+                      <span class="text-[10px] text-slate-400 block">Hiển thị Hotline, Email và Địa chỉ xưởng in ở footer</span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      bind:checked={themeDraft.visibility.showFooterContact}
+                      class="w-5 h-5 accent-purple-600 rounded cursor-pointer"
+                    />
+                  </label>
                 </div>
               </div>
 
@@ -1169,51 +1325,82 @@
                 <div class="bg-white rounded-2xl p-5 text-slate-800 border border-slate-200 shadow-md space-y-4">
                   <!-- Mini Header Preview -->
                   <div class="flex items-center space-x-2.5 border-b border-slate-100 pb-3">
-                    <div
-                      class="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs shadow-xs"
-                      style="background-color: {themeDraft.primaryColor}"
-                    >
-                      <i class="fa-solid {themeDraft.logoIcon}"></i>
-                    </div>
+                    {#if themeDraft.logoImage}
+                      <div class="w-8 h-8 rounded-lg overflow-hidden bg-white border border-slate-200 p-0.5 shrink-0 shadow-xs">
+                        <img src={themeDraft.logoImage} alt="Logo" class="w-full h-full object-contain" />
+                      </div>
+                    {:else}
+                      <div
+                        class="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs shadow-xs shrink-0"
+                        style="background-color: {themeDraft.primaryColor}"
+                      >
+                        <i class="fa-solid {themeDraft.logoIcon}"></i>
+                      </div>
+                    {/if}
                     <div>
                       <span class="text-xs font-black text-slate-900 block leading-tight">{themeDraft.storeName}</span>
                       <span class="text-[9px] font-bold text-slate-500 block uppercase">{themeDraft.storeTagline}</span>
                     </div>
                   </div>
 
-                  <!-- Mini Hero Preview -->
-                  <div class="space-y-2">
-                    <span class="inline-block text-[9px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-900 border border-blue-200 uppercase">
-                      {themeDraft.badgeText}
-                    </span>
-                    <h5 class="text-sm font-black text-slate-900 leading-tight">
-                      {themeDraft.heroTitle} <br />
-                      <span style="color: {themeDraft.primaryColor}">{themeDraft.heroSubtitle}</span>
-                    </h5>
-                    <p class="text-[10px] text-slate-500 line-clamp-3 leading-relaxed">
-                      {themeDraft.heroDescription}
-                    </p>
-                  </div>
-
-                  <!-- Mini Banner Image Preview -->
-                  <div class="h-28 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 relative">
-                    <img
-                      src={themeDraft.heroImage}
-                      alt="Hero Preview"
-                      class="w-full h-full object-cover"
-                    />
-                    <div class="absolute bottom-1.5 left-1.5 right-1.5 bg-white/90 backdrop-blur-xs p-1.5 rounded-lg text-[9px] flex items-center justify-between">
-                      <span class="font-bold text-slate-900">{themeDraft.printerModel}</span>
-                      <span class="text-slate-500">{themeDraft.printerSpeedText.split('-')[0]}</span>
+                  <!-- Mini Hero Preview (Conditional) -->
+                  {#if themeDraft.visibility.showHeroSection}
+                    <div class="space-y-2">
+                      {#if themeDraft.visibility.showPromoBadge}
+                        <span class="inline-block text-[9px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-900 border border-blue-200 uppercase">
+                          {themeDraft.badgeText}
+                        </span>
+                      {/if}
+                      <h5 class="text-sm font-black text-slate-900 leading-tight">
+                        {themeDraft.heroTitle} <br />
+                        <span style="color: {themeDraft.primaryColor}">{themeDraft.heroSubtitle}</span>
+                      </h5>
+                      <p class="text-[10px] text-slate-500 line-clamp-3 leading-relaxed">
+                        {themeDraft.heroDescription}
+                      </p>
                     </div>
-                  </div>
 
-                  <!-- Mini Button Preview -->
-                  <div
-                    class="w-full py-2 rounded-xl text-white text-xs font-bold text-center shadow-xs"
-                    style="background-color: {themeDraft.primaryColor}"
-                  >
-                    Nút Khám Phá Sản Phẩm
+                    <!-- Mini Banner Image Preview -->
+                    {#if themeDraft.visibility.showHeroPrinter}
+                      <div class="h-28 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 relative">
+                        <img
+                          src={themeDraft.heroImage}
+                          alt="Hero Preview"
+                          class="w-full h-full object-cover"
+                        />
+                        <div class="absolute bottom-1.5 left-1.5 right-1.5 bg-white/90 backdrop-blur-xs p-1.5 rounded-lg text-[9px] flex items-center justify-between">
+                          <span class="font-bold text-slate-900">{themeDraft.printerModel}</span>
+                          <span class="text-slate-500">{themeDraft.printerSpeedText.split('-')[0]}</span>
+                        </div>
+                      </div>
+                    {/if}
+
+                    <div
+                      class="w-full py-2 rounded-xl text-white text-xs font-bold text-center shadow-xs"
+                      style="background-color: {themeDraft.primaryColor}"
+                    >
+                      Nút Khám Phá Sản Phẩm
+                    </div>
+                  {:else}
+                    <div class="p-3 bg-slate-50 rounded-xl border border-dashed border-slate-300 text-center text-[10px] text-slate-400 italic">
+                      Khối Hero đã được tắt hiển thị
+                    </div>
+                  {/if}
+
+                  <!-- Mini Badges & Sections Indicator -->
+                  <div class="pt-2 border-t border-slate-100 grid grid-cols-2 gap-1 text-[9px]">
+                    <span class={themeDraft.visibility.showTrustBadges ? 'text-emerald-700 font-bold' : 'text-slate-400 line-through'}>
+                      ✓ Thông số kỹ thuật
+                    </span>
+                    <span class={themeDraft.visibility.showFeaturedProducts ? 'text-emerald-700 font-bold' : 'text-slate-400 line-through'}>
+                      ✓ Sản phẩm nổi bật
+                    </span>
+                    <span class={themeDraft.visibility.showValueProps ? 'text-emerald-700 font-bold' : 'text-slate-400 line-through'}>
+                      ✓ Khối giá trị lợi ích
+                    </span>
+                    <span class={themeDraft.visibility.showFooterContact ? 'text-emerald-700 font-bold' : 'text-slate-400 line-through'}>
+                      ✓ Hotline & liên hệ
+                    </span>
                   </div>
                 </div>
 

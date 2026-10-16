@@ -228,7 +228,15 @@ export class LocalStorageThemeRepository implements IThemeRepository {
     try {
       const parsed: unknown = JSON.parse(raw);
       if (parsed && typeof parsed === 'object') {
-        return { ...DEFAULT_THEME_CONFIG, ...(parsed as Partial<ThemeConfig>) };
+        const p = parsed as Partial<ThemeConfig>;
+        return {
+          ...DEFAULT_THEME_CONFIG,
+          ...p,
+          visibility: {
+            ...DEFAULT_THEME_CONFIG.visibility,
+            ...(p.visibility || {})
+          }
+        };
       }
       return DEFAULT_THEME_CONFIG;
     } catch {

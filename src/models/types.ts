@@ -58,11 +58,25 @@ export interface CategoryOption {
   icon?: string;
 }
 
+export interface SectionVisibility {
+  showPromoBadge: boolean;      // Huy hiệu khuyến mãi đầu trang
+  showHeroSection: boolean;     // Khối banner Hero chính
+  showHeroPrinter: boolean;     // Khối hình ảnh máy in 3D Bambu Lab
+  showTrustBadges: boolean;     // 3 thông số độ chính xác, hỗ trợ, giá in
+  showFeaturedProducts: boolean;// Lưới sản phẩm nổi bật trang chủ
+  showValueProps: boolean;      // 3 khối cam kết giá trị lợi ích dịch vụ
+  showFooterContact: boolean;   // Hotline, Email, Địa chỉ ở chân trang
+}
+
 export interface ThemeConfig {
   // Branding
   storeName: string;
   storeTagline: string;
   logoIcon: string; // FontAwesome icon class
+  logoImage?: string; // Base64 or Image URL uploaded by admin
+
+  // Visibility Toggles
+  visibility: SectionVisibility;
 
   // Colors
   primaryColor: string; // e.g. #1e3a8a

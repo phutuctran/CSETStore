@@ -120,6 +120,17 @@ export const DEFAULT_THEME_CONFIG: ThemeConfig = {
   storeName: 'CSET STORE',
   storeTagline: '3D Printing Studio',
   logoIcon: 'fa-cube',
+  logoImage: '',
+
+  visibility: {
+    showPromoBadge: true,
+    showHeroSection: true,
+    showHeroPrinter: true,
+    showTrustBadges: true,
+    showFeaturedProducts: true,
+    showValueProps: true,
+    showFooterContact: true
+  },
 
   primaryColor: '#1e3a8a', // Deep Blue
   accentColor: '#2563eb',  // Royal Blue

@@ -41,11 +41,13 @@
         <i class="fa-solid {themeStore.theme.logoIcon} text-blue-900"></i>
         <span>{themeStore.theme.storeName} - {themeStore.theme.storeTagline}</span>
       </div>
-      <div class="flex flex-wrap items-center justify-center gap-4 text-[11px] text-slate-600">
-        <span><i class="fa-solid fa-phone mr-1 text-blue-900"></i>Hotline: <strong>{themeStore.theme.hotline}</strong></span>
-        <span><i class="fa-solid fa-envelope mr-1 text-blue-900"></i>Email: <strong>{themeStore.theme.contactEmail}</strong></span>
-        <span><i class="fa-solid fa-location-dot mr-1 text-blue-900"></i>{themeStore.theme.storeAddress}</span>
-      </div>
+      {#if themeStore.theme.visibility.showFooterContact}
+        <div class="flex flex-wrap items-center justify-center gap-4 text-[11px] text-slate-600">
+          <span><i class="fa-solid fa-phone mr-1 text-blue-900"></i>Hotline: <strong>{themeStore.theme.hotline}</strong></span>
+          <span><i class="fa-solid fa-envelope mr-1 text-blue-900"></i>Email: <strong>{themeStore.theme.contactEmail}</strong></span>
+          <span><i class="fa-solid fa-location-dot mr-1 text-blue-900"></i>{themeStore.theme.storeAddress}</span>
+        </div>
+      {/if}
       <p>{themeStore.theme.footerText}</p>
     </div>
   </footer>

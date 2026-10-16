@@ -18,12 +18,18 @@
         onclick={() => appStore.setTab('home')}
         class="flex items-center space-x-3 text-left cursor-pointer group focus:outline-none"
       >
-        <div
-          class="w-10 h-10 rounded-xl flex items-center justify-center shadow-md transition"
-          style="background-color: {themeStore.theme.primaryColor}"
-        >
-          <i class="fa-solid {themeStore.theme.logoIcon} text-white text-xl"></i>
-        </div>
+        {#if themeStore.theme.logoImage}
+          <div class="w-10 h-10 rounded-xl overflow-hidden shadow-md flex items-center justify-center bg-white border border-slate-200">
+            <img src={themeStore.theme.logoImage} alt={themeStore.theme.storeName} class="w-full h-full object-cover" />
+          </div>
+        {:else}
+          <div
+            class="w-10 h-10 rounded-xl flex items-center justify-center shadow-md transition"
+            style="background-color: {themeStore.theme.primaryColor}"
+          >
+            <i class="fa-solid {themeStore.theme.logoIcon} text-white text-xl"></i>
+          </div>
+        {/if}
         <div>
           <span class="text-xl font-black tracking-wider text-blue-950 block">{themeStore.theme.storeName}</span>
           <span class="block text-[10px] text-blue-800 font-bold tracking-widest uppercase">{themeStore.theme.storeTagline}</span>
