@@ -26,5 +26,8 @@ export function pgDeleteReview(id: string): Promise<boolean>;
 
 export function pgGetCategories(): Promise<CategoryOption[]>;
 export function pgGetCoupons(): Promise<Coupon[]>;
+export function pgCreateCoupon(c: Omit<Coupon, 'id' | 'usedCount'> & { id?: string; usedCount?: number }): Promise<Coupon>;
+export function pgUpdateCoupon(id: string, patch: Partial<Coupon>): Promise<boolean>;
+export function pgDeleteCoupon(id: string): Promise<boolean>;
 export function pgGetTheme(): Promise<ThemeConfig | null>;
 export function pgSaveTheme(config: ThemeConfig): Promise<ThemeConfig>;

@@ -56,6 +56,7 @@ export interface ICouponRepository {
   update(id: string, patch: Partial<Coupon>): boolean;
   delete(id: string): boolean;
   incrementUsage(code: string): boolean;
+  syncFromServer(): Promise<Coupon[]>;
   resetToDefaults(): Coupon[];
 }
 
@@ -676,6 +677,13 @@ export class LocalStorageCouponRepository implements ICouponRepository {
     };
     list.unshift(newCoupon);
     getSafeStorage().setItem(COUPONS_STORAGE_KEY, JSON.stringify(list));
+    if (typeof window !== 'undefined' && typeof fetch === 'function') {
+      fetch('/api/coupons', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newCoupon)
+      }).catch(() => {});
+    }
     return newCoupon;
   }
 
@@ -688,6 +696,13 @@ export class LocalStorageCouponRepository implements ICouponRepository {
     }
     list[index] = { ...list[index], ...patch };
     getSafeStorage().setItem(COUPONS_STORAGE_KEY, JSON.stringify(list));
+    if (typeof window !== 'undefined' && typeof fetch === 'function') {
+      fetch(`/api/coupons/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch)
+      }).catch(() => {});
+    }
     return true;
   }
 
@@ -696,6 +711,9 @@ export class LocalStorageCouponRepository implements ICouponRepository {
     const next = list.filter(c => c.id !== id);
     if (next.length === list.length) return false;
     getSafeStorage().setItem(COUPONS_STORAGE_KEY, JSON.stringify(next));
+    if (typeof window !== 'undefined' && typeof fetch === 'function') {
+      fetch(`/api/coupons/${id}`, { method: 'DELETE' }).catch(() => {});
+    }
     return true;
   }
 
@@ -705,7 +723,29 @@ export class LocalStorageCouponRepository implements ICouponRepository {
     if (!target) return false;
     target.usedCount = (target.usedCount || 0) + 1;
     getSafeStorage().setItem(COUPONS_STORAGE_KEY, JSON.stringify(list));
+    if (typeof window !== 'undefined' && typeof fetch === 'function') {
+      fetch(`/api/coupons/${target.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ usedCount: target.usedCount })
+      }).catch(() => {});
+    }
     return true;
+  }
+
+  async syncFromServer(): Promise<Coupon[]> {
+    if (typeof window === 'undefined' || typeof fetch !== 'function') return this.getAll();
+    try {
+      const res = await fetch('/api/coupons');
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data)) {
+          getSafeStorage().setItem(COUPONS_STORAGE_KEY, JSON.stringify(json.data));
+          return json.data;
+        }
+      }
+    } catch {}
+    return this.getAll();
   }
 
   resetToDefaults(): Coupon[] {

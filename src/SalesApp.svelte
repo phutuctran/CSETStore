@@ -58,16 +58,17 @@
     if (typeof window === 'undefined') return;
     isSyncing = true;
     try {
-      const [freshOrders, freshUsers, freshReviews] = await Promise.all([
+      const [freshOrders, freshUsers, freshReviews, freshCoupons] = await Promise.all([
         orderRepo.syncFromServer(),
         userRepo.syncFromServer(),
-        reviewRepo.syncFromServer()
+        reviewRepo.syncFromServer(),
+        couponRepo.syncFromServer()
       ]);
       orders = freshOrders;
       users = freshUsers;
       reviews = freshReviews;
+      coupons = freshCoupons;
       products = productRepo.getAll();
-      coupons = couponRepo.getAll();
       lastSyncTime = new Date().toLocaleTimeString('vi-VN');
       if (showNotification) {
         showToast(`Đã đồng bộ thành công dữ liệu mới nhất từ máy chủ (${freshOrders.length} đơn hàng)!`);

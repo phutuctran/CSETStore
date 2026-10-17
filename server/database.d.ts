@@ -24,6 +24,9 @@ export function sqlCreateOrder(order: Omit<Order, 'id'> & { id?: string }): Orde
 export function sqlUpdateOrderStatus(id: string, status: Order['status']): boolean;
 
 export function sqlGetCoupons(): Coupon[];
+export function sqlCreateCoupon(c: Omit<Coupon, 'id' | 'usedCount'> & { id?: string; usedCount?: number }): Coupon;
+export function sqlUpdateCoupon(id: string, patch: Partial<Coupon>): boolean;
+export function sqlDeleteCoupon(id: string): boolean;
 export function sqlGetTheme(): ThemeConfig | null;
 export function sqlSaveTheme(config: ThemeConfig): ThemeConfig;
 

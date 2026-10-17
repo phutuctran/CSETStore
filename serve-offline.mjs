@@ -29,7 +29,11 @@ import {
   sqlGetUserByUsername,
   sqlGetUserById,
   sqlUpdateUser,
-  sqlDeleteUser
+  sqlDeleteUser,
+  sqlGetCoupons,
+  sqlCreateCoupon,
+  sqlUpdateCoupon,
+  sqlDeleteCoupon
 } from './server/database.js';
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -348,6 +352,65 @@ const server = http.createServer((req, res) => {
       return;
     }
 
+    // GET /api/coupons
+    if (req.method === 'GET' && (reqPath === '/api/coupons' || reqPath === '/api/coupons/')) {
+      const coupons = sqlGetCoupons();
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      res.writeHead(200);
+      res.end(JSON.stringify({ success: true, data: coupons }));
+      return;
+    }
+
+    // POST /api/coupons
+    if (req.method === 'POST' && (reqPath === '/api/coupons' || reqPath === '/api/coupons/')) {
+      let body = '';
+      req.on('data', chunk => body += chunk);
+      req.on('end', () => {
+        try {
+          const couponData = JSON.parse(body);
+          const created = sqlCreateCoupon(couponData);
+          res.setHeader('Content-Type', 'application/json; charset=utf-8');
+          res.writeHead(201);
+          res.end(JSON.stringify({ success: true, data: created }));
+        } catch {
+          res.setHeader('Content-Type', 'application/json; charset=utf-8');
+          res.writeHead(400);
+          res.end(JSON.stringify({ success: false, message: 'Dữ liệu không hợp lệ' }));
+        }
+      });
+      return;
+    }
+
+    // Coupons :id endpoints (PUT, DELETE)
+    const couponMatch = reqPath.match(/^\/api\/coupons\/([^/]+)$/);
+    if (req.method === 'PUT' && couponMatch) {
+      const coupId = couponMatch[1];
+      let body = '';
+      req.on('data', chunk => body += chunk);
+      req.on('end', () => {
+        try {
+          const patch = JSON.parse(body);
+          const success = sqlUpdateCoupon(coupId, patch);
+          res.setHeader('Content-Type', 'application/json; charset=utf-8');
+          res.writeHead(200);
+          res.end(JSON.stringify({ success }));
+        } catch {
+          res.setHeader('Content-Type', 'application/json; charset=utf-8');
+          res.writeHead(400);
+          res.end(JSON.stringify({ success: false, message: 'Dữ liệu không hợp lệ' }));
+        }
+      });
+      return;
+    }
+
+    if (req.method === 'DELETE' && couponMatch) {
+      const coupId = couponMatch[1];
+      const success = sqlDeleteCoupon(coupId);
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      res.writeHead(200);
+      res.end(JSON.stringify({ success }));
+      return;
+    }
     // GET /api/orders
     if (req.method === 'GET' && (reqPath === '/api/orders' || reqPath === '/api/orders/')) {
       const orders = sqlGetOrders();

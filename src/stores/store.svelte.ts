@@ -241,10 +241,11 @@ class StoreState {
   async syncFromServer() {
     if (typeof window === 'undefined' || typeof fetch !== 'function') return;
     try {
-      const [uRes, pRes, oRes] = await Promise.all([
+      const [uRes, pRes, oRes, cRes] = await Promise.all([
         fetch('/api/users').catch(() => null),
         fetch('/api/products').catch(() => null),
-        fetch('/api/orders').catch(() => null)
+        fetch('/api/orders').catch(() => null),
+        fetch('/api/coupons').catch(() => null)
       ]);
 
       if (uRes && uRes.ok) {
@@ -273,6 +274,13 @@ class StoreState {
         if (oJson.success && Array.isArray(oJson.data)) {
           this.orders = oJson.data;
           localStorage.setItem('cset_orders_v5', JSON.stringify(oJson.data));
+        }
+      }
+
+      if (cRes && cRes.ok) {
+        const cJson = await cRes.json();
+        if (cJson.success && Array.isArray(cJson.data)) {
+          localStorage.setItem('cset_coupons_v4', JSON.stringify(cJson.data));
         }
       }
     } catch {}

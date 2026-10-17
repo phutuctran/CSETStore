@@ -65,6 +65,7 @@
     await syncOrdersFromServer(false);
     userRepo.syncFromServer().then((u) => { users = u; }).catch(() => {});
     reviewRepo.syncFromServer().then((r) => { reviews = r; }).catch(() => {});
+    couponRepo.syncFromServer().then((c) => { coupons = c; }).catch(() => {});
   }
 
   // Pick initial tab once on login

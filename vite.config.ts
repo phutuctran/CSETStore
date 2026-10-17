@@ -1,11 +1,40 @@
 import type { IncomingMessage } from 'http'
-import type { Order } from './src/models/types.ts'
+import type { Order, ProductReview, Coupon } from './src/models/types.ts'
 import { resolve } from 'path'
 import { svelte } from '@sveltejs/vite-plugin-svelte'
 import tailwindcss from '@tailwindcss/vite'
 import { defineConfig, type Plugin } from 'vite'
-import { sqlGetProductById, sqlGetProducts, sqlGetOrders, sqlCreateOrder, sqlUpdateOrderStatus, sqlAutoSelectTop5BestSellers } from './server/database.js'
-import { isPostgresConfigured, pgGetOrders, pgCreateOrder, pgUpdateOrderStatus, pgAutoSelectTop5BestSellers } from './server/postgres.js'
+import {
+  sqlGetProductById,
+  sqlGetProducts,
+  sqlGetOrders,
+  sqlCreateOrder,
+  sqlUpdateOrderStatus,
+  sqlAutoSelectTop5BestSellers,
+  sqlGetReviews,
+  sqlCreateReview,
+  sqlUpdateReview,
+  sqlDeleteReview,
+  sqlGetCoupons,
+  sqlCreateCoupon,
+  sqlUpdateCoupon,
+  sqlDeleteCoupon
+} from './server/database.js'
+import {
+  isPostgresConfigured,
+  pgGetOrders,
+  pgCreateOrder,
+  pgUpdateOrderStatus,
+  pgAutoSelectTop5BestSellers,
+  pgGetReviews,
+  pgCreateReview,
+  pgUpdateReview,
+  pgDeleteReview,
+  pgGetCoupons,
+  pgCreateCoupon,
+  pgUpdateCoupon,
+  pgDeleteCoupon
+} from './server/postgres.js'
 
 function readBody(req: IncomingMessage): Promise<Record<string, unknown>> {
   const { promise, resolve, reject } = Promise.withResolvers<Record<string, unknown>>();
@@ -168,6 +197,136 @@ function offlineApiPlugin(): Plugin {
             res.setHeader('Content-Type', 'application/json; charset=utf-8');
             res.end(JSON.stringify({ success: false, message: 'Dữ liệu không hợp lệ' }));
             return;
+          }
+        }
+
+        // GET /api/reviews
+        if (req.method === 'GET' && (reqPath === '/api/reviews' || reqPath === '/api/reviews/')) {
+          try {
+            const list = isPostgresConfigured() ? await pgGetReviews(null, true) : sqlGetReviews(null, true);
+            res.setHeader('Content-Type', 'application/json; charset=utf-8');
+            res.end(JSON.stringify({ success: true, data: list }));
+            return;
+          } catch {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json; charset=utf-8');
+            res.end(JSON.stringify({ success: false, message: 'Lỗi máy chủ' }));
+            return;
+          }
+        }
+
+        // POST /api/reviews
+        if (req.method === 'POST' && (reqPath === '/api/reviews' || reqPath === '/api/reviews/')) {
+          try {
+            const body = await readBody(req);
+            const reviewPayload = body as unknown as Omit<ProductReview, 'id' | 'createdAt'>;
+            const created = isPostgresConfigured() ? await pgCreateReview(reviewPayload) : sqlCreateReview(reviewPayload);
+            res.setHeader('Content-Type', 'application/json; charset=utf-8');
+            res.end(JSON.stringify({ success: true, data: created }));
+            return;
+          } catch {
+            res.statusCode = 400;
+            res.setHeader('Content-Type', 'application/json; charset=utf-8');
+            res.end(JSON.stringify({ success: false, message: 'Dữ liệu không hợp lệ' }));
+            return;
+          }
+        }
+
+        // Reviews :id endpoints (PUT, DELETE)
+        const reviewMatch = reqPath?.match(/^\/api\/reviews\/([^/]+)$/);
+        if (reviewMatch) {
+          const revId = reviewMatch[1];
+          if (req.method === 'PUT') {
+            try {
+              const patch = await readBody(req);
+              const reviewPatch = patch as unknown as Partial<ProductReview>;
+              const success = isPostgresConfigured() ? await pgUpdateReview(revId, reviewPatch) : sqlUpdateReview(revId, reviewPatch);
+              res.end(JSON.stringify({ success }));
+              return;
+            } catch {
+              res.statusCode = 400;
+              res.setHeader('Content-Type', 'application/json; charset=utf-8');
+              res.end(JSON.stringify({ success: false, message: 'Dữ liệu không hợp lệ' }));
+              return;
+            }
+          }
+          if (req.method === 'DELETE') {
+            try {
+              const success = isPostgresConfigured() ? await pgDeleteReview(revId) : sqlDeleteReview(revId);
+              res.setHeader('Content-Type', 'application/json; charset=utf-8');
+              res.end(JSON.stringify({ success }));
+              return;
+            } catch {
+              res.statusCode = 500;
+              res.setHeader('Content-Type', 'application/json; charset=utf-8');
+              res.end(JSON.stringify({ success: false, message: 'Lỗi máy chủ' }));
+              return;
+            }
+          }
+        }
+
+        // GET /api/coupons
+        if (req.method === 'GET' && (reqPath === '/api/coupons' || reqPath === '/api/coupons/')) {
+          try {
+            const list = isPostgresConfigured() ? await pgGetCoupons() : sqlGetCoupons();
+            res.setHeader('Content-Type', 'application/json; charset=utf-8');
+            res.end(JSON.stringify({ success: true, data: list }));
+            return;
+          } catch {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json; charset=utf-8');
+            res.end(JSON.stringify({ success: false, message: 'Lỗi máy chủ' }));
+            return;
+          }
+        }
+
+        // POST /api/coupons
+        if (req.method === 'POST' && (reqPath === '/api/coupons' || reqPath === '/api/coupons/')) {
+          try {
+            const body = await readBody(req);
+            const couponPayload = body as unknown as Omit<Coupon, 'id' | 'usedCount'>;
+            const created = isPostgresConfigured() ? await pgCreateCoupon(couponPayload) : sqlCreateCoupon(couponPayload);
+            res.setHeader('Content-Type', 'application/json; charset=utf-8');
+            res.end(JSON.stringify({ success: true, data: created }));
+            return;
+          } catch {
+            res.statusCode = 400;
+            res.setHeader('Content-Type', 'application/json; charset=utf-8');
+            res.end(JSON.stringify({ success: false, message: 'Dữ liệu không hợp lệ' }));
+            return;
+          }
+        }
+
+        // Coupons :id endpoints (PUT, DELETE)
+        const couponMatch = reqPath?.match(/^\/api\/coupons\/([^/]+)$/);
+        if (couponMatch) {
+          const coupId = couponMatch[1];
+          if (req.method === 'PUT') {
+            try {
+              const patch = await readBody(req);
+              const couponPatch = patch as unknown as Partial<Coupon>;
+              const success = isPostgresConfigured() ? await pgUpdateCoupon(coupId, couponPatch) : sqlUpdateCoupon(coupId, couponPatch);
+              res.end(JSON.stringify({ success }));
+              return;
+            } catch {
+              res.statusCode = 400;
+              res.setHeader('Content-Type', 'application/json; charset=utf-8');
+              res.end(JSON.stringify({ success: false, message: 'Dữ liệu không hợp lệ' }));
+              return;
+            }
+          }
+          if (req.method === 'DELETE') {
+            try {
+              const success = isPostgresConfigured() ? await pgDeleteCoupon(coupId) : sqlDeleteCoupon(coupId);
+              res.setHeader('Content-Type', 'application/json; charset=utf-8');
+              res.end(JSON.stringify({ success }));
+              return;
+            } catch {
+              res.statusCode = 500;
+              res.setHeader('Content-Type', 'application/json; charset=utf-8');
+              res.end(JSON.stringify({ success: false, message: 'Lỗi máy chủ' }));
+              return;
+            }
           }
         }
 

@@ -496,19 +496,80 @@ export async function pgGetCategories() {
 // ----------------- COUPONS -----------------
 export async function pgGetCoupons() {
   const sql = getSql();
-  const rows = await sql`SELECT * FROM coupons;`;
+  const rows = await sql`SELECT * FROM coupons ORDER BY id ASC;`;
   return rows.map(r => ({
     id: r.id,
     code: r.code,
+    description: r.description,
     discountType: r.discount_type,
     discountValue: r.discount_value,
-    minOrderValue: r.min_order_value,
-    maxDiscount: r.max_discount,
-    usageLimit: r.usage_limit,
-    usedCount: r.used_count,
-    startDate: r.start_date,
-    endDate: r.end_date,
-    isActive: Boolean(r.is_active),
-    description: r.description
+    minOrderValue: r.min_order_value || undefined,
+    maxDiscountAmount: r.max_discount_amount || r.max_discount || undefined,
+    usageLimit: r.usage_limit || undefined,
+    usedCount: r.used_count || 0,
+    startDate: r.start_date || undefined,
+    endDate: r.end_date || undefined,
+    isActive: Boolean(r.is_active)
   }));
+}
+
+export async function pgCreateCoupon(c) {
+  const sql = getSql();
+  const id = c.id || 'coup-' + Date.now().toString(36);
+  const code = c.code.trim().toUpperCase();
+  const discountValue = Math.round(Number(c.discountValue) || 0);
+  const minOrderValue = Math.round(Number(c.minOrderValue) || 0);
+  const maxDiscountAmount = Math.round(Number(c.maxDiscountAmount) || 0);
+  const usageLimit = c.usageLimit ? Math.round(Number(c.usageLimit)) : null;
+  const usedCount = Math.round(Number(c.usedCount) || 0);
+  const isActive = c.isActive !== false ? 1 : 0;
+  await sql`
+    INSERT INTO coupons (
+      id, code, description, discount_type, discount_value, min_order_value,
+      max_discount_amount, usage_limit, used_count, is_active
+    ) VALUES (
+      ${id}, ${code}, ${c.description || ''}, ${c.discountType || 'percentage'},
+      ${discountValue}, ${minOrderValue}, ${maxDiscountAmount}, ${usageLimit},
+      ${usedCount}, ${isActive}
+    );
+  `;
+  return { ...c, id, code, usedCount, isActive: Boolean(isActive) };
+}
+
+export async function pgUpdateCoupon(id, patch) {
+  const sql = getSql();
+  const rows = await sql`SELECT * FROM coupons WHERE id = ${id} LIMIT 1;`;
+  if (!rows || rows.length === 0) return false;
+  const current = rows[0];
+
+  const code = patch.code ? patch.code.trim().toUpperCase() : current.code;
+  const description = patch.description !== undefined ? patch.description : current.description;
+  const discountType = patch.discountType !== undefined ? patch.discountType : current.discount_type;
+  const discountValue = patch.discountValue !== undefined ? Math.round(Number(patch.discountValue)) : current.discount_value;
+  const minOrderValue = patch.minOrderValue !== undefined ? Math.round(Number(patch.minOrderValue)) : current.min_order_value;
+  const maxDiscountAmount = patch.maxDiscountAmount !== undefined ? Math.round(Number(patch.maxDiscountAmount)) : (current.max_discount_amount || 0);
+  const usageLimit = patch.usageLimit !== undefined ? (patch.usageLimit ? Math.round(Number(patch.usageLimit)) : null) : current.usage_limit;
+  const usedCount = patch.usedCount !== undefined ? Math.round(Number(patch.usedCount)) : current.used_count;
+  const isActive = patch.isActive !== undefined ? (patch.isActive ? 1 : 0) : current.is_active;
+
+  await sql`
+    UPDATE coupons SET
+      code = ${code},
+      description = ${description},
+      discount_type = ${discountType},
+      discount_value = ${discountValue},
+      min_order_value = ${minOrderValue},
+      max_discount_amount = ${maxDiscountAmount},
+      usage_limit = ${usageLimit},
+      used_count = ${usedCount},
+      is_active = ${isActive}
+    WHERE id = ${id};
+  `;
+  return true;
+}
+
+export async function pgDeleteCoupon(id) {
+  const sql = getSql();
+  await sql`DELETE FROM coupons WHERE id = ${id};`;
+  return true;
 }

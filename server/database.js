@@ -891,7 +891,7 @@ export function sqlUpdateOrderStatus(id, status) {
 
 // Coupons
 export function sqlGetCoupons() {
-  const rows = db.prepare('SELECT * FROM coupons').all();
+  const rows = db.prepare('SELECT * FROM coupons ORDER BY id ASC').all();
   return rows.map(r => ({
     id: r.id,
     code: r.code,
@@ -904,6 +904,73 @@ export function sqlGetCoupons() {
     usedCount: r.used_count || 0,
     isActive: r.is_active === 1
   }));
+}
+
+export function sqlCreateCoupon(c) {
+  const id = c.id || 'coup-' + Date.now().toString(36);
+  const code = c.code.trim().toUpperCase();
+  const discountValue = Math.round(Number(c.discountValue) || 0);
+  const minOrderValue = Math.round(Number(c.minOrderValue) || 0);
+  const maxDiscountAmount = Math.round(Number(c.maxDiscountAmount) || 0);
+  const usageLimit = c.usageLimit ? Math.round(Number(c.usageLimit)) : null;
+  const usedCount = Math.round(Number(c.usedCount) || 0);
+  const isActive = c.isActive !== false ? 1 : 0;
+
+  db.prepare(`
+    INSERT INTO coupons (id, code, description, discount_type, discount_value, min_order_value, max_discount_amount, usage_limit, used_count, is_active)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    id,
+    code,
+    c.description || '',
+    c.discountType || 'percentage',
+    discountValue,
+    minOrderValue,
+    maxDiscountAmount,
+    usageLimit,
+    usedCount,
+    isActive
+  );
+  return { ...c, id, code, usedCount, isActive: Boolean(isActive) };
+}
+
+export function sqlUpdateCoupon(id, patch) {
+  const current = db.prepare('SELECT * FROM coupons WHERE id = ?').get(id);
+  if (!current) return false;
+
+  const code = patch.code ? patch.code.trim().toUpperCase() : current.code;
+  const description = patch.description !== undefined ? patch.description : current.description;
+  const discountType = patch.discountType !== undefined ? patch.discountType : current.discount_type;
+  const discountValue = patch.discountValue !== undefined ? Math.round(Number(patch.discountValue)) : current.discount_value;
+  const minOrderValue = patch.minOrderValue !== undefined ? Math.round(Number(patch.minOrderValue)) : current.min_order_value;
+  const maxDiscountAmount = patch.maxDiscountAmount !== undefined ? Math.round(Number(patch.maxDiscountAmount)) : current.max_discount_amount;
+  const usageLimit = patch.usageLimit !== undefined ? (patch.usageLimit ? Math.round(Number(patch.usageLimit)) : null) : current.usage_limit;
+  const usedCount = patch.usedCount !== undefined ? Math.round(Number(patch.usedCount)) : current.used_count;
+  const isActive = patch.isActive !== undefined ? (patch.isActive ? 1 : 0) : current.is_active;
+
+  db.prepare(`
+    UPDATE coupons SET
+      code = ?, description = ?, discount_type = ?, discount_value = ?,
+      min_order_value = ?, max_discount_amount = ?, usage_limit = ?, used_count = ?, is_active = ?
+    WHERE id = ?
+  `).run(
+    code,
+    description,
+    discountType,
+    discountValue,
+    minOrderValue,
+    maxDiscountAmount,
+    usageLimit,
+    usedCount,
+    isActive,
+    id
+  );
+  return true;
+}
+
+export function sqlDeleteCoupon(id) {
+  const res = db.prepare('DELETE FROM coupons WHERE id = ?').run(id);
+  return res.changes > 0;
 }
 
 // Theme Config
