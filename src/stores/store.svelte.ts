@@ -17,11 +17,14 @@ class StoreState {
   isProfileModalOpen = $state<boolean>(false);
   authMode = $state<'login' | 'register'>('login');
 
+  // Data Loading States
+  isInitialLoading = $state<boolean>(true);
+  hasLoadedOnce = $state<boolean>(false);
+
   // Products State
   products = $state<Product[]>(productRepo.getAll());
   selectedCategory = $state<CategoryKey>('all');
   searchQuery = $state<string>('');
-
   constructor() {
     if (typeof window !== 'undefined') {
       this.syncFromServer();
@@ -324,7 +327,10 @@ class StoreState {
           window.dispatchEvent(new CustomEvent('cset_reviews_updated'));
         }
       }
-    } catch {}
+    } catch {} finally {
+      this.isInitialLoading = false;
+      this.hasLoadedOnce = true;
+    }
   }
   customerOrders = $derived(
     this.currentCustomer

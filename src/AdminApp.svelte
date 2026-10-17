@@ -54,6 +54,7 @@
   let reviews = $state<ProductReview[]>(reviewRepo.getAll());
   let toastMsg = $state<string | null>(null);
   let isSyncingOrders = $state(false);
+  let isInitialLoading = $state(true);
   let lastOrderSyncTime = $state<string | null>(null);
 
   async function syncOrdersFromServer(showNotification = false): Promise<void> {
@@ -75,12 +76,22 @@
 
   async function syncAllServerData(): Promise<void> {
     if (typeof window === 'undefined') return;
-    await syncOrdersFromServer(false);
-    productRepo.syncFromServer().then((p) => { products = p; }).catch(() => {});
-    categoryRepo.syncFromServer().then((c) => { categories = c; }).catch(() => {});
-    userRepo.syncFromServer().then((u) => { users = u; }).catch(() => {});
-    reviewRepo.syncFromServer().then((r) => { reviews = r; }).catch(() => {});
-    couponRepo.syncFromServer().then((c) => { coupons = c; }).catch(() => {});
+    isInitialLoading = true;
+    try {
+      await Promise.all([
+        orderRepo.syncFromServer().then((o) => { orders = o; }).catch(() => {}),
+        productRepo.syncFromServer().then((p) => { products = p; }).catch(() => {}),
+        categoryRepo.syncFromServer().then((c) => { categories = c; }).catch(() => {}),
+        userRepo.syncFromServer().then((u) => { users = u; }).catch(() => {}),
+        reviewRepo.syncFromServer().then((r) => { reviews = r; }).catch(() => {}),
+        couponRepo.syncFromServer().then((c) => { coupons = c; }).catch(() => {})
+      ]);
+      lastOrderSyncTime = new Date().toLocaleTimeString('vi-VN');
+    } catch (err) {
+      console.warn('[AdminApp] Sync error:', err);
+    } finally {
+      isInitialLoading = false;
+    }
   }
 
   // Pick initial tab once on login
@@ -1642,8 +1653,17 @@
     <!-- RIGHT MAIN CONTENT WRAPPER -->
     <div class="flex-grow flex flex-col justify-between overflow-x-hidden min-h-screen">
       <main class="p-4 sm:p-6 lg:p-8 flex-grow">
-      {#if activeTab === 'orders' && authService.canManageOrders(currentAdmin.role)}
-        <!-- ORDERS MODULE (LIGHT MINIMALIST) -->
+      {#if isInitialLoading}
+        <div class="py-24 flex flex-col items-center justify-center space-y-4">
+          <div class="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-200 text-blue-900 flex items-center justify-center text-xl shadow-xs">
+            <i class="fa-solid fa-spinner fa-spin"></i>
+          </div>
+          <div class="text-center">
+            <h3 class="text-sm font-bold text-slate-800">Đang tải và đồng bộ dữ liệu quản trị...</h3>
+            <p class="text-xs text-slate-500 mt-1">Dữ liệu đang được kết nối trực tiếp từ máy chủ</p>
+          </div>
+        </div>
+      {:else if activeTab === 'orders' && authService.canManageOrders(currentAdmin.role)}
         <div class="space-y-4">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-300">
             <div>

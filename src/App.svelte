@@ -90,6 +90,39 @@
     return () => window.removeEventListener('hashchange', syncFromHash);
   });
 </script>
+{#if appStore.isInitialLoading}
+  <!-- Fullscreen Loading Page -->
+  <div class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-50/95 backdrop-blur-md transition-all duration-300">
+    <div class="flex flex-col items-center space-y-5 max-w-sm text-center px-6 animate-in fade-in zoom-in-95 duration-200">
+      <div class="relative w-20 h-20 rounded-3xl bg-white border border-slate-200 shadow-xl flex items-center justify-center">
+        {#if themeStore.theme.logoImage}
+          <img src={themeStore.theme.logoImage} alt="Logo" class="w-12 h-12 object-contain" />
+        {:else}
+          <div
+            class="w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-sm"
+            style="background-color: {themeStore.theme.primaryColor}"
+          >
+            <i class="fa-solid {themeStore.theme.logoIcon || 'fa-bag-shopping'} text-2xl"></i>
+          </div>
+        {/if}
+        <div class="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-blue-900 text-white flex items-center justify-center text-xs shadow-md border-2 border-white">
+          <i class="fa-solid fa-circle-notch fa-spin"></i>
+        </div>
+      </div>
+
+      <div class="space-y-1">
+        <h2 class="text-xl font-black text-blue-950 tracking-tight">{themeStore.theme.storeName || 'CSET Store'}</h2>
+        <p class="text-xs text-slate-500 font-medium">Đang tải và đồng bộ dữ liệu từ máy chủ...</p>
+      </div>
+
+      <!-- Animated Progress Line -->
+      <div class="w-52 h-1.5 bg-slate-200 rounded-full overflow-hidden shadow-inner">
+        <div class="h-full bg-blue-900 rounded-full w-2/3 animate-pulse"></div>
+      </div>
+    </div>
+  </div>
+{/if}
+
 {#if isMobile}
   <!-- Dedicated Mobile App Layout (Inspired by Image #1) -->
   <MobileLayout />

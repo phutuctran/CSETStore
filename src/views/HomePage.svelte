@@ -277,11 +277,18 @@
         </button>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6 gap-6">
-        {#each featuredProducts as product (product.id)}
-          <ProductCard {product} />
-        {/each}
-      </div>
+      {#if featuredProducts.length > 0}
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6 gap-6">
+          {#each featuredProducts as product (product.id)}
+            <ProductCard {product} />
+          {/each}
+        </div>
+      {:else}
+        <div class="py-12 text-center text-slate-400 bg-white rounded-2xl border border-slate-200/80">
+          <i class="fa-solid fa-box-open text-3xl mb-2 text-slate-300"></i>
+          <p class="text-xs font-semibold text-slate-500">Chưa có sản phẩm nào được hiển thị</p>
+        </div>
+      {/if}
 
       {#if homeHasMore}
         <div bind:this={homeSentinelEl} class="py-6 flex flex-col items-center justify-center gap-2">

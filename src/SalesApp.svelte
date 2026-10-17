@@ -44,8 +44,8 @@
   // Toast State
   let toastMsg = $state<string | null>(null);
   let isSyncing = $state(false);
+  let isInitialLoading = $state(true);
   let lastSyncTime = $state<string | null>(null);
-
   function showToast(msg: string) {
     toastMsg = msg;
     setTimeout(() => {
@@ -58,17 +58,18 @@
     if (typeof window === 'undefined') return;
     isSyncing = true;
     try {
-      const [freshOrders, freshUsers, freshReviews, freshCoupons] = await Promise.all([
+      const [freshOrders, freshUsers, freshReviews, freshCoupons, freshProducts] = await Promise.all([
         orderRepo.syncFromServer(),
         userRepo.syncFromServer(),
         reviewRepo.syncFromServer(),
-        couponRepo.syncFromServer()
+        couponRepo.syncFromServer(),
+        productRepo.syncFromServer()
       ]);
       orders = freshOrders;
       users = freshUsers;
       reviews = freshReviews;
       coupons = freshCoupons;
-      products = productRepo.getAll();
+      products = freshProducts;
       lastSyncTime = new Date().toLocaleTimeString('vi-VN');
       if (showNotification) {
         showToast(`Đã đồng bộ thành công dữ liệu mới nhất từ máy chủ (${freshOrders.length} đơn hàng)!`);
@@ -77,6 +78,7 @@
       console.warn('[SalesApp] Sync failed:', err);
     } finally {
       isSyncing = false;
+      isInitialLoading = false;
     }
   }
 
@@ -573,8 +575,17 @@
 
     <!-- CONTENT AREA -->
     <main class="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 flex-grow">
-      <!-- 1. ORDERS MODULE -->
-      {#if activeTab === 'orders'}
+      {#if isInitialLoading}
+        <div class="py-24 flex flex-col items-center justify-center space-y-4">
+          <div class="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-200 text-blue-900 flex items-center justify-center text-xl shadow-xs">
+            <i class="fa-solid fa-spinner fa-spin"></i>
+          </div>
+          <div class="text-center">
+            <h3 class="text-sm font-bold text-slate-800">Đang tải và đồng bộ dữ liệu bán hàng...</h3>
+            <p class="text-xs text-slate-500 mt-1">Dữ liệu được kết nối trực tiếp từ máy chủ</p>
+          </div>
+        </div>
+      {:else if activeTab === 'orders'}
         <div class="space-y-5">
           <!-- Summary Status Counter Pills -->
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">

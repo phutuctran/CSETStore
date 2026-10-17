@@ -104,14 +104,13 @@ export class LocalStorageProductRepository implements IProductRepository {
     const storage = getSafeStorage();
     const raw = storage.getItem(PRODUCTS_STORAGE_KEY);
     if (!raw) {
-      storage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(INITIAL_PRODUCTS));
-      return INITIAL_PRODUCTS;
+      return [];
     }
     try {
       const parsed: unknown = JSON.parse(raw);
-      return Array.isArray(parsed) && parsed.length > 0 ? (parsed as Product[]) : INITIAL_PRODUCTS;
+      return Array.isArray(parsed) ? (parsed as Product[]) : [];
     } catch {
-      return INITIAL_PRODUCTS;
+      return [];
     }
   }
 
@@ -220,14 +219,13 @@ export class LocalStorageOrderRepository implements IOrderRepository {
     const storage = getSafeStorage();
     const raw = storage.getItem(ORDERS_STORAGE_KEY);
     if (!raw) {
-      storage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(INITIAL_DEMO_ORDERS));
-      return INITIAL_DEMO_ORDERS;
+      return [];
     }
     try {
       const parsed: unknown = JSON.parse(raw);
-      return Array.isArray(parsed) && parsed.length > 0 ? (parsed as Order[]) : INITIAL_DEMO_ORDERS;
+      return Array.isArray(parsed) ? (parsed as Order[]) : [];
     } catch {
-      return INITIAL_DEMO_ORDERS;
+      return [];
     }
   }
   getByCustomerId(customerId: string): Order[] {
@@ -310,14 +308,13 @@ export class LocalStorageReviewRepository implements IReviewRepository {
     const storage = getSafeStorage();
     const raw = storage.getItem(REVIEWS_STORAGE_KEY);
     if (!raw) {
-      storage.setItem(REVIEWS_STORAGE_KEY, JSON.stringify(INITIAL_DEMO_REVIEWS));
-      return INITIAL_DEMO_REVIEWS;
+      return [];
     }
     try {
       const parsed: unknown = JSON.parse(raw);
-      return Array.isArray(parsed) ? (parsed as ProductReview[]) : INITIAL_DEMO_REVIEWS;
+      return Array.isArray(parsed) ? (parsed as ProductReview[]) : [];
     } catch {
-      return INITIAL_DEMO_REVIEWS;
+      return [];
     }
   }
 
@@ -453,31 +450,15 @@ export class LocalStorageUserRepository implements IUserRepository {
     const storage = getSafeStorage();
     const raw = storage.getItem(USERS_STORAGE_KEY);
     if (!raw) {
-      storage.setItem(USERS_STORAGE_KEY, JSON.stringify(INITIAL_USERS));
-      return INITIAL_USERS;
+      return [];
     }
     try {
       const parsed: unknown = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        const existingUsers = parsed as User[];
-        let hasNew = false;
-        for (const initU of INITIAL_USERS) {
-          if (!existingUsers.some(u => u.username.toLowerCase() === initU.username.toLowerCase())) {
-            existingUsers.push(initU);
-            hasNew = true;
-          }
-        }
-        if (hasNew) {
-          storage.setItem(USERS_STORAGE_KEY, JSON.stringify(existingUsers));
-        }
-        return existingUsers;
-      }
-      return INITIAL_USERS;
+      return Array.isArray(parsed) ? (parsed as User[]) : [];
     } catch {
-      return INITIAL_USERS;
+      return [];
     }
   }
-
   getById(id: string): User | undefined {
     return this.getAll().find((u) => u.id === id);
   }
@@ -645,14 +626,13 @@ export class LocalStorageCategoryRepository implements ICategoryRepository {
     const storage = getSafeStorage();
     const raw = storage.getItem(CATEGORIES_STORAGE_KEY);
     if (!raw) {
-      storage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(INITIAL_CATEGORIES));
-      return INITIAL_CATEGORIES;
+      return [];
     }
     try {
       const parsed: unknown = JSON.parse(raw);
-      return Array.isArray(parsed) && parsed.length > 0 ? (parsed as CategoryOption[]) : INITIAL_CATEGORIES;
+      return Array.isArray(parsed) ? (parsed as CategoryOption[]) : [];
     } catch {
-      return INITIAL_CATEGORIES;
+      return [];
     }
   }
 
@@ -729,14 +709,13 @@ export class LocalStorageCouponRepository implements ICouponRepository {
   getAll(): Coupon[] {
     const raw = getSafeStorage().getItem(COUPONS_STORAGE_KEY);
     if (!raw) {
-      getSafeStorage().setItem(COUPONS_STORAGE_KEY, JSON.stringify(INITIAL_COUPONS));
-      return INITIAL_COUPONS;
+      return [];
     }
     try {
       const parsed: unknown = JSON.parse(raw);
-      return Array.isArray(parsed) ? (parsed as Coupon[]) : INITIAL_COUPONS;
+      return Array.isArray(parsed) ? (parsed as Coupon[]) : [];
     } catch {
-      return INITIAL_COUPONS;
+      return [];
     }
   }
 
