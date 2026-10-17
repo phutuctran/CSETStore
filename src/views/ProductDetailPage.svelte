@@ -78,6 +78,18 @@ import { themeStore } from '../stores/themeStore.svelte';
         selectedImage = data.image;
         quantity = 1;
         reviews = reviewRepo.getByProductId(data.id, isAdminViewer);
+        if (typeof window !== 'undefined' && typeof fetch === 'function') {
+          fetch(`/api/reviews?productId=${data.id}&all=1`)
+            .then(r => r.ok ? r.json() : null)
+            .then(res => {
+              if (res?.success && Array.isArray(res.data)) {
+                const all = reviewRepo.getAll().filter((r: ProductReview) => r.productId !== data.id);
+                localStorage.setItem('cset_reviews_v5', JSON.stringify([...res.data, ...all]));
+                reviews = (res.data as ProductReview[]).filter((r: ProductReview) => isAdminViewer ? true : !r.hidden);
+              }
+            })
+            .catch(() => {});
+        }
         const initialVariants: Record<string, string> = {};
         if (data.variantGroups && data.variantGroups.length > 0) {
           for (const vg of data.variantGroups) {

@@ -251,6 +251,17 @@ export interface CustomNavTab {
   productIds: number[];
 }
 
+export interface ReceiptConfig {
+  headerTitle?: string;    // Tên đơn vị in bill (để trống = lấy theo storeName)
+  headerSubtitle?: string; // Slogan / Mô tả ngắn (để trống = lấy theo storeTagline)
+  storeAddress?: string;   // Địa chỉ in trên hóa đơn (để trống = lấy theo storeAddress)
+  hotline?: string;        // Hotline in trên hóa đơn (để trống = lấy theo hotline)
+  websiteText?: string;    // Tên website in trên hóa đơn (vd: csetstore.vn)
+  footerThankYou?: string; // Lời cảm ơn (vd: "CẢM ƠN QUÝ KHÁCH & HẸN GẶP LẠI!")
+  footerNotice?: string;   // Lưu ý cho khách (vd: "Quý khách vui lòng kiểm tra kỹ sản phẩm trước khi thanh toán...")
+  showLogo?: boolean;      // Hiển thị logo/icon cửa hàng trên bill (mặc định true)
+}
+
 export interface ThemeConfig {
   // Branding & Browser Tab
   storeName: string;
@@ -304,4 +315,5 @@ export interface ThemeConfig {
   footerText: string;
   socials: FooterSocials;
   defaultMaxPurchaseLimit?: number; // Giới hạn số lượng mua chung mặc định cho tất cả sản phẩm (0 hoặc undefined = không giới hạn)
+  receiptConfig?: ReceiptConfig;    // Cấu hình mẫu in hóa đơn / bill máy POS
 }

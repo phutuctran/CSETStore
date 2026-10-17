@@ -860,5 +860,15 @@ export const DEFAULT_THEME_CONFIG: ThemeConfig = {
     socialText: 'Kết nối cùng CSET Store qua Facebook & Zalo:',
     messengerPageId: 'https://m.me'
   },
-  defaultMaxPurchaseLimit: 0
+  defaultMaxPurchaseLimit: 0,
+  receiptConfig: {
+    headerTitle: '',
+    headerSubtitle: '',
+    storeAddress: '',
+    hotline: '',
+    websiteText: 'csetstore.vn',
+    footerThankYou: 'CẢM ƠN QUÝ KHÁCH & HẸN GẶP LẠI!',
+    footerNotice: 'Quý khách vui lòng kiểm tra kỹ sản phẩm trước khi thanh toán cho nhân viên giao hàng.',
+    showLogo: true
+  }
 };

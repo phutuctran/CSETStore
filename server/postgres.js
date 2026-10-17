@@ -433,7 +433,23 @@ export async function pgCreateReview(rev) {
 export async function pgUpdateReview(id, patch) {
   const sql = getSql();
   const rows = await sql`SELECT * FROM reviews WHERE id = ${id} LIMIT 1;`;
-  if (!rows || rows.length === 0) return false;
+  if (!rows || rows.length === 0) {
+    const createdAt = patch.createdAt || new Date().toLocaleString('vi-VN');
+    const adminReplyJson = patch.adminReply ? JSON.stringify(patch.adminReply) : null;
+    const imagesJson = patch.images ? JSON.stringify(patch.images) : null;
+    await sql`
+      INSERT INTO reviews (
+        id, product_id, user_id, user_name, rating, comment, images_json,
+        verified_purchase, hidden, admin_reply_json, created_at
+      ) VALUES (
+        ${id}, ${patch.productId || 1}, ${patch.userId || ''}, ${patch.userName || 'Khách Hàng'},
+        ${patch.rating || 5}, ${patch.comment || ''}, ${imagesJson},
+        ${patch.verifiedPurchase ? 1 : 0}, ${patch.hidden ? 1 : 0},
+        ${adminReplyJson}, ${createdAt}
+      );
+    `;
+    return true;
+  }
   const current = rows[0];
 
   const rating = patch.rating !== undefined ? patch.rating : current.rating;

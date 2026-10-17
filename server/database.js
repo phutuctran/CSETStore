@@ -800,7 +800,26 @@ export function sqlCreateReview(data) {
 
 export function sqlUpdateReview(id, patch) {
   const rows = db.prepare('SELECT * FROM reviews WHERE id = ?').all(id);
-  if (rows.length === 0) return false;
+  if (rows.length === 0) {
+    const createdAt = patch.createdAt || new Date().toLocaleString('vi-VN');
+    db.prepare(`
+      INSERT INTO reviews (id, product_id, user_id, user_name, rating, comment, images_json, verified_purchase, hidden, admin_reply_json, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      id,
+      patch.productId || 1,
+      patch.userId || '',
+      patch.userName || 'Khách Hàng',
+      patch.rating || 5,
+      patch.comment || '',
+      patch.images ? JSON.stringify(patch.images) : null,
+      patch.verifiedPurchase !== false ? 1 : 0,
+      patch.hidden ? 1 : 0,
+      patch.adminReply ? JSON.stringify(patch.adminReply) : null,
+      createdAt
+    );
+    return true;
+  }
   const current = rows[0];
   const hiddenVal = patch.hidden !== undefined ? (patch.hidden ? 1 : 0) : current.hidden;
   const adminReplyVal = patch.adminReply !== undefined ? JSON.stringify(patch.adminReply) : current.admin_reply_json;

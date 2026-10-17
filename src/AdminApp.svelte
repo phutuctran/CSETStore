@@ -31,8 +31,21 @@
   let loginError = $state('');
   // Active navigation tab inside admin portal: Orders, Categories, Inventory, Coupons, CustomTabs, Banners, Theme, Reports, Users, Backup
   let activeTab = $state<'orders' | 'categories' | 'inventory' | 'coupons' | 'reviews' | 'customTabs' | 'banners' | 'theme' | 'reports' | 'users' | 'backup'>('orders');
-  let themeDraft = $state<ThemeConfig>(themeRepo.getTheme());
-  let customizerSubTab = $state<'brand' | 'browser' | 'hero' | 'trust' | 'value' | 'products' | 'footer'>('brand');
+  const baseTheme = themeRepo.getTheme();
+  if (!baseTheme.receiptConfig) {
+    baseTheme.receiptConfig = {
+      headerTitle: '',
+      headerSubtitle: '',
+      storeAddress: '',
+      hotline: '',
+      websiteText: 'csetstore.vn',
+      footerThankYou: 'CẢM ƠN QUÝ KHÁCH & HẸN GẶP LẠI!',
+      footerNotice: 'Quý khách vui lòng kiểm tra kỹ sản phẩm trước khi thanh toán cho nhân viên giao hàng.',
+      showLogo: true
+    };
+  }
+  let themeDraft = $state<ThemeConfig>(baseTheme);
+  let customizerSubTab = $state<'brand' | 'browser' | 'hero' | 'trust' | 'value' | 'products' | 'footer' | 'receipt'>('brand');
   let categories = $state<CategoryOption[]>(categoryRepo.getAll());
   let products = $state<Product[]>(productRepo.getAll());
   let orders = $state<Order[]>(orderRepo.getAll());
@@ -4811,6 +4824,14 @@
             >
               6. Chân Trang & Mạng Xã Hội
             </button>
+
+            <button
+              type="button"
+              onclick={() => customizerSubTab = 'receipt'}
+              class="px-3.5 py-2 rounded transition cursor-pointer whitespace-nowrap {customizerSubTab === 'receipt' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'}"
+            >
+              7. Mẫu In Bill Máy POS
+            </button>
           </div>
 
           <form onsubmit={handleSaveTheme} class="space-y-6">
@@ -5635,6 +5656,221 @@
                   </div>
                 </div>
               </div>
+            {:else if customizerSubTab === 'receipt'}
+              <!-- SUB-TAB 7: POS THERMAL RECEIPT BILL CUSTOMIZER -->
+              <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 text-xs">
+                <!-- Left: Receipt Fields Editor -->
+                <div class="bg-white border border-slate-300 rounded-lg p-5 space-y-4">
+                  <h3 class="text-sm font-bold text-slate-900 border-b border-slate-200 pb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-receipt text-blue-900"></i>
+                    <span>Tùy Chỉnh Nội Dung Hóa Đơn & Bill Máy POS (Khổ 80mm)</span>
+                  </h3>
+                  <p class="text-[11px] text-slate-500">
+                    Nội dung bên dưới sẽ được in trực tiếp lên các hóa đơn máy in nhiệt POS ở cả trang Admin và Cổng Bán Hàng (Sales Portal). Nếu để trống, hệ thống sẽ tự động dùng thông tin thương hiệu chung.
+                  </p>
+
+                  {#if themeDraft.receiptConfig}
+                  <div class="space-y-3">
+                    <div class="space-y-1">
+                      <label for="rc-title" class="font-semibold text-slate-700 flex justify-between">
+                        <span>Tên Đơn Vị / Cửa Hàng In Trên Bill</span>
+                        <span class="text-[10px] text-slate-400 font-normal">Trống = {themeDraft.storeName || 'CSET STORE'}</span>
+                      </label>
+                      <input
+                        id="rc-title"
+                        type="text"
+                        bind:value={themeDraft.receiptConfig.headerTitle}
+                        placeholder={themeDraft.storeName || 'CSET STORE'}
+                        class="w-full border border-slate-300 rounded px-3 py-1.5 text-xs text-slate-900 uppercase font-bold"
+                      />
+                    </div>
+
+                    <div class="space-y-1">
+                      <label for="rc-sub" class="font-semibold text-slate-700 flex justify-between">
+                        <span>Slogan / Phụ Đề Ngắn</span>
+                        <span class="text-[10px] text-slate-400 font-normal">Trống = {themeDraft.storeTagline}</span>
+                      </label>
+                      <input
+                        id="rc-sub"
+                        type="text"
+                        bind:value={themeDraft.receiptConfig.headerSubtitle}
+                        placeholder={themeDraft.storeTagline || 'Siêu Thị Mua Sắm Trực Tuyến & Công Nghệ'}
+                        class="w-full border border-slate-300 rounded px-3 py-1.5 text-xs text-slate-900"
+                      />
+                    </div>
+
+                    <div class="space-y-1">
+                      <label for="rc-addr" class="font-semibold text-slate-700 flex justify-between">
+                        <span>Địa Chỉ Cửa Hàng In Trên Hóa Đơn</span>
+                        <span class="text-[10px] text-slate-400 font-normal">Trống = {themeDraft.storeAddress}</span>
+                      </label>
+                      <input
+                        id="rc-addr"
+                        type="text"
+                        bind:value={themeDraft.receiptConfig.storeAddress}
+                        placeholder={themeDraft.storeAddress || '123 Đại Lộ Ánh Sáng, Quận 1, TP.HCM'}
+                        class="w-full border border-slate-300 rounded px-3 py-1.5 text-xs text-slate-900"
+                      />
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div class="space-y-1">
+                        <label for="rc-hotline" class="font-semibold text-slate-700 flex justify-between">
+                          <span>Hotline In Trên Bill</span>
+                          <span class="text-[10px] text-slate-400 font-normal">Trống = {themeDraft.hotline}</span>
+                        </label>
+                        <input
+                          id="rc-hotline"
+                          type="text"
+                          bind:value={themeDraft.receiptConfig.hotline}
+                          placeholder={themeDraft.hotline || '1900.6868'}
+                          class="w-full border border-slate-300 rounded px-3 py-1.5 text-xs text-slate-900"
+                        />
+                      </div>
+
+                      <div class="space-y-1">
+                        <label for="rc-web" class="font-semibold text-slate-700">Tên Website / Tên Miền</label>
+                        <input
+                          id="rc-web"
+                          type="text"
+                          bind:value={themeDraft.receiptConfig.websiteText}
+                          placeholder="csetstore.vn"
+                          class="w-full border border-slate-300 rounded px-3 py-1.5 text-xs text-slate-900"
+                        />
+                      </div>
+                    </div>
+
+                    <div class="space-y-1">
+                      <label for="rc-thanks" class="font-semibold text-slate-700">Lời Cảm Ơn Ở Chân Hóa Đơn</label>
+                      <input
+                        id="rc-thanks"
+                        type="text"
+                        bind:value={themeDraft.receiptConfig.footerThankYou}
+                        placeholder="CẢM ƠN QUÝ KHÁCH & HẸN GẶP LẠI!"
+                        class="w-full border border-slate-300 rounded px-3 py-1.5 text-xs text-slate-900 font-bold"
+                      />
+                    </div>
+
+                    <div class="space-y-1">
+                      <label for="rc-notice" class="font-semibold text-slate-700">Lưu Ý / Dặn Dò Khách Hàng</label>
+                      <textarea
+                        id="rc-notice"
+                        rows="2"
+                        bind:value={themeDraft.receiptConfig.footerNotice}
+                        placeholder="Quý khách vui lòng kiểm tra kỹ sản phẩm trước khi thanh toán cho nhân viên giao hàng."
+                        class="w-full border border-slate-300 rounded px-3 py-1.5 text-xs text-slate-900"
+                      ></textarea>
+                    </div>
+
+                    <div class="pt-1">
+                      <label class="flex items-center gap-2 p-2 bg-slate-50 border border-slate-200 rounded cursor-pointer hover:bg-slate-100">
+                        <input
+                          type="checkbox"
+                          bind:checked={themeDraft.receiptConfig.showLogo}
+                          class="w-4 h-4 accent-slate-900 cursor-pointer"
+                        />
+                        <span class="font-semibold text-slate-800 text-xs">In kèm Logo cửa hàng trên đầu hóa đơn (nếu có ảnh logo)</span>
+                      </label>
+                    </div>
+                  </div>
+                  {/if}
+                </div>
+
+                <!-- Right: Live POS Receipt Preview -->
+                <div class="space-y-3">
+                  <div class="flex items-center justify-between text-xs font-bold text-slate-700 px-1">
+                    <span>Xem Trước Mẫu Bill Máy In Nhiệt POS 80mm:</span>
+                    <span class="text-[10px] text-blue-900 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                      Tự động cập nhật theo nội dung bên cạnh
+                    </span>
+                  </div>
+
+                  <div class="w-full max-w-[340px] mx-auto bg-white text-slate-900 rounded-xl shadow-md p-5 border border-slate-300 text-xs font-mono leading-relaxed space-y-3">
+                    <div class="text-center space-y-1">
+                      {#if (themeDraft.receiptConfig?.showLogo ?? true) && themeDraft.logoImage}
+                        <div class="w-10 h-10 mx-auto mb-1 flex items-center justify-center">
+                          <img src={themeDraft.logoImage} alt="Logo" class="max-w-full max-h-full object-contain" />
+                        </div>
+                      {:else}
+                        <div class="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center mx-auto text-sm mb-1 shadow-2xs">
+                          <i class="fa-solid {themeDraft.logoIcon || 'fa-receipt'}"></i>
+                        </div>
+                      {/if}
+                      <h4 class="text-sm font-black tracking-tight uppercase text-slate-950 font-sans">
+                        {themeDraft.receiptConfig?.headerTitle?.trim() || themeDraft.storeName || 'CSET STORE'}
+                      </h4>
+                      <p class="text-[10px] text-slate-500 font-sans leading-tight">
+                        {themeDraft.receiptConfig?.headerSubtitle?.trim() || themeDraft.storeTagline || 'Siêu Thị Mua Sắm Trực Tuyến & Công Nghệ'}
+                      </p>
+                      <p class="text-[10px] text-slate-500 font-sans leading-tight">
+                        {themeDraft.receiptConfig?.storeAddress?.trim() || themeDraft.storeAddress || '123 Đại Lộ Ánh Sáng, Quận 1, TP.HCM'}
+                      </p>
+                      <p class="text-[10px] text-slate-500 font-sans leading-tight">
+                        Hotline: {themeDraft.receiptConfig?.hotline?.trim() || themeDraft.hotline || '1900.6868'}
+                        {#if themeDraft.receiptConfig?.websiteText?.trim() || themeDraft.contactEmail}
+                          - {themeDraft.receiptConfig?.websiteText?.trim() || themeDraft.contactEmail || 'csetstore.vn'}
+                        {/if}
+                      </p>
+                    </div>
+
+                    <div class="border-b border-dashed border-slate-400 my-2"></div>
+
+                    <div class="text-center space-y-0.5 font-sans">
+                      <h5 class="font-black text-xs uppercase text-slate-900">HÓA ĐƠN BÁN HÀNG</h5>
+                      <p class="text-[10px] text-slate-400">(PHIẾU GIAO HÀNG & THU TIỀN COD)</p>
+                    </div>
+
+                    <div class="space-y-0.5 text-[10px] text-slate-600">
+                      <div class="flex justify-between"><span>Mã đơn:</span><strong class="font-mono text-slate-900">#ORD-DEMO-SAMPLE</strong></div>
+                      <div class="flex justify-between"><span>Thời gian:</span><span>{new Date().toLocaleTimeString('vi-VN')} {new Date().toLocaleDateString('vi-VN')}</span></div>
+                      <div class="flex justify-between"><span>Thu ngân:</span><span>{currentAdmin?.fullName || 'Admin'}</span></div>
+                      <div class="flex justify-between"><span>Khách hàng:</span><strong class="text-slate-900 font-sans">Nguyễn Văn A</strong></div>
+                      <div class="flex justify-between"><span>Điện thoại:</span><span class="font-mono">0901234567</span></div>
+                      <div class="pt-0.5 leading-snug"><span class="text-slate-400">Địa chỉ:</span> 456 Hai Bà Trưng, Quận 1, TP.HCM</div>
+                    </div>
+
+                    <div class="border-b border-dashed border-slate-400 my-2"></div>
+
+                    <div class="space-y-1.5 text-[10px]">
+                      <div class="flex justify-between font-bold text-slate-400 uppercase pb-0.5 border-b border-slate-200">
+                        <span>Sản phẩm</span>
+                        <span>SL • Tiền</span>
+                      </div>
+                      <div class="space-y-0.5">
+                        <div class="font-bold text-slate-900 font-sans">1. Tai Nghe Chống Ồn Sony WH-1000XM5</div>
+                        <div class="text-[9px] text-slate-500 pl-2">↳ Đen (Black) • 12T Tiêu Chuẩn</div>
+                        <div class="flex justify-between text-slate-600 pl-2 font-mono">
+                          <span>6.890.000</span>
+                          <span>x1 = 6.890.000</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="border-b border-dashed border-slate-400 my-2"></div>
+
+                    <div class="space-y-1 text-[10px]">
+                      <div class="flex justify-between"><span>Tạm tính:</span><span class="font-mono">6.890.000 VNĐ</span></div>
+                      <div class="flex justify-between text-emerald-700"><span>Voucher:</span><span class="font-mono font-bold">-200.000 VNĐ</span></div>
+                      <div class="flex justify-between"><span>Vận chuyển:</span><span class="text-emerald-700 font-bold">Miễn phí</span></div>
+                      <div class="border-b border-dashed border-slate-300 my-1"></div>
+                      <div class="flex justify-between items-baseline pt-0.5">
+                        <span class="font-black text-slate-950 font-sans text-xs">TỔNG COD:</span>
+                        <span class="font-black text-sm text-blue-950 font-mono">6.690.000 VNĐ</span>
+                      </div>
+                    </div>
+
+                    <div class="border-b border-dashed border-slate-400 my-2"></div>
+
+                    <div class="text-center space-y-1 text-[10px] text-slate-600 font-sans">
+                      <p class="font-bold text-slate-900">{themeDraft.receiptConfig?.footerThankYou?.trim() || 'CẢM ƠN QUÝ KHÁCH & HẸN GẶP LẠI!'}</p>
+                      <p class="text-[9px] text-slate-500 leading-tight">{themeDraft.receiptConfig?.footerNotice?.trim() || 'Quý khách vui lòng kiểm tra kỹ sản phẩm trước khi thanh toán cho nhân viên giao hàng.'}</p>
+                      <div class="text-[9px] text-slate-400 pt-1">
+                        Hóa đơn điện tử máy POS • {themeDraft.receiptConfig?.headerTitle?.trim() || themeDraft.storeName || 'CSET STORE'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             {/if}
 
             <div class="flex justify-end pt-2">
@@ -5986,20 +6222,29 @@
         <div class="relative z-10 my-auto flex flex-col items-center">
           <div class="pos-receipt-container w-[350px] max-w-[90vw] bg-white text-slate-900 rounded-xl shadow-2xl p-6 border border-slate-200 text-xs font-mono leading-relaxed space-y-3 relative">
             <div class="text-center space-y-1">
-              <div class="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center mx-auto text-sm mb-1 shadow-2xs">
-                <i class="fa-solid fa-receipt"></i>
-              </div>
+              {#if (themeDraft.receiptConfig?.showLogo ?? true) && themeDraft.logoImage}
+                <div class="w-10 h-10 mx-auto mb-1 flex items-center justify-center">
+                  <img src={themeDraft.logoImage} alt="Logo" class="max-w-full max-h-full object-contain" />
+                </div>
+              {:else}
+                <div class="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center mx-auto text-sm mb-1 shadow-2xs">
+                  <i class="fa-solid {themeDraft.logoIcon || 'fa-receipt'}"></i>
+                </div>
+              {/if}
               <h2 class="text-base font-black tracking-tight uppercase text-slate-950 font-sans">
-                CSET STORE
+                {themeDraft.receiptConfig?.headerTitle?.trim() || themeDraft.storeName || 'CSET STORE'}
               </h2>
               <p class="text-[10px] text-slate-500 font-sans leading-tight">
-                Siêu Thị Mua Sắm Trực Tuyến & Công Nghệ
+                {themeDraft.receiptConfig?.headerSubtitle?.trim() || themeDraft.storeTagline || 'Siêu Thị Mua Sắm Trực Tuyến & Công Nghệ'}
               </p>
               <p class="text-[10px] text-slate-500 font-sans leading-tight">
-                123 Đại Lộ Ánh Sáng, Quận 1, TP.HCM
+                {themeDraft.receiptConfig?.storeAddress?.trim() || themeDraft.storeAddress || '123 Đại Lộ Ánh Sáng, Quận 1, TP.HCM'}
               </p>
               <p class="text-[10px] text-slate-500 font-sans leading-tight">
-                Hotline: 1900.6868 - csetstore.vn
+                Hotline: {themeDraft.receiptConfig?.hotline?.trim() || themeDraft.hotline || '1900.6868'}
+                {#if themeDraft.receiptConfig?.websiteText?.trim() || themeDraft.contactEmail}
+                  - {themeDraft.receiptConfig?.websiteText?.trim() || themeDraft.contactEmail || 'csetstore.vn'}
+                {/if}
               </p>
             </div>
 
@@ -6121,10 +6366,10 @@
 
             <div class="text-center space-y-2 pt-1 text-slate-600 font-sans">
               <p class="text-xs font-bold text-slate-800">
-                CẢM ƠN QUÝ KHÁCH & HẸN GẶP LẠI!
+                {themeDraft.receiptConfig?.footerThankYou?.trim() || 'CẢM ƠN QUÝ KHÁCH & HẸN GẶP LẠI!'}
               </p>
               <p class="text-[10px] text-slate-500 leading-tight">
-                Quý khách vui lòng kiểm tra kỹ sản phẩm trước khi thanh toán cho nhân viên giao hàng.
+                {themeDraft.receiptConfig?.footerNotice?.trim() || 'Quý khách vui lòng kiểm tra kỹ sản phẩm trước khi thanh toán cho nhân viên giao hàng.'}
               </p>
 
               <div class="py-1 flex flex-col items-center justify-center space-y-1">
@@ -6161,7 +6406,7 @@
               </div>
 
               <div class="text-[9px] text-slate-400">
-                Hóa đơn điện tử máy POS • csetstore.vn
+                Hóa đơn điện tử máy POS • {themeDraft.receiptConfig?.headerTitle?.trim() || themeDraft.storeName || 'CSET STORE'}
               </div>
             </div>
 
