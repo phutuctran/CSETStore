@@ -1,16 +1,18 @@
 <script lang="ts">
   import { appStore } from '../stores/store.svelte';
-import { formatCurrency, getEffectivePrice, getProductDiscountDetails, getProductMaxPurchaseLimit } from '../services/pricingService';
+import { formatCurrency, getEffectivePrice, getProductDiscountDetails, getProductMaxPurchaseLimit, getProductEffectiveStock } from '../services/pricingService';
 import { themeStore } from '../stores/themeStore.svelte';
   let product = $derived(appStore.selectedProduct);
   let quantity = $state<number>(1);
   let selectedImage = $state<string>('');
   let selectedVariants = $state<Record<string, string>>({});
   let isAdding = $state(false);
-  let effectivePrice = $derived(product ? getEffectivePrice(product) : 0);
+  let effectivePrice = $derived(product ? getEffectivePrice(product, selectedVariants) : 0);
+  let effectiveStock = $derived(product ? getProductEffectiveStock(product, selectedVariants) : 50);
+  let isOutOfStock = $derived(effectiveStock <= 0);
   let discountInfo = $derived(product ? getProductDiscountDetails(product) : { hasDiscount: false, discountPercent: 0 });
   let purchaseLimit = $derived(product ? getProductMaxPurchaseLimit(product, themeStore.theme.defaultMaxPurchaseLimit) : undefined);
-  let maxAllowedQty = $derived(purchaseLimit && purchaseLimit > 0 ? purchaseLimit : (product?.stock ?? 999));
+  let maxAllowedQty = $derived(purchaseLimit && purchaseLimit > 0 ? purchaseLimit : effectiveStock);
   $effect(() => {
     if (appStore.isProductModalOpen && product) {
       quantity = 1;
@@ -134,6 +136,15 @@ import { themeStore } from '../stores/themeStore.svelte';
                   {formatCurrency(discountInfo.originalPrice)}
                 </span>
               {/if}
+              {#if isOutOfStock}
+                <span class="text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-lg inline-flex items-center gap-1">
+                  <i class="fa-solid fa-circle-xmark"></i> Hết hàng
+                </span>
+              {:else}
+                <span class="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg inline-flex items-center gap-1">
+                  <i class="fa-solid fa-circle-check"></i> Còn {effectiveStock} sp
+                </span>
+              {/if}
             </div>
           </div>
           <!-- Variant Selector (Phân loại sản phẩm: Màu sắc, Size, ...) -->
@@ -216,16 +227,15 @@ import { themeStore } from '../stores/themeStore.svelte';
             <div class="pt-1">
               <button
                 type="button"
-                disabled={isAdding}
+                disabled={isAdding || isOutOfStock}
                 onclick={handleAddToCart}
-                class="w-full py-4 rounded-xl bg-blue-900 hover:bg-blue-800 disabled:opacity-60 text-white font-bold shadow-lg cursor-pointer transition flex items-center justify-center gap-2"
+                class="w-full py-4 rounded-xl bg-blue-900 hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold shadow-lg cursor-pointer transition flex items-center justify-center gap-2"
               >
                 <i class="fa-solid {isAdding ? 'fa-check' : 'fa-cart-plus'}"></i>
-                <span>{isAdding ? 'Đang Thêm...' : 'Thêm Vào Giỏ Hàng'}</span>
+                <span>{isOutOfStock ? 'Phân Loại Này Hết Hàng' : (isAdding ? 'Đang Thêm...' : 'Thêm Vào Giỏ Hàng')}</span>
               </button>
             </div>
           </div>
-
           <!-- Description & Specifications Accordion / Block -->
           <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
             <span class="text-xs font-bold text-slate-500 uppercase block tracking-wider">

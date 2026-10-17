@@ -12,7 +12,8 @@
   } from './repositories';
   import Pagination from './components/Pagination.svelte';
   import { authService } from './services/authService';
-  import { formatCurrency } from './services/pricingService';
+  import { formatCurrency, syncVariantCombinations } from './services/pricingService';
+  import { themeStore } from './stores/themeStore.svelte';
   import { analyticsService, type SummaryMetrics } from './services/analyticsService';
   import { backupService } from './services/backupService';
   const productRepo = new LocalStorageProductRepository();
@@ -757,7 +758,93 @@
     showToast(`Đã lưu thay đổi cho sản phẩm "${edPName}"!`);
     editingProduct = null;
   }
+  // --- SUB-TAB: INVENTORY QUICK EDIT & VARIANT MANAGEMENT ---
+  let inventorySubTab = $state<'list' | 'quick-edit'>('list');
+  let quickSearchQuery = $state('');
+  let quickFilterCategory = $state('all');
+  let quickFilterType = $state<'all' | 'has-variants' | 'low-stock'>('all');
+  let expandedVariantProductIds = $state<number[]>([]);
 
+  let filteredQuickProducts = $derived(
+    products.filter(p => {
+      if (quickFilterCategory !== 'all' && p.category !== quickFilterCategory) return false;
+      if (quickFilterType === 'has-variants' && (!p.variantGroups || p.variantGroups.length === 0)) return false;
+      if (quickFilterType === 'low-stock' && (p.stock ?? 50) > 10) return false;
+      if (quickSearchQuery.trim()) {
+        const q = quickSearchQuery.trim().toLowerCase();
+        const matchName = p.name.toLowerCase().includes(q);
+        const matchSku = p.sku && p.sku.toLowerCase().includes(q);
+        const matchId = p.id.toString().includes(q);
+        return matchName || matchSku || matchId;
+      }
+      return true;
+    })
+  );
+
+  function handleSaveGlobalPurchaseLimit() {
+    themeStore.saveTheme(themeDraft);
+    themeRepo.saveTheme(themeDraft);
+    const limitText = themeDraft.defaultMaxPurchaseLimit && themeDraft.defaultMaxPurchaseLimit > 0
+      ? `${themeDraft.defaultMaxPurchaseLimit} sản phẩm/đơn`
+      : 'Không giới hạn';
+    showToast(`Đã lưu cấu hình giới hạn mua toàn cửa hàng: ${limitText}!`);
+  }
+
+  function handleQuickSaveProduct(p: Product) {
+    productRepo.update(p.id, {
+      price: p.price,
+      stock: p.stock,
+      maxPurchaseLimit: p.maxPurchaseLimit && p.maxPurchaseLimit > 0 ? p.maxPurchaseLimit : undefined,
+      variantCombinations: p.variantCombinations
+    });
+    products = productRepo.getAll();
+    showToast(`Đã lưu cập nhật cho sản phẩm "${p.name}"!`);
+  }
+
+  function handleQuickSaveAll() {
+    for (const p of filteredQuickProducts) {
+      productRepo.update(p.id, {
+        price: p.price,
+        stock: p.stock,
+        maxPurchaseLimit: p.maxPurchaseLimit && p.maxPurchaseLimit > 0 ? p.maxPurchaseLimit : undefined,
+        variantCombinations: p.variantCombinations
+      });
+    }
+    products = productRepo.getAll();
+    showToast(`Đã lưu cập nhật cho tất cả ${filteredQuickProducts.length} sản phẩm đang lọc!`);
+  }
+
+  function toggleExpandVariants(p: Product) {
+    if (expandedVariantProductIds.includes(p.id)) {
+      expandedVariantProductIds = expandedVariantProductIds.filter(id => id !== p.id);
+    } else {
+      if (p.variantGroups && p.variantGroups.length > 0) {
+        if (!p.variantCombinations || p.variantCombinations.length === 0) {
+          p.variantCombinations = syncVariantCombinations(p.variantGroups, p.variantCombinations, p.price, p.stock ?? 50);
+        }
+      }
+      expandedVariantProductIds = [...expandedVariantProductIds, p.id];
+    }
+  }
+
+  function applyBasePriceToAllVariants(p: Product) {
+    if (!p.variantCombinations) return;
+    p.variantCombinations = p.variantCombinations.map(vc => ({
+      ...vc,
+      price: p.price
+    }));
+    showToast(`Đã đặt giá ${formatCurrency(p.price)} cho tất cả phân loại!`);
+  }
+
+  function divideStockToAllVariants(p: Product) {
+    if (!p.variantCombinations || p.variantCombinations.length === 0) return;
+    const eachStock = Math.max(1, Math.floor((p.stock ?? 50) / p.variantCombinations.length));
+    p.variantCombinations = p.variantCombinations.map(vc => ({
+      ...vc,
+      stock: eachStock
+    }));
+    showToast(`Đã chia đều tồn kho (${eachStock} sp/phân loại)!`);
+  }
   // --- TAB: CATEGORIES MANAGEMENT ---
   let newCatKey = $state('');
   let newCatLabel = $state('');
@@ -1708,13 +1795,37 @@
       {:else if activeTab === 'inventory' && authService.canManageInventory(currentAdmin.role)}
         <!-- INVENTORY MODULE (LIGHT MINIMALIST) -->
         <div class="space-y-6">
-          <div class="flex items-center justify-between pb-3 border-b border-slate-300">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-300">
             <div>
               <h2 class="text-lg font-bold text-slate-900">Quản Lý Hàng Hóa & Kho</h2>
-              <p class="text-xs text-slate-500">Thêm sản phẩm mới và quản lý kho hàng</p>
+              <p class="text-xs text-slate-500">Thêm sản phẩm mới, cập nhật nhanh giá/kho và cấu hình giới hạn mua</p>
+            </div>
+            <!-- Sub-tab Switcher -->
+            <div class="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200">
+              <button
+                type="button"
+                onclick={() => inventorySubTab = 'list'}
+                class="px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 {inventorySubTab === 'list'
+                  ? 'bg-white text-slate-900 shadow-xs border border-slate-200'
+                  : 'text-slate-600 hover:text-slate-900'}"
+              >
+                <i class="fa-solid fa-boxes-stacked text-xs"></i>
+                <span>Danh Sách & Thêm Mới</span>
+              </button>
+              <button
+                type="button"
+                onclick={() => inventorySubTab = 'quick-edit'}
+                class="px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 {inventorySubTab === 'quick-edit'
+                  ? 'bg-blue-900 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-blue-900'}"
+              >
+                <i class="fa-solid fa-bolt text-amber-400 text-xs"></i>
+                <span>⚡ Cập Nhật Nhanh & Phân Loại</span>
+              </button>
             </div>
           </div>
 
+          {#if inventorySubTab === 'list'}
           <!-- Add Product Form Card -->
           <div class="bg-white border border-slate-300 rounded-lg p-5 space-y-4">
             <h3 class="text-sm font-bold text-slate-900 border-b border-slate-200 pb-2">
@@ -2356,7 +2467,312 @@
               onPageChange={(p) => invCurrentPage = p}
             />
           </div>
-          <!-- EDIT PRODUCT MODAL -->
+
+          {:else if inventorySubTab === 'quick-edit'}
+            <!-- SUB-TAB 2: QUICK EDIT PRICES, STOCK & PER-VARIANT MANAGEMENT -->
+            <div class="space-y-6">
+              <!-- Global Purchase Limit Setting Card -->
+              <div class="bg-white border border-slate-300 rounded-xl p-5 space-y-3 shadow-xs">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-3">
+                  <div>
+                    <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                      <i class="fa-solid fa-shield-halved text-blue-900"></i>
+                      Cấu Hình Giới Hạn Mua Hàng Toàn Cửa Hàng (Áp dụng chung)
+                    </h3>
+                    <p class="text-xs text-slate-500 mt-0.5">
+                      Quy định số lượng tối đa 1 khách hàng được mua cho mỗi mặt hàng trong 1 đơn. (Nhập 0 hoặc để trống = không giới hạn).
+                    </p>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="0"
+                      bind:value={themeDraft.defaultMaxPurchaseLimit}
+                      placeholder="0 (Không giới hạn)"
+                      class="w-36 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-blue-900 text-center"
+                    />
+                    <button
+                      type="button"
+                      onclick={handleSaveGlobalPurchaseLimit}
+                      class="px-4 py-1.5 bg-blue-900 hover:bg-blue-800 text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer transition flex items-center gap-1.5 shrink-0"
+                    >
+                      <i class="fa-solid fa-floppy-disk"></i>
+                      <span>Lưu Giới Hạn Chung</span>
+                    </button>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2 text-[11px] text-slate-500">
+                  <i class="fa-solid fa-circle-info text-blue-800"></i>
+                  <span>Lưu ý: Sản phẩm nào có cài đặt giới hạn mua riêng sẽ được ưu tiên áp dụng theo mức riêng đó.</span>
+                </div>
+              </div>
+
+              <!-- Quick Filter Bar -->
+              <div class="bg-white border border-slate-300 rounded-xl p-4 space-y-3 text-xs shadow-xs">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div class="flex flex-wrap items-center gap-2 flex-grow">
+                    <div class="relative min-w-48 flex-grow sm:flex-grow-0">
+                      <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                      <input
+                        type="text"
+                        bind:value={quickSearchQuery}
+                        placeholder="Tìm tên, SKU, mã ID..."
+                        class="w-full border border-slate-300 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-900 focus:outline-none"
+                      />
+                    </div>
+                    <select
+                      bind:value={quickFilterCategory}
+                      class="border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 bg-white"
+                    >
+                      <option value="all">Tất cả ngành hàng</option>
+                      {#each categories as c}
+                        <option value={c.key}>{c.label}</option>
+                      {/each}
+                    </select>
+                    <select
+                      bind:value={quickFilterType}
+                      class="border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 bg-white"
+                    >
+                      <option value="all">Tất cả sản phẩm ({products.length})</option>
+                      <option value="has-variants">Chỉ sản phẩm có phân loại</option>
+                      <option value="low-stock">Sắp hết hàng (≤ 10 sp)</option>
+                    </select>
+                  </div>
+
+                  <div class="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onclick={handleQuickSaveAll}
+                      class="px-4 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer transition flex items-center gap-1.5"
+                    >
+                      <i class="fa-solid fa-check-double text-emerald-400"></i>
+                      <span>Lưu Tất Cả Thay Đổi ({filteredQuickProducts.length})</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Quick Edit Products & Variant Matrix Table -->
+              <div class="bg-white border border-slate-300 rounded-xl overflow-hidden shadow-xs">
+                <div class="overflow-x-auto">
+                  <table class="w-full text-left text-xs divide-y divide-slate-200">
+                    <thead class="bg-slate-50 text-slate-700 font-bold">
+                      <tr>
+                        <th class="p-3 w-16 text-center">Ảnh</th>
+                        <th class="p-3">Sản phẩm / Ngành hàng</th>
+                        <th class="p-3 w-40">Giá bán gốc (VNĐ)</th>
+                        <th class="p-3 w-32 text-center">Tồn kho chung</th>
+                        <th class="p-3 w-36 text-center">Giới hạn mua / đơn</th>
+                        <th class="p-3 w-48 text-center">Tùy chỉnh phân loại</th>
+                        <th class="p-3 w-28 text-center">Thao tác</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                      {#if filteredQuickProducts.length === 0}
+                        <tr>
+                          <td colspan="7" class="p-8 text-center text-slate-400">
+                            Không tìm thấy sản phẩm nào phù hợp với bộ lọc tìm kiếm.
+                          </td>
+                        </tr>
+                      {:else}
+                        {#each filteredQuickProducts as p (p.id)}
+                          {@const hasVariants = Boolean(p.variantGroups && p.variantGroups.length > 0)}
+                          {@const isExpanded = expandedVariantProductIds.includes(p.id)}
+                          <tr class="hover:bg-slate-50/70 {isExpanded ? 'bg-blue-50/30' : ''}">
+                            <td class="p-3 text-center">
+                              <img src={p.image} alt={p.name} class="w-10 h-10 rounded-lg object-cover border border-slate-200 mx-auto" />
+                            </td>
+                            <td class="p-3">
+                              <span class="font-bold text-slate-900 block truncate max-w-xs">{p.name}</span>
+                              <div class="flex items-center gap-2 text-[10px] text-slate-400 mt-0.5">
+                                <span>ID: #{p.id}</span>
+                                {#if p.sku}<span>• SKU: {p.sku}</span>{/if}
+                                <span>• {p.category}</span>
+                              </div>
+                            </td>
+                            <td class="p-3">
+                              <div class="relative">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="1000"
+                                  bind:value={p.price}
+                                  class="w-full border border-slate-300 rounded px-2.5 py-1 text-xs font-bold text-blue-900 bg-white focus:outline-none focus:ring-1 focus:ring-blue-900"
+                                />
+                                <span class="text-[10px] text-slate-400 block mt-0.5">{formatCurrency(p.price)}</span>
+                              </div>
+                            </td>
+                            <td class="p-3 text-center">
+                              <input
+                                type="number"
+                                min="0"
+                                bind:value={p.stock}
+                                class="w-20 border border-slate-300 rounded px-2 py-1 text-xs font-bold text-center text-slate-800 bg-white focus:outline-none focus:ring-1 focus:ring-blue-900 mx-auto"
+                              />
+                            </td>
+                            <td class="p-3 text-center">
+                              <input
+                                type="number"
+                                min="0"
+                                bind:value={p.maxPurchaseLimit}
+                                placeholder="0 (chung)"
+                                class="w-24 border border-slate-300 rounded px-2 py-1 text-xs font-bold text-center text-amber-900 bg-amber-50/50 border-amber-200 focus:outline-none focus:ring-1 focus:ring-blue-900 mx-auto"
+                                title="0 hoặc trống = theo giới hạn chung"
+                              />
+                            </td>
+                            <td class="p-3 text-center">
+                              {#if hasVariants}
+                                <button
+                                  type="button"
+                                  onclick={() => toggleExpandVariants(p)}
+                                  class="px-2.5 py-1 rounded-lg text-xs font-bold cursor-pointer transition inline-flex items-center gap-1.5 {isExpanded
+                                    ? 'bg-blue-900 text-white shadow-xs'
+                                    : 'bg-blue-50 text-blue-900 border border-blue-200 hover:bg-blue-100'}"
+                                  title="Bấm để cấu hình giá và tồn kho riêng cho từng phân loại"
+                                >
+                                  <i class="fa-solid fa-shapes text-[11px]"></i>
+                                  <span>{isExpanded ? 'Đóng phân loại' : `Tùy chỉnh (${p.variantCombinations?.length || 'Chưa lập'})`}</span>
+                                  <i class="fa-solid {isExpanded ? 'fa-chevron-up' : 'fa-chevron-down'} text-[10px]"></i>
+                                </button>
+                              {:else}
+                                <span class="text-[11px] text-slate-400 italic">Không có phân loại</span>
+                              {/if}
+                            </td>
+                            <td class="p-3 text-center">
+                              <button
+                                type="button"
+                                onclick={() => handleQuickSaveProduct(p)}
+                                class="px-3 py-1 bg-slate-900 hover:bg-slate-800 text-white rounded text-xs font-semibold shadow-xs cursor-pointer transition inline-flex items-center gap-1"
+                                title="Lưu thay đổi của sản phẩm này"
+                              >
+                                <i class="fa-solid fa-floppy-disk text-[11px]"></i>
+                                <span>Lưu</span>
+                              </button>
+                            </td>
+                          </tr>
+
+                          <!-- EXPANDED VARIANT EDITOR ROW -->
+                          {#if hasVariants && isExpanded}
+                            <tr class="bg-blue-50/40 border-b-2 border-blue-200">
+                              <td colspan="7" class="p-4 sm:p-5">
+                                <div class="bg-white rounded-xl border border-blue-200 p-4 space-y-3.5 shadow-sm">
+                                  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+                                    <div class="flex items-center gap-2">
+                                      <div class="w-7 h-7 rounded-lg bg-blue-100 text-blue-900 flex items-center justify-center font-bold text-xs">
+                                        <i class="fa-solid fa-sliders"></i>
+                                      </div>
+                                      <div>
+                                        <h4 class="font-bold text-blue-950 text-xs">
+                                          Tùy Chỉnh Giá Bán & Tồn Kho Từng Phân Loại: {p.name}
+                                        </h4>
+                                        <p class="text-[11px] text-slate-500">
+                                          Giá gốc sản phẩm: <strong>{formatCurrency(p.price)}</strong> • Tồn kho gốc: <strong>{p.stock ?? 50} sp</strong>
+                                        </p>
+                                      </div>
+                                    </div>
+
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                      <button
+                                        type="button"
+                                        onclick={() => applyBasePriceToAllVariants(p)}
+                                        class="px-2.5 py-1 rounded text-[11px] font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 cursor-pointer"
+                                        title="Đặt giá của tất cả phân loại bằng giá gốc sản phẩm"
+                                      >
+                                        Áp dụng giá gốc
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onclick={() => divideStockToAllVariants(p)}
+                                        class="px-2.5 py-1 rounded text-[11px] font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 cursor-pointer"
+                                        title="Chia đều số lượng tồn kho gốc cho các phân loại"
+                                      >
+                                        Chia đều tồn kho
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onclick={() => handleQuickSaveProduct(p)}
+                                        class="px-3.5 py-1 rounded text-xs font-bold bg-blue-900 text-white hover:bg-blue-800 shadow-xs cursor-pointer flex items-center gap-1.5"
+                                      >
+                                        <i class="fa-solid fa-check"></i>
+                                        <span>Lưu Phân Loại</span>
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  <!-- Variant Combinations Table -->
+                                  <div class="overflow-x-auto border border-slate-200 rounded-lg">
+                                    <table class="w-full text-left text-xs divide-y divide-slate-200">
+                                      <thead class="bg-slate-100 text-slate-700 font-bold">
+                                        <tr>
+                                          <th class="p-2.5 w-12 text-center">STT</th>
+                                          <th class="p-2.5">Tùy Chọn Phân Loại</th>
+                                          <th class="p-2.5 w-48">Giá Bán Riêng (VNĐ)</th>
+                                          <th class="p-2.5 w-36 text-center">Tồn Kho Riêng</th>
+                                          <th class="p-2.5 w-36 text-center">Trạng Thái Kho</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody class="divide-y divide-slate-100 bg-white">
+                                        {#if p.variantCombinations}
+                                          {#each p.variantCombinations as vc, idx}
+                                            <tr class="hover:bg-slate-50">
+                                              <td class="p-2.5 text-center text-slate-400 font-mono">{idx + 1}</td>
+                                              <td class="p-2.5">
+                                                <span class="font-bold text-slate-800">{vc.title}</span>
+                                              </td>
+                                              <td class="p-2.5">
+                                                <div class="flex items-center gap-2">
+                                                  <input
+                                                    type="number"
+                                                    min="0"
+                                                    step="1000"
+                                                    bind:value={vc.price}
+                                                    placeholder={p.price.toString()}
+                                                    class="w-full border border-slate-300 rounded px-2.5 py-1 text-xs font-bold text-blue-900 bg-slate-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-900"
+                                                  />
+                                                </div>
+                                                <span class="text-[10px] text-slate-400">{formatCurrency(vc.price && vc.price > 0 ? vc.price : p.price)}</span>
+                                              </td>
+                                              <td class="p-2.5 text-center">
+                                                <input
+                                                  type="number"
+                                                  min="0"
+                                                  bind:value={vc.stock}
+                                                  class="w-24 border border-slate-300 rounded px-2 py-1 text-xs font-bold text-center text-slate-800 bg-slate-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-900 mx-auto"
+                                                />
+                                              </td>
+                                              <td class="p-2.5 text-center">
+                                                {#if (vc.stock ?? 50) <= 0}
+                                                  <span class="text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full">
+                                                    Hết hàng
+                                                  </span>
+                                                {:else if (vc.stock ?? 50) <= 5}
+                                                  <span class="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                                                    Sắp hết ({vc.stock})
+                                                  </span>
+                                                {:else}
+                                                  <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                                                    Còn hàng ({vc.stock})
+                                                  </span>
+                                                {/if}
+                                              </td>
+                                            </tr>
+                                          {/each}
+                                        {/if}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          {/if}
+                        {/each}
+                      {/if}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          {/if}
           {#if editingProduct}
             <div class="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
               <div class="bg-white border border-slate-300 rounded-xl p-6 w-full max-w-2xl shadow-xl space-y-4 max-h-[90vh] overflow-y-auto">

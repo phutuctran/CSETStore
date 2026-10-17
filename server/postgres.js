@@ -49,7 +49,8 @@ export async function pgGetProducts() {
     variantGroups: r.variant_groups_json ? JSON.parse(r.variant_groups_json) : [],
     soldCount: r.sold_count || 0,
     showOnHome: Boolean(r.show_on_home),
-    maxPurchaseLimit: r.max_purchase_limit || undefined
+    maxPurchaseLimit: r.max_purchase_limit || undefined,
+    variantCombinations: r.variant_combinations_json ? JSON.parse(r.variant_combinations_json) : undefined
   }));
 }
 
@@ -82,7 +83,8 @@ export async function pgGetProductById(id) {
     variantGroups: r.variant_groups_json ? JSON.parse(r.variant_groups_json) : [],
     soldCount: r.sold_count || 0,
     showOnHome: Boolean(r.show_on_home),
-    maxPurchaseLimit: r.max_purchase_limit || undefined
+    maxPurchaseLimit: r.max_purchase_limit || undefined,
+    variantCombinations: r.variant_combinations_json ? JSON.parse(r.variant_combinations_json) : undefined
   };
 }
 
@@ -99,7 +101,7 @@ export async function pgCreateProduct(p) {
       discount_percent, discount_start_date, discount_end_date,
       image, images_json, description, brand, sku, stock, origin,
       warranty, weight, condition, specifications_json, variant_groups_json,
-      sold_count, show_on_home, max_purchase_limit
+      sold_count, show_on_home, max_purchase_limit, variant_combinations_json
     ) VALUES (
       ${newId}, ${p.name}, ${p.category}, ${p.subCategory || null}, ${p.price}, ${p.originalPrice || null},
       ${p.discountPercent || null}, ${p.discountStartDate || null}, ${p.discountEndDate || null},
@@ -107,7 +109,7 @@ export async function pgCreateProduct(p) {
       ${p.sku || null}, ${p.stock || 50}, ${p.origin || null}, ${p.warranty || null}, ${p.weight || null},
       ${p.condition || null}, ${p.specifications ? JSON.stringify(p.specifications) : null},
       ${p.variantGroups ? JSON.stringify(p.variantGroups) : null}, ${p.soldCount || 0}, ${p.showOnHome ? 1 : 0},
-      ${p.maxPurchaseLimit || 0}
+      ${p.maxPurchaseLimit || 0}, ${p.variantCombinations ? JSON.stringify(p.variantCombinations) : null}
     );
   `;
   return pgGetProductById(newId);
@@ -142,7 +144,8 @@ export async function pgUpdateProduct(id, patch) {
       variant_groups_json = ${merged.variantGroups ? JSON.stringify(merged.variantGroups) : null},
       sold_count = ${merged.soldCount || 0},
       show_on_home = ${merged.showOnHome ? 1 : 0},
-      max_purchase_limit = ${merged.maxPurchaseLimit || 0}
+      max_purchase_limit = ${merged.maxPurchaseLimit || 0},
+      variant_combinations_json = ${merged.variantCombinations ? JSON.stringify(merged.variantCombinations) : null}
     WHERE id = ${id};
   `;
   return true;

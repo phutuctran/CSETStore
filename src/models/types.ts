@@ -44,6 +44,13 @@ export interface ProductVariantGroup {
   options: string[]; // e.g. ["Đen", "Trắng", "Xanh"] hoặc ["S", "M", "L", "XL"]
 }
 
+export interface ProductVariantCombination {
+  id?: string;
+  combination: Record<string, string>; // e.g. { "Màu sắc": "Đen (Black)", "Bảo hành": "12 Tháng" }
+  title: string;                       // e.g. "Màu sắc: Đen (Black) • Bảo hành: 12 Tháng"
+  price?: number;                      // Giá bán riêng cho phân loại này
+  stock?: number;                      // Tồn kho riêng cho phân loại này
+}
 export interface Product {
   id: number;
   name: string;
@@ -70,6 +77,7 @@ export interface Product {
   soldCount?: number;     // Số lượng đã bán (lượt bán)
   showOnHome?: boolean;   // Thẻ chọn sản phẩm hiển thị tại trang chủ
   maxPurchaseLimit?: number; // Giới hạn số lượng mua tối đa cho sản phẩm này trong 1 đơn (0 hoặc undefined = theo giới hạn chung)
+  variantCombinations?: ProductVariantCombination[]; // Tùy chỉnh tồn kho và giá bán riêng cho từng phân loại
 }
 
 export interface CartItem {

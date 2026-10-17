@@ -1,6 +1,6 @@
 <script lang="ts">
   import { appStore } from '../../stores/store.svelte';
-import { formatCurrency, getEffectivePrice, getProductDiscountDetails, getProductMaxPurchaseLimit } from '../../services/pricingService';
+import { formatCurrency, getEffectivePrice, getProductDiscountDetails, getProductMaxPurchaseLimit, getProductEffectiveStock } from '../../services/pricingService';
 import { themeStore } from '../../stores/themeStore.svelte';
   import { LocalStorageReviewRepository } from '../../repositories';
   import { fetchProductDetailApi } from '../../services/productService';
@@ -40,7 +40,9 @@ import { themeStore } from '../../stores/themeStore.svelte';
     reviews.filter(r => isAdminViewer ? true : !r.hidden)
   );
 
-  let effectivePrice = $derived(product ? getEffectivePrice(product) : 0);
+  let effectivePrice = $derived(product ? getEffectivePrice(product, selectedVariants) : 0);
+  let effectiveStock = $derived(product ? getProductEffectiveStock(product, selectedVariants) : 50);
+  let isOutOfStock = $derived(effectiveStock <= 0);
   let discountInfo = $derived(product ? getProductDiscountDetails(product) : { hasDiscount: false, discountPercent: 0 });
 
   async function fetchProduct(id: number) {
@@ -222,9 +224,15 @@ import { themeStore } from '../../stores/themeStore.svelte';
           <span>•</span>
           <span>{visibleReviews.length} đánh giá</span>
           <span>•</span>
-          <span class="text-emerald-700 font-bold">
-            <i class="fa-solid fa-circle-check"></i> Còn hàng ({product.stock ?? 50})
-          </span>
+          {#if isOutOfStock}
+            <span class="text-rose-600 font-bold">
+              <i class="fa-solid fa-circle-xmark"></i> Hết hàng
+            </span>
+          {:else}
+            <span class="text-emerald-700 font-bold">
+              <i class="fa-solid fa-circle-check"></i> Còn hàng ({effectiveStock})
+            </span>
+          {/if}
         </div>
       </div>
 
@@ -376,22 +384,22 @@ import { themeStore } from '../../stores/themeStore.svelte';
       <div class="flex items-center gap-2 shrink-0">
         <button
           type="button"
-          disabled={isAdding}
+          disabled={isAdding || isOutOfStock}
           onclick={handleAddToCart}
-          class="px-4 py-3 rounded-2xl border-2 border-blue-900 text-blue-900 font-bold text-xs hover:bg-blue-50 disabled:opacity-60 transition active:scale-95 cursor-pointer flex items-center gap-1.5"
+          class="px-4 py-3 rounded-2xl border-2 border-blue-900 text-blue-900 font-bold text-xs hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed transition active:scale-95 cursor-pointer flex items-center gap-1.5"
         >
           <i class="fa-solid {isAdding ? 'fa-check' : 'fa-cart-plus'}"></i>
-          <span>{isAdding ? 'Đã Thêm' : 'Thêm Giỏ'}</span>
+          <span>{isOutOfStock ? 'Hết Hàng' : (isAdding ? 'Đã Thêm' : 'Thêm Giỏ')}</span>
         </button>
 
         <button
           type="button"
-          disabled={isAdding}
+          disabled={isAdding || isOutOfStock}
           onclick={handleBuyNow}
-          class="px-6 py-3 rounded-2xl bg-blue-900 hover:bg-blue-800 disabled:opacity-60 text-white font-bold text-xs shadow-md transition active:scale-95 cursor-pointer flex items-center gap-1.5"
+          class="px-6 py-3 rounded-2xl bg-blue-900 hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-xs shadow-md transition active:scale-95 cursor-pointer flex items-center gap-1.5"
         >
           <i class="fa-solid fa-bolt"></i>
-          <span>Mua Ngay</span>
+          <span>{isOutOfStock ? 'Tạm Hết' : 'Mua Ngay'}</span>
         </button>
       </div>
     </div>

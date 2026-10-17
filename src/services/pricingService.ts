@@ -1,7 +1,17 @@
-import type { Product } from '../models/types';
+import type { Product, ProductVariantGroup, ProductVariantCombination } from '../models/types';
 
 export function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('vi-VN').format(amount) + ' VNĐ';
+}
+
+export function getCanonicalVariantKey(variants?: Record<string, string>): string {
+  if (!variants || Object.keys(variants).length === 0) return '';
+  const sortedKeys = Object.keys(variants).sort();
+  const sortedObj: Record<string, string> = {};
+  for (const k of sortedKeys) {
+    sortedObj[k] = String(variants[k]);
+  }
+  return JSON.stringify(sortedObj);
 }
 
 /**
@@ -22,15 +32,38 @@ export function isDiscountActive(product: Product): boolean {
 }
 
 /**
- * Returns the effective selling price considering timed discounts
+ * Returns the effective selling price considering variant overrides and timed discounts
  */
-export function getEffectivePrice(product: Product): number {
+export function getEffectivePrice(product: Product, selectedVariants?: Record<string, string>): number {
+  let basePrice = product.price;
+  if (selectedVariants && product.variantCombinations && product.variantCombinations.length > 0) {
+    const targetKey = getCanonicalVariantKey(selectedVariants);
+    const matched = product.variantCombinations.find(vc => getCanonicalVariantKey(vc.combination) === targetKey);
+    if (matched && typeof matched.price === 'number' && matched.price > 0) {
+      basePrice = matched.price;
+    }
+  }
+
   if (isDiscountActive(product) && product.discountPercent) {
-    const base = product.originalPrice || product.price;
+    const base = product.originalPrice || basePrice;
     const discounted = Math.round(base * (1 - product.discountPercent / 100));
     return Math.max(0, discounted);
   }
-  return product.price;
+  return basePrice;
+}
+
+/**
+ * Returns effective available stock considering specific variant stock overrides
+ */
+export function getProductEffectiveStock(product: Product, selectedVariants?: Record<string, string>): number {
+  if (selectedVariants && product.variantCombinations && product.variantCombinations.length > 0) {
+    const targetKey = getCanonicalVariantKey(selectedVariants);
+    const matched = product.variantCombinations.find(vc => getCanonicalVariantKey(vc.combination) === targetKey);
+    if (matched && typeof matched.stock === 'number') {
+      return Math.max(0, matched.stock);
+    }
+  }
+  return typeof product.stock === 'number' ? Math.max(0, product.stock) : 50;
 }
 
 /**
@@ -83,4 +116,67 @@ export function getProductMaxPurchaseLimit(product: Product, defaultLimit?: numb
     return defaultLimit;
   }
   return undefined;
+}
+
+/**
+ * Generates all cartesian product combinations from a list of variant groups
+ */
+export function generateVariantCombinations(
+  variantGroups: ProductVariantGroup[],
+  defaultPrice = 0,
+  defaultStock = 50
+): ProductVariantCombination[] {
+  if (!variantGroups || variantGroups.length === 0) return [];
+
+  let results: { combination: Record<string, string>; titleParts: string[] }[] = [{ combination: {}, titleParts: [] }];
+
+  for (const group of variantGroups) {
+    const nextResults: { combination: Record<string, string>; titleParts: string[] }[] = [];
+    for (const opt of group.options) {
+      for (const res of results) {
+        nextResults.push({
+          combination: { ...res.combination, [group.name]: opt },
+          titleParts: [...res.titleParts, `${group.name}: ${opt}`]
+        });
+      }
+    }
+    results = nextResults;
+  }
+
+  return results.map((r, idx) => ({
+    id: `VAR-${idx + 1}`,
+    combination: r.combination,
+    title: r.titleParts.join(' • '),
+    price: defaultPrice,
+    stock: defaultStock
+  }));
+}
+
+/**
+ * Synchronizes variant combinations against variant groups while preserving custom prices and stocks
+ */
+export function syncVariantCombinations(
+  variantGroups: ProductVariantGroup[],
+  existingCombinations: ProductVariantCombination[] | undefined,
+  defaultPrice = 0,
+  defaultStock = 50
+): ProductVariantCombination[] {
+  const generated = generateVariantCombinations(variantGroups, defaultPrice, defaultStock);
+  if (!existingCombinations || existingCombinations.length === 0) {
+    return generated;
+  }
+
+  return generated.map(gen => {
+    const match = existingCombinations.find(ex =>
+      getCanonicalVariantKey(ex.combination) === getCanonicalVariantKey(gen.combination)
+    );
+    if (match) {
+      return {
+        ...gen,
+        price: typeof match.price === 'number' && match.price > 0 ? match.price : gen.price,
+        stock: typeof match.stock === 'number' ? match.stock : gen.stock
+      };
+    }
+    return gen;
+  });
 }

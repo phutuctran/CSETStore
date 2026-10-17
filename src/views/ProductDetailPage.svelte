@@ -1,6 +1,6 @@
 <script lang="ts">
   import { appStore } from '../stores/store.svelte';
-import { formatCurrency, getEffectivePrice, getProductDiscountDetails, getProductMaxPurchaseLimit } from '../services/pricingService';
+import { formatCurrency, getEffectivePrice, getProductDiscountDetails, getProductMaxPurchaseLimit, getProductEffectiveStock } from '../services/pricingService';
 import { themeStore } from '../stores/themeStore.svelte';
   import { LocalStorageReviewRepository } from '../repositories';
   import { fetchProductDetailApi } from '../services/productService';
@@ -41,7 +41,9 @@ import { themeStore } from '../stores/themeStore.svelte';
   );
   let storefrontReplyingId = $state<string | null>(null);
   let storefrontReplyText = $state<string>('');
-  let effectivePrice = $derived(product ? getEffectivePrice(product) : 0);
+  let effectivePrice = $derived(product ? getEffectivePrice(product, selectedVariants) : 0);
+  let effectiveStock = $derived(product ? getProductEffectiveStock(product, selectedVariants) : 50);
+  let isOutOfStock = $derived(effectiveStock <= 0);
   let discountInfo = $derived(product ? getProductDiscountDetails(product) : { hasDiscount: false, discountPercent: 0 });
   let relatedProducts = $derived.by(() => {
     const p = product;
@@ -371,9 +373,15 @@ import { themeStore } from '../stores/themeStore.svelte';
             <span>|</span>
             <span class="text-slate-600 font-medium">{visibleReviews.length} đánh giá khách hàng</span>
             <span>|</span>
-            <span class="text-emerald-700 font-bold flex items-center gap-1">
-              <i class="fa-solid fa-circle-check"></i> Còn hàng ({product.stock ?? 50})
-            </span>
+            {#if isOutOfStock}
+              <span class="text-rose-600 font-bold flex items-center gap-1">
+                <i class="fa-solid fa-circle-xmark"></i> Phân loại này hết hàng
+              </span>
+            {:else}
+              <span class="text-emerald-700 font-bold flex items-center gap-1">
+                <i class="fa-solid fa-circle-check"></i> Còn hàng ({effectiveStock})
+              </span>
+            {/if}
           </div>
 
           <!-- Price Block -->
@@ -506,22 +514,22 @@ import { themeStore } from '../stores/themeStore.svelte';
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <button
               type="button"
-              disabled={isAdding}
+              disabled={isAdding || isOutOfStock}
               onclick={handleAddToCart}
-              class="w-full py-4 rounded-2xl bg-white border-2 border-blue-900 text-blue-900 hover:bg-blue-50 disabled:opacity-60 font-bold transition shadow-sm cursor-pointer flex items-center justify-center gap-2"
+              class="w-full py-4 rounded-2xl bg-white border-2 border-blue-900 text-blue-900 hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed font-bold transition shadow-sm cursor-pointer flex items-center justify-center gap-2"
             >
               <i class="fa-solid {isAdding ? 'fa-check' : 'fa-cart-plus'} text-base"></i>
-              <span>{isAdding ? 'Đang thêm...' : 'Thêm Vào Giỏ Hàng'}</span>
+              <span>{isOutOfStock ? 'Hết Hàng' : (isAdding ? 'Đang thêm...' : 'Thêm Vào Giỏ Hàng')}</span>
             </button>
 
             <button
               type="button"
-              disabled={isAdding}
+              disabled={isAdding || isOutOfStock}
               onclick={handleBuyNow}
-              class="w-full py-4 rounded-2xl bg-blue-900 hover:bg-blue-800 disabled:opacity-60 text-white font-bold transition shadow-lg cursor-pointer flex items-center justify-center gap-2"
+              class="w-full py-4 rounded-2xl bg-blue-900 hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold transition shadow-lg cursor-pointer flex items-center justify-center gap-2"
             >
               <i class="fa-solid fa-bolt text-base"></i>
-              <span>Mua Ngay</span>
+              <span>{isOutOfStock ? 'Tạm Hết Hàng' : 'Mua Ngay'}</span>
             </button>
           </div>
         </div>

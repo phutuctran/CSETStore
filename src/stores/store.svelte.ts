@@ -2,21 +2,12 @@ import type { Product, CartItem, Order, CategoryKey, User, Coupon } from '../mod
 import { LocalStorageProductRepository, LocalStorageOrderRepository, LocalStorageCouponRepository } from '../repositories';
 import { authService } from '../services/authService';
 import { routerService } from '../services/routerService';
-import { getEffectivePrice, getProductMaxPurchaseLimit } from '../services/pricingService';
+import { getEffectivePrice, getProductMaxPurchaseLimit, getProductEffectiveStock, getCanonicalVariantKey } from '../services/pricingService';
 import { themeStore } from './themeStore.svelte';
 const productRepo = new LocalStorageProductRepository();
 const orderRepo = new LocalStorageOrderRepository();
 const couponRepo = new LocalStorageCouponRepository();
-
-export function getCanonicalVariantKey(variants?: Record<string, string>): string {
-  if (!variants || Object.keys(variants).length === 0) return '';
-  const sortedKeys = Object.keys(variants).sort();
-  const sortedObj: Record<string, string> = {};
-  for (const k of sortedKeys) {
-    sortedObj[k] = String(variants[k]);
-  }
-  return JSON.stringify(sortedObj);
-}
+export { getCanonicalVariantKey } from '../services/pricingService';
 class StoreState {
   // Navigation State (supports 'home', 'shop', 'orders', or any custom tab id)
   activeTab = $state<string>('home');
@@ -419,6 +410,23 @@ class StoreState {
 
     // Gom sản phẩm cùng loại: kiểm tra trùng productId và trùng các thuộc tính phân loại (variants)
     const targetKey = getCanonicalVariantKey(selectedVariants);
+
+    // Kiểm tra tồn kho cụ thể của phân loại
+    const effectiveStock = getProductEffectiveStock(product, selectedVariants);
+    if (effectiveStock <= 0) {
+      this.showToast(`Phân loại "${product.name}" này hiện đã hết hàng!`);
+      return false;
+    }
+
+    const currentQtyForVariant = this.cart
+      .filter((i) => i.productId === product.id && getCanonicalVariantKey(i.selectedVariants) === targetKey)
+      .reduce((s, i) => s + i.quantity, 0);
+
+    if (currentQtyForVariant + quantity > effectiveStock) {
+      this.showToast(`Phân loại này chỉ còn ${effectiveStock} sản phẩm trong kho!`);
+      return false;
+    }
+
     const existingIndex = this.cart.findIndex(
       (item) => item.productId === product.id && getCanonicalVariantKey(item.selectedVariants) === targetKey
     );
@@ -432,7 +440,7 @@ class StoreState {
       this.cart[existingIndex].quantity += quantity;
       this.showToast(`Đã tăng số lượng "${product.name}${variantSuffix}" lên ${this.cart[existingIndex].quantity}!`);
     } else {
-      const effectivePrice = getEffectivePrice(product);
+      const effectivePrice = getEffectivePrice(product, selectedVariants);
       this.cart.push({
         id: 'ITEM-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
         productId: product.id,
