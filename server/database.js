@@ -2,15 +2,28 @@ import { DatabaseSync } from 'node:sqlite';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import { argon2id } from 'hash-wasm';
 
-const DATA_DIR = path.join(process.cwd(), 'data');
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
+let DATA_DIR = path.join(process.cwd(), 'data');
+if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+  DATA_DIR = path.join(os.tmpdir(), 'cset_data');
 }
+try {
+  if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  }
+} catch {}
 
-const DB_PATH = path.join(DATA_DIR, 'cset_store.sqlite');
-export const db = new DatabaseSync(DB_PATH);
+let dbInstance;
+try {
+  const DB_PATH = path.join(DATA_DIR, 'cset_store.sqlite');
+  dbInstance = new DatabaseSync(DB_PATH);
+} catch {
+  // Fallback to in-memory database in strict read-only environments
+  dbInstance = new DatabaseSync(':memory:');
+}
+export const db = dbInstance;
 
 // Cryptographic Security Config
 const ENCRYPTION_SECRET = process.env.CSET_ENCRYPTION_KEY || 'cset_store_secure_aes_256_key_2026';
@@ -966,5 +979,6 @@ export function restoreSqlDump(sqlScript) {
   }
 }
 
-// Automatically seed on module load
-seedDatabaseFromFiles();
+if (!process.env.VERCEL) {
+  try { seedDatabaseFromFiles(); } catch {}
+}
