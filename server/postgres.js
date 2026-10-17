@@ -499,7 +499,7 @@ export async function pgSaveTheme(theme) {
 // ----------------- CATEGORIES -----------------
 export async function pgGetCategories() {
   const sql = getSql();
-  const rows = await sql`SELECT * FROM categories;`;
+  const rows = await sql`SELECT * FROM categories ORDER BY key ASC;`;
   return rows.map(r => ({
     key: r.key,
     label: r.label,
@@ -509,6 +509,42 @@ export async function pgGetCategories() {
   }));
 }
 
+export async function pgCreateCategory(c) {
+  const sql = getSql();
+  await sql`
+    INSERT INTO categories (key, label, icon, custom_icon_image, subcategories_json)
+    VALUES (${c.key}, ${c.label}, ${c.icon || null}, ${c.customIconImage || null}, ${c.subcategories ? JSON.stringify(c.subcategories) : null})
+    ON CONFLICT (key) DO UPDATE SET
+      label = EXCLUDED.label,
+      icon = EXCLUDED.icon,
+      custom_icon_image = EXCLUDED.custom_icon_image,
+      subcategories_json = EXCLUDED.subcategories_json;
+  `;
+  return c;
+}
+
+export async function pgUpdateCategory(key, patch) {
+  const sql = getSql();
+  const rows = await sql`SELECT * FROM categories WHERE key = ${key} LIMIT 1;`;
+  if (!rows || rows.length === 0) return false;
+  const current = rows[0];
+  const label = patch.label !== undefined ? patch.label : current.label;
+  const icon = patch.icon !== undefined ? patch.icon : current.icon;
+  const customIcon = patch.customIconImage !== undefined ? patch.customIconImage : current.custom_icon_image;
+  const subcatsJson = patch.subcategories !== undefined ? JSON.stringify(patch.subcategories) : current.subcategories_json;
+  await sql`
+    UPDATE categories SET
+      label = ${label}, icon = ${icon}, custom_icon_image = ${customIcon}, subcategories_json = ${subcatsJson}
+    WHERE key = ${key};
+  `;
+  return true;
+}
+
+export async function pgDeleteCategory(key) {
+  const sql = getSql();
+  await sql`DELETE FROM categories WHERE key = ${key};`;
+  return true;
+}
 // ----------------- COUPONS -----------------
 export async function pgGetCoupons() {
   const sql = getSql();

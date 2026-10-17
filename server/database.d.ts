@@ -19,6 +19,9 @@ export function sqlUpdateReview(id: string, patch: Partial<ProductReview>): bool
 export function sqlDeleteReview(id: string): boolean;
 
 export function sqlGetCategories(): CategoryOption[];
+export function sqlCreateCategory(c: CategoryOption): CategoryOption;
+export function sqlUpdateCategory(key: string, patch: Partial<CategoryOption>): boolean;
+export function sqlDeleteCategory(key: string): boolean;
 export function sqlGetOrders(): Order[];
 export function sqlCreateOrder(order: Omit<Order, 'id'> & { id?: string }): Order;
 export function sqlUpdateOrderStatus(id: string, status: Order['status']): boolean;

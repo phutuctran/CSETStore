@@ -836,7 +836,7 @@ export function sqlDeleteReview(id) {
 
 // Categories
 export function sqlGetCategories() {
-  const rows = db.prepare('SELECT * FROM categories').all();
+  const rows = db.prepare('SELECT * FROM categories ORDER BY key ASC').all();
   return rows.map(r => ({
     key: r.key,
     label: r.label,
@@ -844,6 +844,36 @@ export function sqlGetCategories() {
     customIconImage: r.custom_icon_image || undefined,
     subcategories: r.subcategories_json ? JSON.parse(r.subcategories_json) : []
   }));
+}
+
+export function sqlCreateCategory(c) {
+  db.prepare(`
+    INSERT OR REPLACE INTO categories (key, label, icon, custom_icon_image, subcategories_json)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(c.key, c.label, c.icon || null, c.customIconImage || null, c.subcategories ? JSON.stringify(c.subcategories) : null);
+  return c;
+}
+
+export function sqlUpdateCategory(key, patch) {
+  const current = db.prepare('SELECT * FROM categories WHERE key = ?').get(key);
+  if (!current) return false;
+  const merged = { ...current, ...patch };
+  db.prepare(`
+    UPDATE categories SET label = ?, icon = ?, custom_icon_image = ?, subcategories_json = ?
+    WHERE key = ?
+  `).run(
+    merged.label,
+    merged.icon || null,
+    merged.customIconImage || null,
+    merged.subcategories ? JSON.stringify(merged.subcategories) : null,
+    key
+  );
+  return true;
+}
+
+export function sqlDeleteCategory(key) {
+  const res = db.prepare('DELETE FROM categories WHERE key = ?').run(key);
+  return res.changes > 0;
 }
 
 // Orders

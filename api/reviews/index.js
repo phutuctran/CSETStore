@@ -45,24 +45,33 @@ export default async function handler(req, res) {
     }
   }
 
-  if (req.method === 'PUT' && id) {
+  if (req.method === 'PUT') {
     try {
-      const patch = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-      const success = isPostgresConfigured() ? await pgUpdateReview(id, patch) : sqlUpdateReview(id, patch);
+      const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+      const reviewId = id || req.query.id || body?.id;
+      if (!reviewId) {
+        return res.status(400).json({ success: false, message: 'Thiếu ID đánh giá' });
+      }
+      const success = isPostgresConfigured() ? await pgUpdateReview(reviewId, body) : sqlUpdateReview(reviewId, body);
       return res.status(200).json({ success });
-    } catch {
+    } catch (err) {
+      console.error('[API /api/reviews] PUT error:', err);
       return res.status(400).json({ success: false, message: 'Dữ liệu không hợp lệ' });
     }
   }
 
-  if (req.method === 'DELETE' && id) {
+  if (req.method === 'DELETE') {
     try {
-      const success = isPostgresConfigured() ? await pgDeleteReview(id) : sqlDeleteReview(id);
+      const reviewId = id || req.query.id;
+      if (!reviewId) {
+        return res.status(400).json({ success: false, message: 'Thiếu ID đánh giá' });
+      }
+      const success = isPostgresConfigured() ? await pgDeleteReview(reviewId) : sqlDeleteReview(reviewId);
       return res.status(200).json({ success });
-    } catch {
+    } catch (err) {
+      console.error('[API /api/reviews] DELETE error:', err);
       return res.status(500).json({ success: false, message: 'Lỗi máy chủ' });
     }
   }
-
   return res.status(405).json({ success: false, message: 'Method Not Allowed' });
 }

@@ -25,6 +25,9 @@ export function pgUpdateReview(id: string, patch: Partial<ProductReview>): Promi
 export function pgDeleteReview(id: string): Promise<boolean>;
 
 export function pgGetCategories(): Promise<CategoryOption[]>;
+export function pgCreateCategory(c: CategoryOption): Promise<CategoryOption>;
+export function pgUpdateCategory(key: string, patch: Partial<CategoryOption>): Promise<boolean>;
+export function pgDeleteCategory(key: string): Promise<boolean>;
 export function pgGetCoupons(): Promise<Coupon[]>;
 export function pgCreateCoupon(c: Omit<Coupon, 'id' | 'usedCount'> & { id?: string; usedCount?: number }): Promise<Coupon>;
 export function pgUpdateCoupon(id: string, patch: Partial<Coupon>): Promise<boolean>;

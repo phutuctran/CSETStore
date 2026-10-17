@@ -39,6 +39,7 @@ export interface IProductRepository {
   create(product: Omit<Product, 'id'>): Product;
   update(id: number, product: Partial<Product>): boolean;
   delete(id: number): boolean;
+  syncFromServer(): Promise<Product[]>;
   resetToDefaults(): Product[];
 }
 
@@ -83,6 +84,7 @@ export interface ICategoryRepository {
   createCategory(cat: CategoryOption): CategoryOption;
   updateCategory(key: string, patch: Partial<CategoryOption>): boolean;
   deleteCategory(key: string): boolean;
+  syncFromServer(): Promise<CategoryOption[]>;
   resetCategories(): CategoryOption[];
 }
 
@@ -189,6 +191,21 @@ export class LocalStorageProductRepository implements IProductRepository {
     }
     return true;
   }
+  async syncFromServer(): Promise<Product[]> {
+    if (typeof window === 'undefined' || typeof fetch !== 'function') return this.getAll();
+    try {
+      const res = await fetch('/api/products');
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data)) {
+          getSafeStorage().setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(json.data));
+          return json.data;
+        }
+      }
+    } catch {}
+    return this.getAll();
+  }
+
   resetToDefaults(): Product[] {
     getSafeStorage().setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(INITIAL_PRODUCTS));
     return INITIAL_PRODUCTS;
@@ -345,12 +362,30 @@ export class LocalStorageReviewRepository implements IReviewRepository {
     if (idx === -1) return false;
     list[idx] = { ...list[idx], ...patch };
     getSafeStorage().setItem(REVIEWS_STORAGE_KEY, JSON.stringify(list));
-    if (typeof window !== 'undefined' && typeof fetch === 'function') {
-      fetch(`/api/reviews/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(patch)
-      }).catch(() => {});
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('cset_reviews_updated', { detail: list }));
+      if (typeof fetch === 'function') {
+        const payload = { ...patch, id };
+        fetch(`/api/reviews/${encodeURIComponent(id)}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        }).then(r => {
+          if (!r.ok) {
+            fetch(`/api/reviews?id=${encodeURIComponent(id)}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            }).catch(() => {});
+          }
+        }).catch(() => {
+          fetch(`/api/reviews?id=${encodeURIComponent(id)}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          }).catch(() => {});
+        });
+      }
     }
     return true;
   }
@@ -360,8 +395,19 @@ export class LocalStorageReviewRepository implements IReviewRepository {
     const next = list.filter(r => r.id !== id);
     if (next.length === list.length) return false;
     getSafeStorage().setItem(REVIEWS_STORAGE_KEY, JSON.stringify(next));
-    if (typeof window !== 'undefined' && typeof fetch === 'function') {
-      fetch(`/api/reviews/${id}`, { method: 'DELETE' }).catch(() => {});
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('cset_reviews_updated', { detail: next }));
+      if (typeof fetch === 'function') {
+        fetch(`/api/reviews/${encodeURIComponent(id)}`, { method: 'DELETE' })
+          .then(r => {
+            if (!r.ok) {
+              fetch(`/api/reviews?id=${encodeURIComponent(id)}`, { method: 'DELETE' }).catch(() => {});
+            }
+          })
+          .catch(() => {
+            fetch(`/api/reviews?id=${encodeURIComponent(id)}`, { method: 'DELETE' }).catch(() => {});
+          });
+      }
     }
     return true;
   }
@@ -618,6 +664,13 @@ export class LocalStorageCategoryRepository implements ICategoryRepository {
     const list = this.getAll();
     list.push(cat);
     this.saveAll(list);
+    if (typeof window !== 'undefined' && typeof fetch === 'function') {
+      fetch('/api/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cat)
+      }).catch(() => {});
+    }
     return cat;
   }
 
@@ -627,6 +680,13 @@ export class LocalStorageCategoryRepository implements ICategoryRepository {
     if (index === -1) return false;
     list[index] = { ...list[index], ...patch };
     this.saveAll(list);
+    if (typeof window !== 'undefined' && typeof fetch === 'function') {
+      fetch(`/api/categories/${encodeURIComponent(key)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch)
+      }).catch(() => {});
+    }
     return true;
   }
 
@@ -635,12 +695,30 @@ export class LocalStorageCategoryRepository implements ICategoryRepository {
     const next = list.filter(c => c.key !== key);
     if (next.length === list.length) return false;
     this.saveAll(next);
+    if (typeof window !== 'undefined' && typeof fetch === 'function') {
+      fetch(`/api/categories/${encodeURIComponent(key)}`, { method: 'DELETE' }).catch(() => {});
+    }
     return true;
   }
 
   resetCategories(): CategoryOption[] {
     this.saveAll(INITIAL_CATEGORIES);
     return INITIAL_CATEGORIES;
+  }
+
+  async syncFromServer(): Promise<CategoryOption[]> {
+    if (typeof window === 'undefined' || typeof fetch !== 'function') return this.getAll();
+    try {
+      const res = await fetch('/api/categories');
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data)) {
+          getSafeStorage().setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(json.data));
+          return json.data;
+        }
+      }
+    } catch {}
+    return this.getAll();
   }
 }
 

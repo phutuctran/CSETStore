@@ -3,9 +3,22 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "rewrites": [
+    { "source": "/api/orders/:id/status", "destination": "/api/orders/[id]/status" },
+    { "source": "/api/orders", "destination": "/api/orders/index" },
+    { "source": "/api/products/auto-top5", "destination": "/api/products/auto-top5" },
     { "source": "/api/products/:id", "destination": "/api/products/[id]" },
     { "source": "/api/products", "destination": "/api/products/index" },
+    { "source": "/api/reviews/:id", "destination": "/api/reviews/[id]" },
     { "source": "/api/reviews", "destination": "/api/reviews/index" },
-    { "source": "/admin", "destination": "/admin.html" }
+    { "source": "/api/coupons/:id", "destination": "/api/coupons/[id]" },
+    { "source": "/api/coupons", "destination": "/api/coupons/index" },
+    { "source": "/api/users/:id", "destination": "/api/users/[id]" },
+    { "source": "/api/users", "destination": "/api/users/index" },
+    { "source": "/api/categories/:id", "destination": "/api/categories/[id]" },
+    { "source": "/api/categories", "destination": "/api/categories/index" },
+    { "source": "/api/auth/login", "destination": "/api/auth/login" },
+    { "source": "/api/theme", "destination": "/api/theme/index" },
+    { "source": "/admin", "destination": "/admin.html" },
+    { "source": "/sales", "destination": "/sales.html" }
   ]
 }
