@@ -5,22 +5,19 @@ import path from 'node:path';
 import os from 'node:os';
 import { argon2id } from 'hash-wasm';
 
-let DATA_DIR = path.join(process.cwd(), 'data');
-if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
-  DATA_DIR = path.join(os.tmpdir(), 'cset_data');
-}
-try {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
-} catch {}
-
 let dbInstance;
 try {
-  const DB_PATH = path.join(DATA_DIR, 'cset_store.sqlite');
-  dbInstance = new DatabaseSync(DB_PATH);
+  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    dbInstance = new DatabaseSync(':memory:');
+  } else {
+    const DATA_DIR = path.join(process.cwd(), 'data');
+    if (!fs.existsSync(DATA_DIR)) {
+      try { fs.mkdirSync(DATA_DIR, { recursive: true }); } catch {}
+    }
+    const DB_PATH = path.join(DATA_DIR, 'cset_store.sqlite');
+    dbInstance = new DatabaseSync(DB_PATH);
+  }
 } catch {
-  // Fallback to in-memory database in strict read-only environments
   dbInstance = new DatabaseSync(':memory:');
 }
 export const db = dbInstance;

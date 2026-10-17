@@ -1,13 +1,12 @@
 name: CI/CD Pipeline - Build & Verify
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
-
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Lý do kích hoạt quy trình build & deploy thủ công'
+        required: false
+        default: 'Triển khai theo lệnh thủ công'
 jobs:
   build-and-verify:
     name: Type-Check & Build

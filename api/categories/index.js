@@ -1,9 +1,9 @@
-import { isPostgresConfigured, pgGetCategories, pgCreateCategory } from '../../server/postgres.js';
-import { sqlGetCategories, sqlCreateCategory } from '../../server/database.js';
+import { isPostgresConfigured, pgGetCategories, pgCreateCategory, pgUpdateCategory, pgDeleteCategory } from '../../server/postgres.js';
+import { sqlGetCategories, sqlCreateCategory, sqlUpdateCategory, sqlDeleteCategory } from '../../server/database.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
 
@@ -32,6 +32,35 @@ export default async function handler(req, res) {
     } catch (err) {
       console.error('[API /api/categories] POST error:', err);
       return res.status(400).json({ success: false, message: 'Dữ liệu không hợp lệ' });
+    }
+  }
+  if (req.method === 'PUT') {
+    const { id } = req.query;
+    try {
+      const patch = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+      const key = id || patch?.key;
+      if (!key) {
+        return res.status(400).json({ success: false, message: 'Thiếu key ngành hàng' });
+      }
+      const success = isPostgresConfigured() ? await pgUpdateCategory(key, patch) : sqlUpdateCategory(key, patch);
+      return res.status(200).json({ success });
+    } catch (err) {
+      console.error('[API /api/categories] PUT error:', err);
+      return res.status(400).json({ success: false, message: 'Dữ liệu không hợp lệ' });
+    }
+  }
+
+  if (req.method === 'DELETE') {
+    const { id } = req.query;
+    if (!id) {
+      return res.status(400).json({ success: false, message: 'Thiếu key ngành hàng' });
+    }
+    try {
+      const success = isPostgresConfigured() ? await pgDeleteCategory(id) : sqlDeleteCategory(id);
+      return res.status(200).json({ success });
+    } catch (err) {
+      console.error('[API /api/categories] DELETE error:', err);
+      return res.status(500).json({ success: false, message: 'Lỗi máy chủ' });
     }
   }
 

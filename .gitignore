@@ -36,3 +36,6 @@ data/test.sqlite
 .agents/
 .claude/
 skills-lock.json
+
+.vercel
+.env*

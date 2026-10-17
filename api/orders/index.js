@@ -1,5 +1,5 @@
-import { isPostgresConfigured, pgGetOrders, pgCreateOrder } from '../../server/postgres.js';
-import { sqlGetOrders, sqlCreateOrder } from '../../server/database.js';
+import { isPostgresConfigured, pgGetOrders, pgCreateOrder, pgUpdateOrderStatus } from '../../server/postgres.js';
+import { sqlGetOrders, sqlCreateOrder, sqlUpdateOrderStatus } from '../../server/database.js';
 
 // In-memory Order Rate Limiting (chống auto-clicker và spam đặt hàng)
 const orderRateLimits = new Map();
@@ -33,7 +33,7 @@ function checkOrderRateLimit(key) {
 }
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
 
@@ -75,6 +75,26 @@ export default async function handler(req, res) {
     } catch (err) {
       console.error('[API /api/orders] Error processing POST:', err);
       return res.status(500).json({ success: false, message: 'Lỗi máy chủ khi tạo đơn hàng' });
+    }
+  }
+  if (req.method === 'PUT') {
+    const { id } = req.query;
+    try {
+      let body = req.body;
+      if (Buffer.isBuffer(body)) {
+        body = JSON.parse(body.toString('utf-8'));
+      } else if (typeof body === 'string') {
+        body = JSON.parse(body);
+      }
+      const orderId = id || body?.id;
+      if (!orderId || !body?.status) {
+        return res.status(400).json({ success: false, message: 'Thiếu ID hoặc trạng thái đơn hàng' });
+      }
+      const success = isPostgresConfigured() ? await pgUpdateOrderStatus(orderId, body.status) : sqlUpdateOrderStatus(orderId, body.status);
+      return res.status(200).json({ success });
+    } catch (err) {
+      console.error('[API /api/orders] PUT error:', err);
+      return res.status(400).json({ success: false, message: 'Dữ liệu không hợp lệ' });
     }
   }
 
