@@ -12,3 +12,48 @@
   border: 1px solid rgba(226, 232, 240, 0.8);
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
+
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  header,
+  nav,
+  main,
+  footer,
+  aside,
+  .no-print,
+  button,
+  .no-print * {
+    display: none !important;
+  }
+
+  .pos-receipt-modal {
+    position: static !important;
+    background: transparent !important;
+    padding: 0 !important;
+    display: block !important;
+    backdrop-filter: none !important;
+    overflow: visible !important;
+  }
+
+  .pos-receipt-container {
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 auto !important;
+    padding: 2mm 0 !important;
+    width: 78mm !important;
+    max-width: 100% !important;
+    color: #000000 !important;
+    page-break-inside: avoid !important;
+  }
+
+  @page {
+    size: auto;
+    margin: 2mm 4mm;
+  }
+}

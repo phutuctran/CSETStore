@@ -1268,88 +1268,236 @@
   </div>
 {/if}
 
-<!-- PRINT PACKING SLIP / INVOICE MODAL -->
+<!-- PRINT POS THERMAL RECEIPT MODAL -->
 {#if printingOrder}
-  <div class="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl shadow-2xl border border-slate-300 p-6 sm:p-8 w-full max-w-xl space-y-5 max-h-[90vh] overflow-y-auto">
-      <div class="flex items-center justify-between border-b border-slate-200 pb-3">
-        <div>
-          <h3 class="font-black text-blue-950 text-base">PHIẾU ĐÓNG GÓI & GIAO HÀNG</h3>
-          <p class="text-[11px] text-slate-500 font-mono">Mã đơn: #{printingOrder.id}</p>
+  <div class="pos-receipt-modal fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+    <!-- Click outside backdrop to close (screen only) -->
+    <button
+      type="button"
+      class="no-print fixed inset-0 bg-transparent w-full h-full border-none cursor-default"
+      onclick={() => printingOrder = null}
+      aria-label="Đóng hóa đơn"
+    ></button>
+
+    <div class="relative z-10 my-auto flex flex-col items-center">
+      <!-- THE POS THERMAL RECEIPT SLIP -->
+      <div class="pos-receipt-container w-[350px] max-w-[90vw] bg-white text-slate-900 rounded-xl shadow-2xl p-6 border border-slate-200 text-xs font-mono leading-relaxed space-y-3 relative">
+        
+        <!-- Header -->
+        <div class="text-center space-y-1">
+          <div class="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center mx-auto text-sm mb-1 shadow-2xs">
+            <i class="fa-solid fa-receipt"></i>
+          </div>
+          <h2 class="text-base font-black tracking-tight uppercase text-slate-950 font-sans">
+            CSET STORE
+          </h2>
+          <p class="text-[10px] text-slate-500 font-sans leading-tight">
+            Siêu Thị Mua Sắm Trực Tuyến & Công Nghệ
+          </p>
+          <p class="text-[10px] text-slate-500 font-sans leading-tight">
+            123 Đại Lộ Ánh Sáng, Quận 1, TP.HCM
+          </p>
+          <p class="text-[10px] text-slate-500 font-sans leading-tight">
+            Hotline: 1900.6868 - csetstore.vn
+          </p>
         </div>
+
+        <!-- Dashed Divider -->
+        <div class="border-b border-dashed border-slate-400 my-2"></div>
+
+        <!-- Receipt Title & Meta -->
+        <div class="text-center space-y-0.5">
+          <h3 class="font-black text-xs uppercase tracking-wide text-slate-900 font-sans">
+            HÓA ĐƠN BÁN HÀNG
+          </h3>
+          <p class="text-[10px] text-slate-500 font-sans">
+            (PHIẾU GIAO HÀNG & THU TIỀN COD)
+          </p>
+        </div>
+
+        <!-- Order & Customer Meta Info -->
+        <div class="space-y-1 text-[11px] text-slate-700">
+          <div class="flex justify-between">
+            <span class="text-slate-500">Mã đơn:</span>
+            <strong class="font-bold text-slate-950 font-mono">#{printingOrder.id}</strong>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-500">Ngày đặt:</span>
+            <span>{printingOrder.createdAt}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-500">Thu ngân:</span>
+            <span class="truncate max-w-[190px]">{currentAdmin?.fullName || 'Hệ thống'}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-500">Khách hàng:</span>
+            <strong class="font-bold text-slate-900">{printingOrder.customerName}</strong>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-500">Điện thoại:</span>
+            <strong class="font-bold text-slate-900 font-mono">{printingOrder.phone}</strong>
+          </div>
+          <div class="text-[10px] text-slate-600 pt-0.5 leading-snug">
+            <span class="text-slate-400">Đ/C giao:</span> {printingOrder.address}
+          </div>
+          <div class="flex justify-between items-center pt-0.5">
+            <span class="text-slate-500">Đối tượng:</span>
+            <span class="text-[10px] px-1.5 py-0.2 rounded bg-slate-100 text-slate-700 font-semibold font-sans">
+              {printingOrder.customerId ? 'Khách Thành Viên' : 'Khách Vãng Lai'}
+            </span>
+          </div>
+        </div>
+
+        <!-- Dashed Divider -->
+        <div class="border-b border-dashed border-slate-400 my-2"></div>
+
+        <!-- Items Table (POS format) -->
+        <div class="space-y-2">
+          <div class="flex justify-between text-[10px] font-bold text-slate-400 uppercase pb-1 border-b border-slate-200">
+            <span>Tên sản phẩm</span>
+            <div class="flex gap-3">
+              <span class="w-6 text-center">SL</span>
+              <span class="w-20 text-right">T.Tiền</span>
+            </div>
+          </div>
+
+          {#each printingOrder.items as item, idx}
+            <div class="space-y-0.5 text-[11px] pb-1.5 border-b border-dashed border-slate-100 last:border-none">
+              <div class="font-bold text-slate-900 leading-snug font-sans">
+                {idx + 1}. {item.name}
+              </div>
+              {#if item.selectedVariants && Object.keys(item.selectedVariants).length > 0}
+                <div class="text-[10px] text-slate-500 pl-3">
+                  ↳ {Object.entries(item.selectedVariants).map(([k, v]) => `${k}: ${v}`).join(' • ')}
+                </div>
+              {/if}
+              <div class="flex justify-between text-[11px] text-slate-600 pl-3 pt-0.5">
+                <span class="text-[10px] text-slate-400 font-mono">{formatCurrency(item.price)}</span>
+                <div class="flex gap-3 font-mono">
+                  <span class="w-6 text-center font-bold">x{item.quantity}</span>
+                  <span class="w-20 text-right font-bold text-slate-900">{formatCurrency(item.price * item.quantity)}</span>
+                </div>
+              </div>
+            </div>
+          {/each}
+        </div>
+
+        <!-- Dashed Divider -->
+        <div class="border-b border-dashed border-slate-400 my-2"></div>
+
+        <!-- Calculation & Total -->
+        <div class="space-y-1 text-[11px]">
+          <div class="flex justify-between text-slate-600">
+            <span>Tạm tính tiền hàng:</span>
+            <span class="font-mono">{formatCurrency(printingOrder.subtotalAmount || printingOrder.totalAmount)}</span>
+          </div>
+
+          {#if printingOrder.couponCode}
+            <div class="flex justify-between text-emerald-700">
+              <span>Voucher ({printingOrder.couponCode}):</span>
+              <span class="font-mono font-bold">-{formatCurrency(printingOrder.discountAmount || 0)}</span>
+            </div>
+          {/if}
+
+          <div class="flex justify-between text-slate-600">
+            <span>Phí vận chuyển:</span>
+            <span class="text-emerald-700 font-bold">0 VNĐ (Miễn phí)</span>
+          </div>
+
+          <div class="border-b border-dashed border-slate-300 my-1.5"></div>
+
+          <div class="flex justify-between items-baseline pt-1">
+            <span class="text-xs font-black uppercase text-slate-950 font-sans">TỔNG TIỀN (COD):</span>
+            <span class="text-base font-black text-blue-950 font-mono">
+              {formatCurrency(printingOrder.totalAmount)}
+            </span>
+          </div>
+
+          <div class="flex justify-between text-[10px] text-slate-500 pt-0.5">
+            <span>Hình thức thanh toán:</span>
+            <span class="font-semibold text-slate-800 font-sans">Thu tiền khi nhận (COD)</span>
+          </div>
+          <div class="flex justify-between text-[10px] text-slate-500">
+            <span>Trạng thái đơn:</span>
+            <span class="font-bold uppercase font-sans text-blue-900">{printingOrder.status}</span>
+          </div>
+        </div>
+
+        <!-- Dashed Divider -->
+        <div class="border-b border-dashed border-slate-400 my-2"></div>
+
+        <!-- Footer Notice & Barcode Simulation -->
+        <div class="text-center space-y-2 pt-1 text-slate-600 font-sans">
+          <p class="text-xs font-bold text-slate-800">
+            CẢM ƠN QUÝ KHÁCH & HẸN GẶP LẠI!
+          </p>
+          <p class="text-[10px] text-slate-500 leading-tight">
+            Quý khách vui lòng kiểm tra kỹ sản phẩm trước khi thanh toán cho nhân viên giao hàng.
+          </p>
+
+          <!-- Simulated Thermal Barcode -->
+          <div class="py-1 flex flex-col items-center justify-center space-y-1">
+            <div class="flex items-center justify-center gap-[2px] h-9 overflow-hidden">
+              <span class="w-[2px] h-full bg-slate-900"></span>
+              <span class="w-[1px] h-full bg-slate-900"></span>
+              <span class="w-[3px] h-full bg-slate-900"></span>
+              <span class="w-[1px] h-full bg-slate-900"></span>
+              <span class="w-[2px] h-full bg-slate-900"></span>
+              <span class="w-[4px] h-full bg-slate-900"></span>
+              <span class="w-[1px] h-full bg-slate-900"></span>
+              <span class="w-[3px] h-full bg-slate-900"></span>
+              <span class="w-[2px] h-full bg-slate-900"></span>
+              <span class="w-[1px] h-full bg-slate-900"></span>
+              <span class="w-[3px] h-full bg-slate-900"></span>
+              <span class="w-[2px] h-full bg-slate-900"></span>
+              <span class="w-[1px] h-full bg-slate-900"></span>
+              <span class="w-[4px] h-full bg-slate-900"></span>
+              <span class="w-[2px] h-full bg-slate-900"></span>
+              <span class="w-[1px] h-full bg-slate-900"></span>
+              <span class="w-[3px] h-full bg-slate-900"></span>
+              <span class="w-[1px] h-full bg-slate-900"></span>
+              <span class="w-[2px] h-full bg-slate-900"></span>
+              <span class="w-[4px] h-full bg-slate-900"></span>
+              <span class="w-[1px] h-full bg-slate-900"></span>
+              <span class="w-[3px] h-full bg-slate-900"></span>
+              <span class="w-[2px] h-full bg-slate-900"></span>
+              <span class="w-[1px] h-full bg-slate-900"></span>
+              <span class="w-[3px] h-full bg-slate-900"></span>
+            </div>
+            <span class="font-mono text-[9px] tracking-widest text-slate-500">
+              *{printingOrder.id}*
+            </span>
+          </div>
+
+          <div class="text-[9px] text-slate-400">
+            Hóa đơn điện tử máy POS • csetstore.vn
+          </div>
+        </div>
+
+        <!-- Serrated / Cut edge effect at bottom -->
+        <div class="w-full flex justify-between gap-1 overflow-hidden opacity-30 pt-1">
+          {#each Array(18) as _}
+            <span class="w-2.5 h-1 bg-slate-400 rounded-full"></span>
+          {/each}
+        </div>
+      </div>
+
+      <!-- Action Buttons below receipt (hidden during print) -->
+      <div class="no-print flex items-center justify-center gap-3 pt-4 w-full max-w-[350px]">
         <button
           type="button"
           onclick={() => printingOrder = null}
-          class="text-slate-400 hover:text-slate-700 text-lg cursor-pointer p-1"
-        >
-          ✕
-        </button>
-      </div>
-
-      <div class="space-y-4 text-xs">
-        <div class="grid grid-cols-2 gap-4 p-3.5 bg-slate-50 rounded-xl border border-slate-200">
-          <div>
-            <span class="text-slate-400 text-[10px] uppercase font-bold block">Thông tin người nhận</span>
-            <strong class="text-slate-900 block font-bold text-sm mt-0.5">{printingOrder.customerName}</strong>
-            <p class="text-slate-700 mt-0.5">{printingOrder.phone}</p>
-            <p class="text-slate-600 mt-0.5 leading-relaxed">{printingOrder.address}</p>
-          </div>
-          <div>
-            <span class="text-slate-400 text-[10px] uppercase font-bold block">Đơn vị vận chuyển</span>
-            <strong class="text-slate-900 block font-bold text-xs mt-0.5">CSET Express</strong>
-            <p class="text-slate-500 mt-1">Ngày đặt: {printingOrder.createdAt}</p>
-            <p class="text-slate-500 mt-0.5">Trạng thái: <strong class="uppercase text-blue-900">{printingOrder.status}</strong></p>
-          </div>
-        </div>
-
-        <table class="w-full text-left border-collapse border border-slate-200 rounded-lg">
-          <thead class="bg-slate-100 text-slate-700 font-bold">
-            <tr>
-              <th class="p-2 border-b border-slate-200">Sản phẩm</th>
-              <th class="p-2 border-b border-slate-200 text-center w-14">SL</th>
-              <th class="p-2 border-b border-slate-200 text-right w-28">Thành tiền</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-100">
-            {#each printingOrder.items as item}
-              <tr>
-                <td class="p-2">
-                  <span class="font-bold text-slate-900">{item.name}</span>
-                  {#if item.selectedVariants && Object.keys(item.selectedVariants).length > 0}
-                    <span class="block text-[10px] text-blue-900">
-                      {Object.entries(item.selectedVariants).map(([k, v]) => `${k}: ${v}`).join(', ')}
-                    </span>
-                  {/if}
-                </td>
-                <td class="p-2 text-center font-bold">{item.quantity}</td>
-                <td class="p-2 text-right font-bold">{formatCurrency(item.price * item.quantity)}</td>
-              </tr>
-            {/each}
-          </tbody>
-          <tfoot class="border-t-2 border-slate-200 font-bold bg-slate-50">
-            <tr>
-              <td colspan="2" class="p-2 text-right">Tổng thanh toán COD:</td>
-              <td class="p-2 text-right text-sm text-blue-900 font-black">{formatCurrency(printingOrder.totalAmount)}</td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-
-      <div class="flex justify-end gap-2 pt-2 border-t border-slate-200">
-        <button
-          type="button"
-          onclick={() => printingOrder = null}
-          class="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-semibold cursor-pointer"
+          class="flex-1 py-2.5 px-4 rounded-xl border border-white/40 text-white hover:bg-white/10 font-bold text-xs transition cursor-pointer text-center bg-black/20"
         >
           Đóng
         </button>
         <button
           type="button"
           onclick={() => window.print()}
-          class="px-5 py-2 rounded-xl bg-blue-900 hover:bg-blue-800 text-white text-xs font-bold shadow-xs cursor-pointer flex items-center gap-1.5"
+          class="flex-1 py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg transition cursor-pointer flex items-center justify-center gap-1.5"
         >
           <i class="fa-solid fa-print"></i>
-          <span>In Phiếu Ngay</span>
+          <span>In Hóa Đơn POS</span>
         </button>
       </div>
     </div>
