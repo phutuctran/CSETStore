@@ -33,3 +33,6 @@ backups/
 data/test.sqlite
 
 .env*
+.agents/
+.claude/
+skills-lock.json
