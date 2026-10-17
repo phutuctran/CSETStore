@@ -6,6 +6,7 @@ export function pgGetProductById(id: number): Promise<Product | null>;
 export function pgCreateProduct(p: Omit<Product, 'id'> & { id?: number }): Promise<Product | null>;
 export function pgUpdateProduct(id: number, patch: Partial<Product>): Promise<boolean>;
 export function pgDeleteProduct(id: number): Promise<boolean>;
+export function pgAutoSelectTop5BestSellers(): Promise<Product[]>;
 
 export function pgGetUsers(): Promise<User[]>;
 export function pgGetUserById(id: string): Promise<(User & { password_hash?: string }) | null>;

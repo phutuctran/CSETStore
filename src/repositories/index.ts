@@ -122,6 +122,16 @@ export class LocalStorageProductRepository implements IProductRepository {
     const newProduct: Product = { ...productData, id: newId };
     list.unshift(newProduct);
     getSafeStorage().setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(list));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('cset_products_updated', { detail: list }));
+      if (typeof BroadcastChannel !== 'undefined') {
+        try {
+          const bc = new BroadcastChannel('cset_products_sync');
+          bc.postMessage({ type: 'products_updated' });
+          bc.close();
+        } catch {}
+      }
+    }
     if (typeof window !== 'undefined' && typeof fetch === 'function') {
       fetch('/api/products', {
         method: 'POST',
@@ -138,6 +148,16 @@ export class LocalStorageProductRepository implements IProductRepository {
     if (index === -1) return false;
     list[index] = { ...list[index], ...patch };
     getSafeStorage().setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(list));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('cset_products_updated', { detail: list }));
+      if (typeof BroadcastChannel !== 'undefined') {
+        try {
+          const bc = new BroadcastChannel('cset_products_sync');
+          bc.postMessage({ type: 'products_updated' });
+          bc.close();
+        } catch {}
+      }
+    }
     if (typeof window !== 'undefined' && typeof fetch === 'function') {
       fetch(`/api/products/${id}`, {
         method: 'PUT',
@@ -153,6 +173,16 @@ export class LocalStorageProductRepository implements IProductRepository {
     const next = list.filter((p) => p.id !== id);
     if (next.length === list.length) return false;
     getSafeStorage().setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(next));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('cset_products_updated', { detail: next }));
+      if (typeof BroadcastChannel !== 'undefined') {
+        try {
+          const bc = new BroadcastChannel('cset_products_sync');
+          bc.postMessage({ type: 'products_updated' });
+          bc.close();
+        } catch {}
+      }
+    }
     if (typeof window !== 'undefined' && typeof fetch === 'function') {
       fetch(`/api/products/${id}`, { method: 'DELETE' }).catch(() => {});
     }

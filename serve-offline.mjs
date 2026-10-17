@@ -631,8 +631,9 @@ const server = http.createServer((req, res) => {
     reqUrl = '/index.html';
   } else if (reqUrl === '/admin') {
     reqUrl = '/admin.html';
+  } else if (reqUrl === '/sales' || reqUrl === '/orders') {
+    reqUrl = '/sales.html';
   }
-
   const filePath = path.join(DIST, reqUrl);
 
   if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {

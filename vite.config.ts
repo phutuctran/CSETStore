@@ -4,8 +4,8 @@ import { resolve } from 'path'
 import { svelte } from '@sveltejs/vite-plugin-svelte'
 import tailwindcss from '@tailwindcss/vite'
 import { defineConfig, type Plugin } from 'vite'
-import { sqlGetProductById, sqlGetProducts, sqlGetOrders, sqlCreateOrder, sqlUpdateOrderStatus } from './server/database.js'
-import { isPostgresConfigured, pgGetOrders, pgCreateOrder, pgUpdateOrderStatus } from './server/postgres.js'
+import { sqlGetProductById, sqlGetProducts, sqlGetOrders, sqlCreateOrder, sqlUpdateOrderStatus, sqlAutoSelectTop5BestSellers } from './server/database.js'
+import { isPostgresConfigured, pgGetOrders, pgCreateOrder, pgUpdateOrderStatus, pgAutoSelectTop5BestSellers } from './server/postgres.js'
 
 function readBody(req: IncomingMessage): Promise<Record<string, unknown>> {
   const { promise, resolve, reject } = Promise.withResolvers<Record<string, unknown>>();
@@ -79,6 +79,21 @@ function offlineApiPlugin(): Plugin {
             res.end(JSON.stringify({ success: true, data: sqlGetProducts() }));
             return;
           } catch {}
+        }
+
+        // POST /api/products/auto-top5
+        if (req.method === 'POST' && (reqPath === '/api/products/auto-top5' || reqPath === '/api/products/auto-top5/')) {
+          try {
+            const updated = isPostgresConfigured() ? await pgAutoSelectTop5BestSellers() : sqlAutoSelectTop5BestSellers();
+            res.setHeader('Content-Type', 'application/json; charset=utf-8');
+            res.end(JSON.stringify({ success: true, data: updated }));
+            return;
+          } catch {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json; charset=utf-8');
+            res.end(JSON.stringify({ success: false, message: 'Lỗi máy chủ' }));
+            return;
+          }
         }
 
         // GET /api/orders
@@ -171,6 +186,7 @@ export default defineConfig({
       input: {
         main: resolve(import.meta.dirname, 'index.html'),
         admin: resolve(import.meta.dirname, 'admin.html'),
+        sales: resolve(import.meta.dirname, 'sales.html'),
       },
     },
   },

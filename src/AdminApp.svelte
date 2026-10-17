@@ -564,6 +564,9 @@
     const nextVal = !p.showOnHome;
     productRepo.update(p.id, { showOnHome: nextVal });
     products = productRepo.getAll();
+    themeDraft.productGridStyle.homeDisplayMode = 'manual';
+    themeRepo.saveTheme(themeDraft);
+    themeStore.saveTheme(themeDraft);
     showToast(nextVal ? `Đã ghim "${p.name}" hiển thị tại trang chủ!` : `Đã bỏ ghim "${p.name}" khỏi trang chủ!`);
   }
 
@@ -578,6 +581,9 @@
       }
     }
     products = productRepo.getAll();
+    themeDraft.productGridStyle.homeDisplayMode = 'auto_top5';
+    themeRepo.saveTheme(themeDraft);
+    themeStore.saveTheme(themeDraft);
     if (typeof window !== 'undefined' && typeof fetch === 'function') {
       fetch('/api/products/auto-top5', { method: 'POST' }).catch(() => {});
     }
@@ -1367,14 +1373,25 @@
             <span class="text-base font-black tracking-tight text-slate-900 block leading-tight">CSET STORE</span>
             <span class="text-[11px] text-slate-500 font-medium block">Hệ Thống Quản Trị</span>
           </div>
-          <a
-            href="./index.html"
-            target="_blank"
-            class="px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded text-[11px] font-semibold text-slate-700 transition"
-            title="Xem Web Shop"
-          >
-            Web Shop ↗
-          </a>
+          <div class="flex items-center gap-1.5">
+            <a
+              href="./sales.html"
+              target="_blank"
+              class="px-2 py-1 bg-blue-50 hover:bg-blue-100 rounded text-[10px] font-bold text-blue-900 border border-blue-200 transition flex items-center gap-1"
+              title="Mở Cổng Vận Hành Bán Hàng & Doanh Thu Chuyên Dụng"
+            >
+              <i class="fa-solid fa-chart-line text-[9px]"></i>
+              <span>Cổng Sales ↗</span>
+            </a>
+            <a
+              href="./index.html"
+              target="_blank"
+              class="px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded text-[10px] font-semibold text-slate-700 transition"
+              title="Xem Web Shop"
+            >
+              Shop ↗
+            </a>
+          </div>
         </div>
 
         <!-- Current Admin Info -->

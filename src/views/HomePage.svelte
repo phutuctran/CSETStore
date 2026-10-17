@@ -10,12 +10,6 @@
   let homeSentinelEl = $state<HTMLDivElement | null>(null);
 
   let baseFeaturedProducts = $derived.by(() => {
-    const mode = themeStore.theme.productGridStyle?.homeDisplayMode || 'auto_top5';
-    if (mode === 'auto_top5') {
-      return [...appStore.products]
-        .sort((a, b) => (b.soldCount || 0) - (a.soldCount || 0))
-        .slice(0, 5);
-    }
     const manualPicks = appStore.products.filter(p => p.showOnHome);
     if (manualPicks.length > 0) {
       return manualPicks;

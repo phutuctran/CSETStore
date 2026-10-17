@@ -33,6 +33,17 @@ class StoreState {
           this.orders = orderRepo.getAll();
         }
       });
+      window.addEventListener('cset_products_updated', () => {
+        this.products = productRepo.getAll();
+      });
+      if (typeof BroadcastChannel !== 'undefined') {
+        try {
+          const bc = new BroadcastChannel('cset_products_sync');
+          bc.onmessage = () => {
+            this.products = productRepo.getAll();
+          };
+        } catch {}
+      }
     }
   }
   // Cart State

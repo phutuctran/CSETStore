@@ -157,6 +157,13 @@ export async function pgDeleteProduct(id) {
   return true;
 }
 
+export async function pgAutoSelectTop5BestSellers() {
+  const sql = getSql();
+  await sql`UPDATE products SET show_on_home = 0;`;
+  await sql`UPDATE products SET show_on_home = 1 WHERE id IN (SELECT id FROM products ORDER BY sold_count DESC, id ASC LIMIT 5);`;
+  return pgGetProducts();
+}
+
 // ----------------- USERS -----------------
 export async function pgGetUsers() {
   const sql = getSql();
