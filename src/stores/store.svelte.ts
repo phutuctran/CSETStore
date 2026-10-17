@@ -485,6 +485,12 @@ class StoreState {
     if (delta > 0 && item.productId) {
       const prod = this.products.find(p => p.id === item.productId);
       if (prod) {
+        const stock = getProductEffectiveStock(prod, item.selectedVariants);
+        if (item.quantity + delta > stock) {
+          this.showToast(`Kho chỉ còn ${stock} sản phẩm cho mặt hàng này!`);
+          return;
+        }
+
         const maxLimit = getProductMaxPurchaseLimit(prod, themeStore.theme.defaultMaxPurchaseLimit);
         if (maxLimit && maxLimit > 0) {
           const totalQtyInCart = this.cart
@@ -522,11 +528,21 @@ class StoreState {
 
     this.lastCheckoutTime = now;
 
-    // Kiểm tra giới hạn mua hàng trước khi thanh toán
+    // Kiểm tra tồn kho và giới hạn mua hàng trước khi thanh toán
     for (const item of this.cart) {
       if (item.productId) {
         const prod = this.products.find(p => p.id === item.productId);
         if (prod) {
+          const stock = getProductEffectiveStock(prod, item.selectedVariants);
+          if (stock <= 0) {
+            this.showToast(`Sản phẩm "${item.name}" hiện đã hết hàng trong kho!`);
+            return null;
+          }
+          if (item.quantity > stock) {
+            this.showToast(`Sản phẩm "${item.name}" chỉ còn ${stock} sản phẩm (bạn đặt ${item.quantity})!`);
+            return null;
+          }
+
           const maxLimit = getProductMaxPurchaseLimit(prod, themeStore.theme.defaultMaxPurchaseLimit);
           if (maxLimit && maxLimit > 0) {
             const totalForProd = this.cart

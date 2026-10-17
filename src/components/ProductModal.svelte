@@ -12,7 +12,12 @@ import { themeStore } from '../stores/themeStore.svelte';
   let isOutOfStock = $derived(effectiveStock <= 0);
   let discountInfo = $derived(product ? getProductDiscountDetails(product) : { hasDiscount: false, discountPercent: 0 });
   let purchaseLimit = $derived(product ? getProductMaxPurchaseLimit(product, themeStore.theme.defaultMaxPurchaseLimit) : undefined);
-  let maxAllowedQty = $derived(purchaseLimit && purchaseLimit > 0 ? purchaseLimit : effectiveStock);
+  let maxAllowedQty = $derived(
+    purchaseLimit && purchaseLimit > 0
+      ? Math.min(purchaseLimit, Math.max(0, effectiveStock))
+      : Math.max(0, effectiveStock)
+  );
+  let hasVariants = $derived(Boolean(product?.variantGroups && product.variantGroups.length > 0));
   $effect(() => {
     if (appStore.isProductModalOpen && product) {
       quantity = 1;
@@ -138,15 +143,26 @@ import { themeStore } from '../stores/themeStore.svelte';
               {/if}
               {#if isOutOfStock}
                 <span class="text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-lg inline-flex items-center gap-1">
-                  <i class="fa-solid fa-circle-xmark"></i> Hết hàng
+                  <i class="fa-solid fa-circle-xmark"></i> {hasVariants ? 'Phân loại này hết hàng (0)' : 'Hết hàng trong kho (0)'}
+                </span>
+              {:else if effectiveStock <= 5}
+                <span class="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg inline-flex items-center gap-1">
+                  <i class="fa-solid fa-triangle-exclamation"></i> Sắp hết (Còn {effectiveStock} sp)
                 </span>
               {:else}
-                <span class="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg inline-flex items-center gap-1">
-                  <i class="fa-solid fa-circle-check"></i> Còn {effectiveStock} sp
+                <span class="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg inline-flex items-center gap-1">
+                  <i class="fa-solid fa-circle-check"></i> Còn {effectiveStock} sp trong kho
                 </span>
               {/if}
             </div>
           </div>
+
+          {#if isOutOfStock}
+            <div class="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs font-semibold flex items-center gap-2 animate-in fade-in duration-150">
+              <i class="fa-solid fa-circle-xmark text-rose-600 shrink-0"></i>
+              <span>{hasVariants ? 'Phân loại bạn đang chọn đã hết hàng. Vui lòng chọn phân loại khác bên dưới!' : 'Sản phẩm này hiện đang tạm hết hàng trong kho. Vui lòng quay lại sau!'}</span>
+            </div>
+          {/if}
           <!-- Variant Selector (Phân loại sản phẩm: Màu sắc, Size, ...) -->
           {#if product.variantGroups && product.variantGroups.length > 0}
             <div class="p-4 rounded-2xl bg-blue-50/70 border border-blue-200/80 space-y-3.5">
@@ -199,24 +215,28 @@ import { themeStore } from '../stores/themeStore.svelte';
               <div class="flex items-center border border-slate-300 rounded-xl overflow-hidden bg-slate-50">
                 <button
                   type="button"
+                  disabled={quantity <= 1 || isOutOfStock}
                   onclick={() => quantity = Math.max(1, quantity - 1)}
-                  class="px-3 py-1.5 hover:bg-slate-200 text-slate-700 transition cursor-pointer"
+                  class="px-3 py-1.5 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed text-slate-700 transition cursor-pointer"
                   aria-label="Giảm số lượng"
                 >
                   <i class="fa-solid fa-minus text-xs"></i>
                 </button>
-                <span class="px-4 py-1.5 font-bold text-sm text-blue-950 min-w-10 text-center">{quantity}</span>
+                <span class="px-4 py-1.5 font-bold text-sm text-blue-950 min-w-10 text-center">{isOutOfStock ? 0 : quantity}</span>
                 <button
                   type="button"
-                  disabled={quantity >= maxAllowedQty}
+                  disabled={quantity >= maxAllowedQty || isOutOfStock}
                   onclick={() => {
+                    if (isOutOfStock) return;
                     if (quantity < maxAllowedQty) {
                       quantity += 1;
-                    } else {
+                    } else if (effectiveStock <= quantity) {
+                      appStore.showToast(`Kho chỉ còn ${effectiveStock} sản phẩm cho mặt hàng này!`);
+                    } else if (purchaseLimit && quantity >= purchaseLimit) {
                       appStore.showToast(`Đã đạt giới hạn mua tối đa (${purchaseLimit} sản phẩm) cho sản phẩm này!`);
                     }
                   }}
-                  class="px-3 py-1.5 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed text-slate-700 transition cursor-pointer"
+                  class="px-3 py-1.5 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed text-slate-700 transition cursor-pointer"
                   aria-label="Tăng số lượng"
                 >
                   <i class="fa-solid fa-plus text-xs"></i>
@@ -229,10 +249,10 @@ import { themeStore } from '../stores/themeStore.svelte';
                 type="button"
                 disabled={isAdding || isOutOfStock}
                 onclick={handleAddToCart}
-                class="w-full py-4 rounded-xl bg-blue-900 hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold shadow-lg cursor-pointer transition flex items-center justify-center gap-2"
+                class="w-full py-4 rounded-xl bg-blue-900 hover:bg-blue-800 disabled:opacity-40 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 text-white font-bold shadow-lg cursor-pointer transition flex items-center justify-center gap-2"
               >
-                <i class="fa-solid {isAdding ? 'fa-check' : 'fa-cart-plus'}"></i>
-                <span>{isOutOfStock ? 'Phân Loại Này Hết Hàng' : (isAdding ? 'Đang Thêm...' : 'Thêm Vào Giỏ Hàng')}</span>
+                <i class="fa-solid {isOutOfStock ? 'fa-ban' : (isAdding ? 'fa-check' : 'fa-cart-plus')}"></i>
+                <span>{isOutOfStock ? (hasVariants ? 'Phân Loại Này Hết Hàng' : 'Hết Hàng - Không Thể Đặt') : (isAdding ? 'Đang Thêm...' : 'Thêm Vào Giỏ Hàng')}</span>
               </button>
             </div>
           </div>

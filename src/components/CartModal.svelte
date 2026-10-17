@@ -1,6 +1,6 @@
 <script lang="ts">
   import { appStore } from '../stores/store.svelte';
-import { formatCurrency, getProductMaxPurchaseLimit } from '../services/pricingService';
+import { formatCurrency, getProductMaxPurchaseLimit, getProductEffectiveStock } from '../services/pricingService';
 import { themeStore } from '../stores/themeStore.svelte';
 
   let customerName = $state('');
@@ -10,6 +10,25 @@ import { themeStore } from '../stores/themeStore.svelte';
   let isOrderCooldown = $state(false);
   let isGuestOrder = $state(false);
   let couponInput = $state('');
+
+  let cartStockIssues = $derived.by(() => {
+    const issues: string[] = [];
+    for (const item of appStore.cart) {
+      if (item.productId) {
+        const prod = appStore.products.find(p => p.id === item.productId);
+        if (prod) {
+          const stock = getProductEffectiveStock(prod, item.selectedVariants);
+          if (stock <= 0) {
+            issues.push(`"${item.name}" hiện đã hết hàng trong kho!`);
+          } else if (item.quantity > stock) {
+            issues.push(`"${item.name}" chỉ còn ${stock} sản phẩm (bạn đang chọn ${item.quantity})!`);
+          }
+        }
+      }
+    }
+    return issues;
+  });
+  let hasStockIssue = $derived(cartStockIssues.length > 0);
   $effect(() => {
     if (appStore.isCartOpen && appStore.currentCustomer) {
       customerName = appStore.currentCustomer.fullName;
@@ -28,6 +47,10 @@ import { themeStore } from '../stores/themeStore.svelte';
       return;
     }
 
+    if (hasStockIssue) {
+      alert(`Không thể đặt hàng vì:\n- ${cartStockIssues.join('\n- ')}\n\nVui lòng điều chỉnh hoặc xóa sản phẩm trước khi thanh toán!`);
+      return;
+    }
     if (!customerName.trim() || !phone.trim() || !address.trim()) {
       alert('Vui lòng điền đầy đủ thông tin giao hàng!');
       return;
@@ -125,7 +148,10 @@ import { themeStore } from '../stores/themeStore.svelte';
           {#each appStore.cart as item (item.id)}
             {@const prod = item.productId ? appStore.products.find(p => p.id === item.productId) : undefined}
             {@const limit = prod ? getProductMaxPurchaseLimit(prod, themeStore.theme.defaultMaxPurchaseLimit) : undefined}
-            <div class="flex items-center justify-between bg-slate-50 p-3.5 rounded-2xl border border-slate-200 gap-3">
+            {@const stock = prod ? getProductEffectiveStock(prod, item.selectedVariants) : 50}
+            {@const isItemOutOfStock = stock <= 0}
+            {@const isItemOverStock = item.quantity > stock}
+            <div class="flex items-center justify-between bg-slate-50 p-3.5 rounded-2xl border border-slate-200 gap-3 {isItemOutOfStock || isItemOverStock ? 'border-rose-300 bg-rose-50/40' : ''}">
                 <img
                   src={item.image}
                   alt={item.name}
@@ -143,7 +169,15 @@ import { themeStore } from '../stores/themeStore.svelte';
                       {/each}
                     </div>
                   {/if}
-                  {#if limit && limit > 0}
+                  {#if isItemOutOfStock}
+                    <span class="inline-block text-[10px] text-rose-700 bg-rose-100/90 border border-rose-300 px-1.5 py-0.5 rounded font-bold mt-0.5">
+                      <i class="fa-solid fa-circle-xmark"></i> Hết hàng (Còn 0)
+                    </span>
+                  {:else if isItemOverStock}
+                    <span class="inline-block text-[10px] text-rose-700 bg-rose-100/90 border border-rose-300 px-1.5 py-0.5 rounded font-bold mt-0.5">
+                      <i class="fa-solid fa-triangle-exclamation"></i> Vượt tồn kho (Kho còn {stock})
+                    </span>
+                  {:else if limit && limit > 0}
                     <span class="inline-block text-[10px] text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded font-semibold mt-0.5">
                       Giới hạn: tối đa {limit} sp
                     </span>
@@ -169,10 +203,10 @@ import { themeStore } from '../stores/themeStore.svelte';
                   <span class="px-2 py-1 font-bold text-slate-800">{item.quantity}</span>
                   <button
                     type="button"
-                    disabled={Boolean(limit && limit > 0 && item.quantity >= limit)}
+                    disabled={Boolean((limit && limit > 0 && item.quantity >= limit) || item.quantity >= stock || isItemOutOfStock)}
                     onclick={() => appStore.updateCartQuantity(item.id, 1)}
                     class="px-2 py-1 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed text-slate-600"
-                    title={limit && limit > 0 && item.quantity >= limit ? `Đã đạt giới hạn tối đa (${limit} sản phẩm)` : 'Tăng số lượng'}
+                    title={isItemOutOfStock ? 'Sản phẩm đã hết hàng' : (item.quantity >= stock ? `Kho chỉ còn ${stock} sản phẩm` : (limit && limit > 0 && item.quantity >= limit ? `Đã đạt giới hạn tối đa (${limit} sản phẩm)` : 'Tăng số lượng'))}
                   >
                     +
                   </button>
@@ -336,9 +370,23 @@ import { themeStore } from '../stores/themeStore.svelte';
               />
             </div>
 
+            {#if hasStockIssue}
+              <div class="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs font-semibold space-y-1">
+                <div class="flex items-center gap-1.5 font-bold text-rose-900">
+                  <i class="fa-solid fa-circle-exclamation"></i>
+                  <span>Có sản phẩm không đủ tồn kho để đặt:</span>
+                </div>
+                <ul class="list-disc list-inside space-y-0.5 text-[11px] text-rose-700">
+                  {#each cartStockIssues as issue}
+                    <li>{issue}</li>
+                  {/each}
+                </ul>
+              </div>
+            {/if}
+
             <button
               type="submit"
-              disabled={isSubmitting || isOrderCooldown}
+              disabled={isSubmitting || isOrderCooldown || hasStockIssue}
               class="w-full py-4 rounded-xl bg-blue-900 hover:bg-blue-800 disabled:opacity-50 text-white font-bold cursor-pointer shadow-md transition flex items-center justify-center gap-2"
             >
               {#if isSubmitting}
@@ -347,6 +395,9 @@ import { themeStore } from '../stores/themeStore.svelte';
               {:else if isOrderCooldown}
                 <i class="fa-solid fa-hourglass-half"></i>
                 <span>Vui Lòng Chờ Trong Giây Lát...</span>
+              {:else if hasStockIssue}
+                <i class="fa-solid fa-ban"></i>
+                <span>Có Sản Phẩm Hết Hàng Trong Giỏ</span>
               {:else}
                 <i class="fa-solid fa-check"></i>
                 <span>Xác Nhận Đặt Hàng Ngay</span>

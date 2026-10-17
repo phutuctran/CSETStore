@@ -12,6 +12,8 @@
   let effectivePrice = $derived(getEffectivePrice(product));
   let discountInfo = $derived(getProductDiscountDetails(product));
   let isAdding = $state(false);
+  let hasVariants = $derived(Boolean(product.variantGroups && product.variantGroups.length > 0));
+  let isOutOfStock = $derived(!hasVariants && (product.stock ?? 50) <= 0);
 </script>
 
 <div
@@ -46,6 +48,14 @@
       {/if}
     </div>
 
+    {#if isOutOfStock}
+      <div class="absolute inset-0 bg-black/30 backdrop-blur-[2px] flex items-center justify-center">
+        <span class="px-3 py-1 bg-rose-600 text-white text-xs font-black rounded-lg uppercase tracking-wider shadow-md">
+          Hết Hàng
+        </span>
+      </div>
+    {/if}
+
     {#if product.brand}
       <div class="absolute bottom-2.5 right-2.5">
         <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-900/70 text-white backdrop-blur-xs">
@@ -65,6 +75,25 @@
       </p>
     </div>
 
+    <div class="flex items-center justify-between text-[11px] pt-0.5">
+      {#if hasVariants}
+        <span class="text-blue-900 font-semibold flex items-center gap-1">
+          <i class="fa-solid fa-shapes text-[10px]"></i> Nhiều phân loại
+        </span>
+      {:else if isOutOfStock}
+        <span class="text-rose-600 font-bold flex items-center gap-1">
+          <i class="fa-solid fa-circle-xmark text-[10px]"></i> Hết hàng
+        </span>
+      {:else if (product.stock ?? 50) <= 5}
+        <span class="text-amber-700 font-bold flex items-center gap-1">
+          <i class="fa-solid fa-triangle-exclamation text-[10px]"></i> Chỉ còn {product.stock} sp
+        </span>
+      {:else}
+        <span class="text-emerald-700 font-medium flex items-center gap-1">
+          <i class="fa-solid fa-circle-check text-[10px]"></i> Còn hàng ({product.stock ?? 50})
+        </span>
+      {/if}
+    </div>
     <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
       <div>
         <div class="flex items-center gap-1.5">
@@ -78,13 +107,12 @@
       </div>
 
       {#if showQuickAdd}
-        {@const hasVariants = Boolean(product.variantGroups && product.variantGroups.length > 0)}
         <button
           type="button"
-          disabled={isAdding}
+          disabled={isAdding || isOutOfStock}
           onclick={(e) => {
             e.stopPropagation();
-            if (isAdding) return;
+            if (isAdding || isOutOfStock) return;
             if (hasVariants) {
               appStore.openProductDetail(product);
               return;
@@ -95,12 +123,15 @@
               isAdding = false;
             }, 300);
           }}
-          class="px-3 py-2 rounded-xl bg-blue-900 hover:bg-blue-800 disabled:opacity-60 text-white font-semibold text-xs transition shadow-sm flex items-center gap-1.5 cursor-pointer {isAdding ? 'scale-95' : ''}"
-          title={hasVariants ? 'Chọn phân loại sản phẩm trước khi mua' : 'Thêm vào giỏ'}
+          class="px-3 py-2 rounded-xl bg-blue-900 hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400 text-white font-semibold text-xs transition shadow-sm flex items-center gap-1.5 cursor-pointer {isAdding ? 'scale-95' : ''}"
+          title={isOutOfStock ? 'Sản phẩm này hiện đã hết hàng' : (hasVariants ? 'Chọn phân loại sản phẩm trước khi mua' : 'Thêm vào giỏ')}
         >
           {#if isAdding}
             <i class="fa-solid fa-check text-xs"></i>
             <span>Đã thêm</span>
+          {:else if isOutOfStock}
+            <i class="fa-solid fa-ban text-xs"></i>
+            <span>Hết hàng</span>
           {:else}
             <i class="fa-solid fa-cart-plus text-xs"></i>
             <span>{themeStore.theme.productGridStyle?.buyButtonText || 'Thêm'}</span>
