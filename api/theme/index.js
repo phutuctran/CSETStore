@@ -1,4 +1,5 @@
-import { isPostgresConfigured, pgGetTheme, pgSaveTheme } from '../../server/postgres.js';
+import { withDb } from '../../server/routes/utils.js';
+import { pgGetTheme, pgSaveTheme } from '../../server/postgres.js';
 import { sqlGetTheme, sqlSaveTheme } from '../../server/database.js';
 
 export default async function handler(req, res) {
@@ -13,7 +14,7 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     try {
-      const theme = isPostgresConfigured() ? await pgGetTheme() : sqlGetTheme();
+      const theme = await withDb(pgGetTheme, sqlGetTheme);
       return res.status(200).json({ success: true, data: theme });
     } catch {
       return res.status(500).json({ success: false, message: 'Lỗi máy chủ' });
@@ -23,7 +24,7 @@ export default async function handler(req, res) {
   if (req.method === 'POST') {
     try {
       const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-      const saved = isPostgresConfigured() ? await pgSaveTheme(body) : sqlSaveTheme(body);
+      const saved = await withDb(() => pgSaveTheme(body), () => sqlSaveTheme(body));
       return res.status(200).json({ success: true, data: saved });
     } catch {
       return res.status(400).json({ success: false, message: 'Dữ liệu không hợp lệ' });

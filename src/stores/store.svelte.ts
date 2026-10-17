@@ -36,6 +36,20 @@ class StoreState {
       window.addEventListener('cset_products_updated', () => {
         this.products = productRepo.getAll();
       });
+      // Cross-device sync on tab focus or screen unlock
+      window.addEventListener('focus', () => {
+        this.syncFromServer();
+      });
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          this.syncFromServer();
+        }
+      });
+      // Background polling sync every 45 seconds
+      setInterval(() => {
+        this.syncFromServer();
+      }, 45000);
+
       if (typeof BroadcastChannel !== 'undefined') {
         try {
           const bc = new BroadcastChannel('cset_products_sync');
@@ -241,11 +255,14 @@ class StoreState {
   async syncFromServer() {
     if (typeof window === 'undefined' || typeof fetch !== 'function') return;
     try {
-      const [uRes, pRes, oRes, cRes] = await Promise.all([
+      const [uRes, pRes, oRes, cRes, catRes, tRes, rRes] = await Promise.all([
         fetch('/api/users').catch(() => null),
         fetch('/api/products').catch(() => null),
         fetch('/api/orders').catch(() => null),
-        fetch('/api/coupons').catch(() => null)
+        fetch('/api/coupons').catch(() => null),
+        fetch('/api/categories').catch(() => null),
+        fetch('/api/theme').catch(() => null),
+        fetch('/api/reviews?all=1').catch(() => null)
       ]);
 
       if (uRes && uRes.ok) {
@@ -280,7 +297,31 @@ class StoreState {
       if (cRes && cRes.ok) {
         const cJson = await cRes.json();
         if (cJson.success && Array.isArray(cJson.data)) {
-          localStorage.setItem('cset_coupons_v4', JSON.stringify(cJson.data));
+          localStorage.setItem('cset_coupons_v5', JSON.stringify(cJson.data));
+        }
+      }
+
+      if (catRes && catRes.ok) {
+        const catJson = await catRes.json();
+        if (catJson.success && Array.isArray(catJson.data)) {
+          localStorage.setItem('cset_categories_v5', JSON.stringify(catJson.data));
+          window.dispatchEvent(new CustomEvent('cset_categories_updated'));
+        }
+      }
+
+      if (tRes && tRes.ok) {
+        const tJson = await tRes.json();
+        if (tJson.success && tJson.data) {
+          localStorage.setItem('cset_theme_config_v5', JSON.stringify(tJson.data));
+          window.dispatchEvent(new CustomEvent('cset_theme_updated', { detail: tJson.data }));
+        }
+      }
+
+      if (rRes && rRes.ok) {
+        const rJson = await rRes.json();
+        if (rJson.success && Array.isArray(rJson.data)) {
+          localStorage.setItem('cset_reviews_v5', JSON.stringify(rJson.data));
+          window.dispatchEvent(new CustomEvent('cset_reviews_updated'));
         }
       }
     } catch {}

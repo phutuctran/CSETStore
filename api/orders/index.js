@@ -1,4 +1,5 @@
-import { isPostgresConfigured, pgGetOrders, pgCreateOrder, pgUpdateOrderStatus } from '../../server/postgres.js';
+import { withDb } from '../../server/routes/utils.js';
+import { pgGetOrders, pgCreateOrder, pgUpdateOrderStatus } from '../../server/postgres.js';
 import { sqlGetOrders, sqlCreateOrder, sqlUpdateOrderStatus } from '../../server/database.js';
 
 // In-memory Order Rate Limiting (chống auto-clicker và spam đặt hàng)
@@ -43,7 +44,7 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     try {
-      const orders = isPostgresConfigured() ? await pgGetOrders() : sqlGetOrders();
+      const orders = await withDb(pgGetOrders, sqlGetOrders);
       return res.status(200).json({ success: true, data: orders });
     } catch {
       return res.status(500).json({ success: false, message: 'Lỗi máy chủ' });
@@ -70,7 +71,7 @@ export default async function handler(req, res) {
         return res.status(429).json({ success: false, message: rateCheck.message });
       }
 
-      const created = isPostgresConfigured() ? await pgCreateOrder(body) : sqlCreateOrder(body);
+      const created = await withDb(() => pgCreateOrder(body), () => sqlCreateOrder(body));
       return res.status(201).json({ success: true, data: created });
     } catch (err) {
       console.error('[API /api/orders] Error processing POST:', err);
@@ -90,7 +91,7 @@ export default async function handler(req, res) {
       if (!orderId || !body?.status) {
         return res.status(400).json({ success: false, message: 'Thiếu ID hoặc trạng thái đơn hàng' });
       }
-      const success = isPostgresConfigured() ? await pgUpdateOrderStatus(orderId, body.status) : sqlUpdateOrderStatus(orderId, body.status);
+      const success = await withDb(() => pgUpdateOrderStatus(orderId, body.status), () => sqlUpdateOrderStatus(orderId, body.status));
       return res.status(200).json({ success });
     } catch (err) {
       console.error('[API /api/orders] PUT error:', err);

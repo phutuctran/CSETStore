@@ -76,6 +76,8 @@
   async function syncAllServerData(): Promise<void> {
     if (typeof window === 'undefined') return;
     await syncOrdersFromServer(false);
+    productRepo.syncFromServer().then((p) => { products = p; }).catch(() => {});
+    categoryRepo.syncFromServer().then((c) => { categories = c; }).catch(() => {});
     userRepo.syncFromServer().then((u) => { users = u; }).catch(() => {});
     reviewRepo.syncFromServer().then((r) => { reviews = r; }).catch(() => {});
     couponRepo.syncFromServer().then((c) => { coupons = c; }).catch(() => {});
@@ -100,7 +102,7 @@
     }
   });
 
-  // Periodic live refresh every 15s for new orders from customers
+  // Periodic live refresh every 15s for new orders from customers & sync on focus
   $effect(() => {
     if (!currentAdmin) return;
     const interval = setInterval(() => {
@@ -108,7 +110,14 @@
         syncOrdersFromServer(false);
       }
     }, 15000);
-    return () => clearInterval(interval);
+    const onFocus = () => {
+      syncAllServerData();
+    };
+    window.addEventListener('focus', onFocus);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+    };
   });
 
   function showToast(msg: string) {

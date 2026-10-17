@@ -1,4 +1,5 @@
-import { isPostgresConfigured, pgGetCategories, pgCreateCategory, pgUpdateCategory, pgDeleteCategory } from '../../server/postgres.js';
+import { withDb } from '../../server/routes/utils.js';
+import { pgGetCategories, pgCreateCategory, pgUpdateCategory, pgDeleteCategory } from '../../server/postgres.js';
 import { sqlGetCategories, sqlCreateCategory, sqlUpdateCategory, sqlDeleteCategory } from '../../server/database.js';
 
 export default async function handler(req, res) {
@@ -13,7 +14,7 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     try {
-      const list = isPostgresConfigured() ? await pgGetCategories() : sqlGetCategories();
+      const list = await withDb(pgGetCategories, sqlGetCategories);
       return res.status(200).json({ success: true, data: list });
     } catch (err) {
       console.error('[API /api/categories] GET error:', err);
@@ -27,7 +28,7 @@ export default async function handler(req, res) {
       if (!body.key || !body.label) {
         return res.status(400).json({ success: false, message: 'Thông tin ngành hàng không đầy đủ' });
       }
-      const created = isPostgresConfigured() ? await pgCreateCategory(body) : sqlCreateCategory(body);
+      const created = await withDb(() => pgCreateCategory(body), () => sqlCreateCategory(body));
       return res.status(201).json({ success: true, data: created });
     } catch (err) {
       console.error('[API /api/categories] POST error:', err);
@@ -42,7 +43,7 @@ export default async function handler(req, res) {
       if (!key) {
         return res.status(400).json({ success: false, message: 'Thiếu key ngành hàng' });
       }
-      const success = isPostgresConfigured() ? await pgUpdateCategory(key, patch) : sqlUpdateCategory(key, patch);
+      const success = await withDb(() => pgUpdateCategory(key, patch), () => sqlUpdateCategory(key, patch));
       return res.status(200).json({ success });
     } catch (err) {
       console.error('[API /api/categories] PUT error:', err);
@@ -56,7 +57,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ success: false, message: 'Thiếu key ngành hàng' });
     }
     try {
-      const success = isPostgresConfigured() ? await pgDeleteCategory(id) : sqlDeleteCategory(id);
+      const success = await withDb(() => pgDeleteCategory(id), () => sqlDeleteCategory(id));
       return res.status(200).json({ success });
     } catch (err) {
       console.error('[API /api/categories] DELETE error:', err);

@@ -1,12 +1,45 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { neon } from '@neondatabase/serverless';
 import { hashPasswordArgon2, verifyPassword } from './database.js';
+
+// Auto-load .env.local and .env if running in Node.js outside Vercel
+function loadLocalEnv() {
+  const envFiles = ['.env.local', '.env'];
+  for (const file of envFiles) {
+    try {
+      const fullPath = path.resolve(process.cwd(), file);
+      if (fs.existsSync(fullPath)) {
+        const content = fs.readFileSync(fullPath, 'utf-8');
+        for (const line of content.split(/\r?\n/)) {
+          const trimmed = line.trim();
+          if (!trimmed || trimmed.startsWith('#')) continue;
+          const eq = trimmed.indexOf('=');
+          if (eq > 0) {
+            const k = trimmed.slice(0, eq).trim();
+            let v = trimmed.slice(eq + 1).trim();
+            if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
+              v = v.slice(1, -1);
+            }
+            if (!process.env[k]) {
+              process.env[k] = v;
+            }
+          }
+        }
+      }
+    } catch {}
+  }
+}
+loadLocalEnv();
+
+const DEFAULT_VERCEL_NEON_URL = 'postgresql://neondb_owner:npg_1KTtcX3nAdSz@ep-gentle-fog-b8d75g7y-pooler.c-14.us-east-1.aws.neon.tech/neondb?channel_binding=require&sslmode=require';
 
 function getDbUrl() {
   return process.env.DATABASE_URL ||
          process.env.POSTGRES_URL ||
          process.env.DATABASE_URL_UNPOOLED ||
          process.env.POSTGRES_PRISMA_URL ||
-         '';
+         DEFAULT_VERCEL_NEON_URL;
 }
 
 export function isPostgresConfigured() {

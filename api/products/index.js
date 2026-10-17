@@ -1,4 +1,5 @@
-import { isPostgresConfigured, pgGetProducts, pgCreateProduct, pgAutoSelectTop5BestSellers } from '../../server/postgres.js';
+import { withDb } from '../../server/routes/utils.js';
+import { pgGetProducts, pgCreateProduct, pgAutoSelectTop5BestSellers } from '../../server/postgres.js';
 import { sqlGetProducts, sqlCreateProduct, sqlAutoSelectTop5BestSellers } from '../../server/database.js';
 
 export default async function handler(req, res) {
@@ -13,7 +14,7 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     try {
-      const list = isPostgresConfigured() ? await pgGetProducts() : sqlGetProducts();
+      const list = await withDb(pgGetProducts, sqlGetProducts);
       return res.status(200).json({ success: true, data: list });
     } catch {
       return res.status(500).json({ success: false, message: 'Lỗi máy chủ' });
@@ -24,7 +25,7 @@ export default async function handler(req, res) {
     const { action } = req.query;
     if (action === 'auto-top5') {
       try {
-        const updated = isPostgresConfigured() ? await pgAutoSelectTop5BestSellers() : sqlAutoSelectTop5BestSellers();
+        const updated = await withDb(pgAutoSelectTop5BestSellers, sqlAutoSelectTop5BestSellers);
         return res.status(200).json({ success: true, data: updated });
       } catch (err) {
         console.error('[API auto-top5] Error:', err);
@@ -33,7 +34,7 @@ export default async function handler(req, res) {
     }
     try {
       const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-      const created = isPostgresConfigured() ? await pgCreateProduct(body) : sqlCreateProduct(body);
+      const created = await withDb(() => pgCreateProduct(body), () => sqlCreateProduct(body));
       return res.status(201).json({ success: true, data: created });
     } catch {
       return res.status(400).json({ success: false, message: 'Dữ liệu không hợp lệ' });

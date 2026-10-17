@@ -7,7 +7,14 @@
 
   const categoryRepo = new LocalStorageCategoryRepository();
   let categories = $state(categoryRepo.getAll());
-
+  $effect(() => {
+    if (typeof window === 'undefined') return;
+    const onCatsUpdated = () => {
+      categories = categoryRepo.getAll();
+    };
+    window.addEventListener('cset_categories_updated', onCatsUpdated);
+    return () => window.removeEventListener('cset_categories_updated', onCatsUpdated);
+  });
   // Category image map for high quality squircle icons
   const categoryImages: Record<string, string> = {
     electronics: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=200&auto=format&fit=crop&q=80',

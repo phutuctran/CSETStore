@@ -7,6 +7,14 @@
 
   const categoryRepo = new LocalStorageCategoryRepository();
   let categories = $state(categoryRepo.getAll());
+  $effect(() => {
+    if (typeof window === 'undefined') return;
+    const onCatsUpdated = () => {
+      categories = categoryRepo.getAll();
+    };
+    window.addEventListener('cset_categories_updated', onCatsUpdated);
+    return () => window.removeEventListener('cset_categories_updated', onCatsUpdated);
+  });
   let selectedSubCategory = $state<string>('');
 
   // Pagination State

@@ -1,4 +1,5 @@
-import { isPostgresConfigured, pgGetUsers, pgCreateUser } from '../../server/postgres.js';
+import { withDb } from '../../server/routes/utils.js';
+import { pgGetUsers, pgCreateUser } from '../../server/postgres.js';
 import { sqlGetUsers, sqlCreateUser } from '../../server/database.js';
 
 export default async function handler(req, res) {
@@ -13,7 +14,7 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     try {
-      const users = isPostgresConfigured() ? await pgGetUsers() : sqlGetUsers();
+      const users = await withDb(pgGetUsers, sqlGetUsers);
       return res.status(200).json({ success: true, data: users });
     } catch {
       return res.status(500).json({ success: false, message: 'Lỗi máy chủ' });
@@ -26,8 +27,8 @@ export default async function handler(req, res) {
       if (!body.username) {
         return res.status(400).json({ success: false, message: 'Tên đăng nhập không được để trống' });
       }
-      const created = isPostgresConfigured() ? await pgCreateUser(body) : await sqlCreateUser(body);
-      const sanitized = { ...created };
+      const created = await withDb(() => pgCreateUser(body), () => sqlCreateUser(body));
+      const sanitized = { ...(created || {}) };
       delete sanitized.password_hash;
       return res.status(201).json({ success: true, data: sanitized });
     } catch {

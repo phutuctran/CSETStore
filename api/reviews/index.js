@@ -1,4 +1,5 @@
-import { isPostgresConfigured, pgGetReviews, pgCreateReview, pgUpdateReview, pgDeleteReview } from '../../server/postgres.js';
+import { withDb } from '../../server/routes/utils.js';
+import { pgGetReviews, pgCreateReview, pgUpdateReview, pgDeleteReview } from '../../server/postgres.js';
 import { sqlGetReviews, sqlCreateReview, sqlUpdateReview, sqlDeleteReview } from '../../server/database.js';
 
 export default async function handler(req, res) {
@@ -15,7 +16,7 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     try {
-      const list = isPostgresConfigured() ? await pgGetReviews(productId, all === '1') : sqlGetReviews(productId, all === '1');
+      const list = await withDb(() => pgGetReviews(productId, all === '1'), () => sqlGetReviews(productId, all === '1'));
       return res.status(200).json({ success: true, data: list });
     } catch {
       return res.status(500).json({ success: false, message: 'Lỗi máy chủ' });
@@ -38,7 +39,7 @@ export default async function handler(req, res) {
           }
         }
       }
-      const created = isPostgresConfigured() ? await pgCreateReview(body) : sqlCreateReview(body);
+      const created = await withDb(() => pgCreateReview(body), () => sqlCreateReview(body));
       return res.status(201).json({ success: true, data: created });
     } catch {
       return res.status(400).json({ success: false, message: 'Dữ liệu không hợp lệ' });
@@ -52,7 +53,7 @@ export default async function handler(req, res) {
       if (!reviewId) {
         return res.status(400).json({ success: false, message: 'Thiếu ID đánh giá' });
       }
-      const success = isPostgresConfigured() ? await pgUpdateReview(reviewId, body) : sqlUpdateReview(reviewId, body);
+      const success = await withDb(() => pgUpdateReview(reviewId, body), () => sqlUpdateReview(reviewId, body));
       return res.status(200).json({ success });
     } catch (err) {
       console.error('[API /api/reviews] PUT error:', err);
@@ -66,7 +67,7 @@ export default async function handler(req, res) {
       if (!reviewId) {
         return res.status(400).json({ success: false, message: 'Thiếu ID đánh giá' });
       }
-      const success = isPostgresConfigured() ? await pgDeleteReview(reviewId) : sqlDeleteReview(reviewId);
+      const success = await withDb(() => pgDeleteReview(reviewId), () => sqlDeleteReview(reviewId));
       return res.status(200).json({ success });
     } catch (err) {
       console.error('[API /api/reviews] DELETE error:', err);

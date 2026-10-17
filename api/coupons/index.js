@@ -1,4 +1,5 @@
-import { isPostgresConfigured, pgGetCoupons, pgCreateCoupon, pgUpdateCoupon, pgDeleteCoupon } from '../../server/postgres.js';
+import { withDb } from '../../server/routes/utils.js';
+import { pgGetCoupons, pgCreateCoupon, pgUpdateCoupon, pgDeleteCoupon } from '../../server/postgres.js';
 import { sqlGetCoupons, sqlCreateCoupon, sqlUpdateCoupon, sqlDeleteCoupon } from '../../server/database.js';
 
 export default async function handler(req, res) {
@@ -13,7 +14,7 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     try {
-      const list = isPostgresConfigured() ? await pgGetCoupons() : sqlGetCoupons();
+      const list = await withDb(pgGetCoupons, sqlGetCoupons);
       return res.status(200).json({ success: true, data: list });
     } catch (err) {
       console.error('[API /api/coupons] GET error:', err);
@@ -27,7 +28,7 @@ export default async function handler(req, res) {
       if (!body.code || !body.discountValue) {
         return res.status(400).json({ success: false, message: 'Thông tin mã giảm giá không đầy đủ' });
       }
-      const created = isPostgresConfigured() ? await pgCreateCoupon(body) : sqlCreateCoupon(body);
+      const created = await withDb(() => pgCreateCoupon(body), () => sqlCreateCoupon(body));
       return res.status(201).json({ success: true, data: created });
     } catch (err) {
       console.error('[API /api/coupons] POST error:', err);
@@ -42,7 +43,7 @@ export default async function handler(req, res) {
       if (!couponId) {
         return res.status(400).json({ success: false, message: 'Thiếu ID mã giảm giá' });
       }
-      const success = isPostgresConfigured() ? await pgUpdateCoupon(couponId, patch) : sqlUpdateCoupon(couponId, patch);
+      const success = await withDb(() => pgUpdateCoupon(couponId, patch), () => sqlUpdateCoupon(couponId, patch));
       return res.status(200).json({ success });
     } catch (err) {
       console.error('[API /api/coupons] PUT error:', err);
@@ -56,7 +57,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ success: false, message: 'Thiếu ID mã giảm giá' });
     }
     try {
-      const success = isPostgresConfigured() ? await pgDeleteCoupon(id) : sqlDeleteCoupon(id);
+      const success = await withDb(() => pgDeleteCoupon(id), () => sqlDeleteCoupon(id));
       return res.status(200).json({ success });
     } catch (err) {
       console.error('[API /api/coupons] DELETE error:', err);

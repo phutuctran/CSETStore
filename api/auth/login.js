@@ -1,4 +1,5 @@
-import { isPostgresConfigured, pgGetUserByUsername } from '../../server/postgres.js';
+import { withDb } from '../../server/routes/utils.js';
+import { pgGetUserByUsername } from '../../server/postgres.js';
 import { sqlGetUserByUsername, verifyPassword } from '../../server/database.js';
 
 const loginAttempts = new Map();
@@ -39,7 +40,7 @@ export default async function handler(req, res) {
       });
     }
 
-    const user = isPostgresConfigured() ? await pgGetUserByUsername(username) : sqlGetUserByUsername(username);
+    const user = await withDb(() => pgGetUserByUsername(username), () => sqlGetUserByUsername(username));
     if (!user) {
       rate.count = (rate.count || 0) + 1;
       if (rate.count >= MAX_FAILED_ATTEMPTS) {

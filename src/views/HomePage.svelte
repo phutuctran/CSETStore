@@ -5,6 +5,14 @@
   import ProductCard from '../components/ProductCard.svelte';
   const categoryRepo = new LocalStorageCategoryRepository();
   let categories = $state(categoryRepo.getAll());
+  $effect(() => {
+    if (typeof window === 'undefined') return;
+    const onCatsUpdated = () => {
+      categories = categoryRepo.getAll();
+    };
+    window.addEventListener('cset_categories_updated', onCatsUpdated);
+    return () => window.removeEventListener('cset_categories_updated', onCatsUpdated);
+  });
   let homeVisibleCount = $state<number>(8);
   let homeIsLoadingMore = $state<boolean>(false);
   let homeSentinelEl = $state<HTMLDivElement | null>(null);
