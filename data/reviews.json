@@ -1,0 +1,28 @@
+[
+  {
+    "id": "rev-1",
+    "product_id": 1,
+    "user_id": "USR-CUST-1",
+    "user_name": "Khách Hàng Thân Thiết",
+    "rating": 5,
+    "comment": "Tai nghe Sony WH-1000XM5 quá đỉnh! Chống ồn vượt trội so với đời XM4, đeo lâu không bị cấn tai, âm bass sâu ấm.",
+    "images_json": "[\"https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&auto=format&fit=crop&q=80\"]",
+    "verified_purchase": 1,
+    "hidden": 0,
+    "admin_reply_json": null,
+    "created_at": "2026-02-18 10:15:00"
+  },
+  {
+    "id": "rev-2",
+    "product_id": 8,
+    "user_id": "USR-CUST-1",
+    "user_name": "Khách Hàng Thân Thiết",
+    "rating": 5,
+    "comment": "Serum Vitamin C Klairs lành tính, dùng 2 tuần da sáng mịn và vết thâm mụn mờ rõ rệt. Đóng gói rất cẩn thận!",
+    "images_json": "[\"https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=600&auto=format&fit=crop&q=80\"]",
+    "verified_purchase": 1,
+    "hidden": 0,
+    "admin_reply_json": null,
+    "created_at": "2026-02-25 15:30:00"
+  }
+]

@@ -4,13 +4,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { argon2id } from 'hash-wasm';
-
+import { DEFAULT_PRODUCTS, DEFAULT_USERS, DEFAULT_CATEGORIES, DEFAULT_COUPONS, DEFAULT_REVIEWS } from './defaultData.js';
+const DATA_DIR = path.join(process.cwd(), 'data');
 let dbInstance;
 try {
   if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
     dbInstance = new DatabaseSync(':memory:');
   } else {
-    const DATA_DIR = path.join(process.cwd(), 'data');
     if (!fs.existsSync(DATA_DIR)) {
       try { fs.mkdirSync(DATA_DIR, { recursive: true }); } catch {}
     }
@@ -271,125 +271,110 @@ export function seedDatabaseFromFiles() {
   // 1. Seed Users (with hashed passwords & encrypted phone/address)
   const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get().count;
   if (userCount === 0) {
+    let users = DEFAULT_USERS;
     const usersFile = path.join(DATA_DIR, 'users.json');
     if (fs.existsSync(usersFile)) {
-      try {
-        const users = JSON.parse(fs.readFileSync(usersFile, 'utf-8'));
-        const insertUser = db.prepare(`
-          INSERT INTO users (id, username, password_hash, full_name, phone_encrypted, address_encrypted, role, created_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `);
-        for (const u of users) {
-          const passHash = u.password && !u.password.startsWith('pbkdf2:') ? hashPassword(u.password) : (u.password_hash || hashPassword('123'));
-          const encPhone = encryptSensitiveData(u.phone || '');
-          const encAddress = encryptSensitiveData(u.address || '');
-          insertUser.run(u.id, u.username, passHash, u.fullName || u.full_name || '', encPhone, encAddress, u.role || 'customer', u.createdAt || u.created_at || new Date().toISOString());
-        }
-        console.log(`[SQL Migration] Migrated ${users.length} users into SQL database with salted PBKDF2 hash & AES-256 encryption.`);
-      } catch (err) {
-        console.error('[SQL Migration] Error migrating users:', err);
-      }
+      try { users = JSON.parse(fs.readFileSync(usersFile, 'utf-8')); } catch {}
+    }
+    const insertUser = db.prepare(`
+      INSERT INTO users (id, username, password_hash, full_name, phone_encrypted, address_encrypted, role, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    for (const u of users) {
+      const passHash = u.password_hash || (u.password && !u.password.startsWith('pbkdf2:') ? hashPassword(u.password) : hashPassword('123'));
+      const encPhone = u.phone_encrypted || encryptSensitiveData(u.phone || '');
+      const encAddress = u.address_encrypted || encryptSensitiveData(u.address || '');
+      insertUser.run(u.id, u.username, passHash, u.fullName || u.full_name || '', encPhone, encAddress, u.role || 'customer', u.createdAt || u.created_at || new Date().toISOString());
     }
   }
 
   // 2. Seed Products
   const prodCount = db.prepare('SELECT COUNT(*) as count FROM products').get().count;
   if (prodCount === 0) {
+    let prods = DEFAULT_PRODUCTS;
     const prodsFile = path.join(DATA_DIR, 'products.json');
     if (fs.existsSync(prodsFile)) {
-      try {
-        const prods = JSON.parse(fs.readFileSync(prodsFile, 'utf-8'));
-        const insertProd = db.prepare(`
-          INSERT INTO products (id, name, category, sub_category, price, original_price, discount_percent, discount_start_date, discount_end_date, image, images_json, description, brand, sku, stock, origin, warranty, weight, condition, specifications_json, variant_groups_json, rating)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `);
-        for (const p of prods) {
-          insertProd.run(
-            p.id,
-            p.name,
-            p.category,
-            p.subCategory || p.sub_category || null,
-            p.price,
-            p.originalPrice || p.original_price || null,
-            p.discountPercent || p.discount_percent || null,
-            p.discountStartDate || p.discount_start_date || null,
-            p.discountEndDate || p.discount_end_date || null,
-            p.image,
-            p.images ? JSON.stringify(p.images) : null,
-            p.description || '',
-            p.brand || null,
-            p.sku || null,
-            p.stock || 50,
-            p.origin || null,
-            p.warranty || null,
-            p.weight || null,
-            p.condition || null,
-            p.specifications ? JSON.stringify(p.specifications) : null,
-            p.variantGroups ? JSON.stringify(p.variantGroups) : null,
-            p.rating || 5.0
-          );
-        }
-        console.log(`[SQL Migration] Migrated ${prods.length} products into SQL database.`);
-      } catch (err) {
-        console.error('[SQL Migration] Error migrating products:', err);
-      }
+      try { prods = JSON.parse(fs.readFileSync(prodsFile, 'utf-8')); } catch {}
+    }
+    const insertProd = db.prepare(`
+      INSERT INTO products (id, name, category, sub_category, price, original_price, discount_percent, discount_start_date, discount_end_date, image, images_json, description, brand, sku, stock, origin, warranty, weight, condition, specifications_json, variant_groups_json, rating, sold_count, show_on_home)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    for (const p of prods) {
+      insertProd.run(
+        p.id,
+        p.name,
+        p.category,
+        p.sub_category || p.subCategory || null,
+        p.price,
+        p.original_price || p.originalPrice || null,
+        p.discount_percent || p.discountPercent || null,
+        p.discount_start_date || p.discountStartDate || null,
+        p.discount_end_date || p.discountEndDate || null,
+        p.image,
+        p.images_json || (p.images ? JSON.stringify(p.images) : null),
+        p.description || '',
+        p.brand || null,
+        p.sku || null,
+        p.stock || 50,
+        p.origin || null,
+        p.warranty || null,
+        p.weight || null,
+        p.condition || null,
+        p.specifications_json || (p.specifications ? JSON.stringify(p.specifications) : null),
+        p.variant_groups_json || (p.variantGroups ? JSON.stringify(p.variantGroups) : null),
+        p.rating || 5.0,
+        p.sold_count || p.soldCount || 0,
+        p.show_on_home !== undefined ? p.show_on_home : (p.showOnHome ? 1 : 0)
+      );
     }
   }
 
   // 3. Seed Categories
   const catCount = db.prepare('SELECT COUNT(*) as count FROM categories').get().count;
   if (catCount === 0) {
+    let cats = DEFAULT_CATEGORIES;
     const catFile = path.join(DATA_DIR, 'categories.json');
     if (fs.existsSync(catFile)) {
-      try {
-        const cats = JSON.parse(fs.readFileSync(catFile, 'utf-8'));
-        const insertCat = db.prepare(`
-          INSERT INTO categories (key, label, icon, custom_icon_image, subcategories_json)
-          VALUES (?, ?, ?, ?, ?)
-        `);
-        for (const c of cats) {
-          insertCat.run(c.key, c.label, c.icon || 'fa-tag', c.customIconImage || null, c.subcategories ? JSON.stringify(c.subcategories) : '[]');
-        }
-        console.log(`[SQL Migration] Migrated ${cats.length} categories into SQL database.`);
-      } catch (err) {
-        console.error('[SQL Migration] Error migrating categories:', err);
-      }
+      try { cats = JSON.parse(fs.readFileSync(catFile, 'utf-8')); } catch {}
+    }
+    const insertCat = db.prepare(`
+      INSERT INTO categories (key, label, icon, custom_icon_image, subcategories_json)
+      VALUES (?, ?, ?, ?, ?)
+    `);
+    for (const c of cats) {
+      insertCat.run(c.key, c.label, c.icon || 'fa-tag', c.custom_icon_image || c.customIconImage || null, c.subcategories_json || (c.subcategories ? JSON.stringify(c.subcategories) : '[]'));
     }
   }
 
   // 4. Seed Reviews
   const revCount = db.prepare('SELECT COUNT(*) as count FROM reviews').get().count;
   if (revCount === 0) {
+    let revs = DEFAULT_REVIEWS;
     const revFile = path.join(DATA_DIR, 'reviews.json');
     if (fs.existsSync(revFile)) {
-      try {
-        const revs = JSON.parse(fs.readFileSync(revFile, 'utf-8'));
-        const insertRev = db.prepare(`
-          INSERT INTO reviews (id, product_id, user_id, user_name, rating, comment, images_json, verified_purchase, hidden, admin_reply_json, created_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `);
-        for (const r of revs) {
-          insertRev.run(
-            r.id,
-            r.productId,
-            r.userId,
-            r.userName,
-            r.rating,
-            r.comment,
-            r.images ? JSON.stringify(r.images) : null,
-            r.verifiedPurchase !== false ? 1 : 0,
-            r.hidden ? 1 : 0,
-            r.adminReply ? JSON.stringify(r.adminReply) : null,
-            r.createdAt || new Date().toLocaleString('vi-VN')
-          );
-        }
-        console.log(`[SQL Migration] Migrated ${revs.length} reviews into SQL database.`);
-      } catch (err) {
-        console.error('[SQL Migration] Error migrating reviews:', err);
-      }
+      try { revs = JSON.parse(fs.readFileSync(revFile, 'utf-8')); } catch {}
+    }
+    const insertRev = db.prepare(`
+      INSERT INTO reviews (id, product_id, user_id, user_name, rating, comment, images_json, verified_purchase, hidden, admin_reply_json, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    for (const r of revs) {
+      insertRev.run(
+        r.id,
+        r.product_id || r.productId,
+        r.user_id || r.userId,
+        r.user_name || r.userName,
+        r.rating,
+        r.comment,
+        r.images_json || (r.images ? JSON.stringify(r.images) : null),
+        r.verified_purchase !== undefined ? r.verified_purchase : (r.verifiedPurchase !== false ? 1 : 0),
+        r.hidden ? 1 : 0,
+        r.admin_reply_json || (r.adminReply ? JSON.stringify(r.adminReply) : null),
+        r.created_at || r.createdAt || new Date().toLocaleString('vi-VN')
+      );
     }
   }
-
   // 5. Seed Coupons
   const coupCount = db.prepare('SELECT COUNT(*) as count FROM coupons').get().count;
   if (coupCount === 0) {
@@ -1116,6 +1101,9 @@ export function restoreSqlDump(sqlScript) {
   }
 }
 
-if (!process.env.VERCEL) {
-  try { seedDatabaseFromFiles(); } catch {}
+try {
+  initDatabaseSchema();
+  seedDatabaseFromFiles();
+} catch (e) {
+  console.warn('[Database Schema Init Warning]', e?.message || e);
 }
