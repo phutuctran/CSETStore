@@ -228,6 +228,14 @@ export function initDatabaseSchema() {
   `);
   try { db.exec("ALTER TABLE products ADD COLUMN sold_count INTEGER DEFAULT 0;"); } catch {}
   try { db.exec("ALTER TABLE products ADD COLUMN show_on_home INTEGER DEFAULT 0;"); } catch {}
+  // Ensure all detailed user profile columns exist
+  const userCols = db.prepare('PRAGMA table_info(users)').all().map(c => c.name);
+  const missingUserCols = ['email', 'city', 'district', 'ward', 'gender', 'birthday', 'avatar', 'bio'];
+  for (const c of missingUserCols) {
+    if (!userCols.includes(c)) {
+      try { db.exec(`ALTER TABLE users ADD COLUMN ${c} TEXT;`); } catch {}
+    }
+  }
 
 
   try {
@@ -547,9 +555,41 @@ export function sqlGetUsers() {
     fullName: r.full_name,
     phone: decryptSensitiveData(r.phone_encrypted),
     address: decryptSensitiveData(r.address_encrypted),
+    email: r.email || '',
+    city: r.city || '',
+    district: r.district || '',
+    ward: r.ward || '',
+    gender: r.gender || 'male',
+    birthday: r.birthday || '',
+    avatar: r.avatar || '',
+    bio: r.bio || '',
     role: r.role,
     createdAt: r.created_at
   }));
+}
+
+export function sqlGetUserById(id) {
+  if (!id) return null;
+  const r = db.prepare('SELECT * FROM users WHERE id = ?').get(id);
+  if (!r) return null;
+  return {
+    id: r.id,
+    username: r.username,
+    password_hash: r.password_hash,
+    fullName: r.full_name,
+    phone: decryptSensitiveData(r.phone_encrypted),
+    address: decryptSensitiveData(r.address_encrypted),
+    email: r.email || '',
+    city: r.city || '',
+    district: r.district || '',
+    ward: r.ward || '',
+    gender: r.gender || 'male',
+    birthday: r.birthday || '',
+    avatar: r.avatar || '',
+    bio: r.bio || '',
+    role: r.role,
+    createdAt: r.created_at
+  };
 }
 
 export function sqlGetUserByUsername(username) {
@@ -563,21 +603,123 @@ export function sqlGetUserByUsername(username) {
     fullName: r.full_name,
     phone: decryptSensitiveData(r.phone_encrypted),
     address: decryptSensitiveData(r.address_encrypted),
+    email: r.email || '',
+    city: r.city || '',
+    district: r.district || '',
+    ward: r.ward || '',
+    gender: r.gender || 'male',
+    birthday: r.birthday || '',
+    avatar: r.avatar || '',
+    bio: r.bio || '',
     role: r.role,
     createdAt: r.created_at
   };
 }
 
-export function sqlCreateUser(u) {
+export async function sqlCreateUser(u) {
   const id = u.id || 'USR-' + Date.now().toString(36).toUpperCase();
-  const passHash = u.password && !u.password.startsWith('pbkdf2:') ? hashPassword(u.password) : (u.password_hash || hashPassword('123'));
+  let passHash = u.password_hash;
+  if (!passHash) {
+    if (u.password && (u.password.startsWith('$argon2id$') || u.password.startsWith('pbkdf2:'))) {
+      passHash = u.password;
+    } else {
+      passHash = await hashPasswordArgon2(u.password || '123');
+    }
+  }
   const encPhone = encryptSensitiveData(u.phone || '');
   const encAddress = encryptSensitiveData(u.address || '');
   db.prepare(`
-    INSERT INTO users (id, username, password_hash, full_name, phone_encrypted, address_encrypted, role, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(id, u.username.trim(), passHash, u.fullName || u.full_name || '', encPhone, encAddress, u.role || 'customer', u.createdAt || new Date().toLocaleString('vi-VN'));
-  return sqlGetUserByUsername(u.username);
+    INSERT INTO users (id, username, password_hash, full_name, phone_encrypted, address_encrypted, role, created_at, email, city, district, ward, gender, birthday, avatar, bio)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    id,
+    u.username.trim(),
+    passHash,
+    u.fullName || u.full_name || '',
+    encPhone,
+    encAddress,
+    u.role || 'customer',
+    u.createdAt || new Date().toLocaleString('vi-VN'),
+    u.email || '',
+    u.city || '',
+    u.district || '',
+    u.ward || '',
+    u.gender || 'male',
+    u.birthday || '',
+    u.avatar || '',
+    u.bio || ''
+  );
+  return sqlGetUserById(id);
+}
+
+export async function sqlUpdateUser(id, patch) {
+  const existing = sqlGetUserById(id);
+  if (!existing) return null;
+
+  let passHash = existing.password_hash;
+  if (patch.password) {
+    if (patch.password.startsWith('$argon2id$') || patch.password.startsWith('pbkdf2:')) {
+      passHash = patch.password;
+    } else {
+      passHash = await hashPasswordArgon2(patch.password);
+    }
+  }
+
+  const fullName = patch.fullName !== undefined ? patch.fullName : existing.fullName;
+  const phone = patch.phone !== undefined ? patch.phone : existing.phone;
+  const address = patch.address !== undefined ? patch.address : existing.address;
+  const email = patch.email !== undefined ? patch.email : existing.email;
+  const city = patch.city !== undefined ? patch.city : existing.city;
+  const district = patch.district !== undefined ? patch.district : existing.district;
+  const ward = patch.ward !== undefined ? patch.ward : existing.ward;
+  const gender = patch.gender !== undefined ? patch.gender : existing.gender;
+  const birthday = patch.birthday !== undefined ? patch.birthday : existing.birthday;
+  const avatar = patch.avatar !== undefined ? patch.avatar : existing.avatar;
+  const bio = patch.bio !== undefined ? patch.bio : existing.bio;
+  const role = patch.role !== undefined ? patch.role : existing.role;
+
+  const encPhone = encryptSensitiveData(phone || '');
+  const encAddress = encryptSensitiveData(address || '');
+
+  db.prepare(`
+    UPDATE users SET
+      password_hash = ?,
+      full_name = ?,
+      phone_encrypted = ?,
+      address_encrypted = ?,
+      role = ?,
+      email = ?,
+      city = ?,
+      district = ?,
+      ward = ?,
+      gender = ?,
+      birthday = ?,
+      avatar = ?,
+      bio = ?
+    WHERE id = ?
+  `).run(
+    passHash,
+    fullName,
+    encPhone,
+    encAddress,
+    role,
+    email,
+    city,
+    district,
+    ward,
+    gender,
+    birthday,
+    avatar,
+    bio,
+    id
+  );
+
+  return sqlGetUserById(id);
+}
+
+export function sqlDeleteUser(id) {
+  const res = db.prepare('DELETE FROM users WHERE id = ?').run(id);
+  return res.changes > 0;
 }
 
 // Reviews

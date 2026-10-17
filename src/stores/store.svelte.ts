@@ -22,6 +22,7 @@ class StoreState {
 
   constructor() {
     if (typeof window !== 'undefined') {
+      this.syncFromServer();
       window.addEventListener('storage', (e) => {
         if (e.key === 'cset_products_v5') {
           this.products = productRepo.getAll();
@@ -222,6 +223,46 @@ class StoreState {
     }
     this.showToast('Cập nhật thông tin thất bại!');
     return false;
+  }
+
+  async syncFromServer() {
+    if (typeof window === 'undefined' || typeof fetch !== 'function') return;
+    try {
+      const [uRes, pRes, oRes] = await Promise.all([
+        fetch('/api/users').catch(() => null),
+        fetch('/api/products').catch(() => null),
+        fetch('/api/orders').catch(() => null)
+      ]);
+
+      if (uRes && uRes.ok) {
+        const uJson = await uRes.json();
+        if (uJson.success && Array.isArray(uJson.data)) {
+          localStorage.setItem('cset_users_v5', JSON.stringify(uJson.data));
+          if (this.currentCustomer) {
+            const fresh = uJson.data.find((u: User) => u.id === this.currentCustomer?.id || u.username === this.currentCustomer?.username);
+            if (fresh) {
+              this.currentCustomer = fresh;
+            }
+          }
+        }
+      }
+
+      if (pRes && pRes.ok) {
+        const pJson = await pRes.json();
+        if (pJson.success && Array.isArray(pJson.data)) {
+          this.products = pJson.data;
+          localStorage.setItem('cset_products_v5', JSON.stringify(pJson.data));
+        }
+      }
+
+      if (oRes && oRes.ok) {
+        const oJson = await oRes.json();
+        if (oJson.success && Array.isArray(oJson.data)) {
+          this.orders = oJson.data;
+          localStorage.setItem('cset_orders_v5', JSON.stringify(oJson.data));
+        }
+      }
+    } catch {}
   }
   customerOrders = $derived(
     this.currentCustomer

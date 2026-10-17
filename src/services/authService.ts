@@ -201,6 +201,34 @@ export class AuthService {
         message: `Tài khoản tạm thời bị khóa do đăng nhập sai nhiều lần. Vui lòng thử lại sau ${rate.waitMinutes} phút.`
       };
     }
+    // Try server API first for cross-device authentication
+    if (typeof window !== 'undefined' && typeof fetch === 'function') {
+      try {
+        const sRes = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password: pass })
+        });
+        if (sRes.ok) {
+          const sJson = await sRes.json();
+          if (sJson.success && sJson.data) {
+            if (sJson.data.role === 'customer') {
+              return { success: false, message: 'Tài khoản khách hàng không có quyền truy cập hệ thống quản trị!' };
+            }
+            clearRateLimit(username);
+            this.setAdminSession(sJson.data);
+            return { success: true, user: sJson.data };
+          }
+        } else if (sRes.status === 401 || sRes.status === 429) {
+          const errJson = await sRes.json().catch(() => ({}));
+          if (sRes.status === 429) {
+            return { success: false, message: errJson.message || 'Tài khoản tạm thời bị khóa do đăng nhập sai nhiều lần.' };
+          }
+          recordFailedAttempt(username);
+          return { success: false, message: 'Tên đăng nhập hoặc mật khẩu không chính xác!' };
+        }
+      } catch {}
+    }
 
     let user = userRepo.getByUsername(username);
     if (!user && username.toLowerCase().trim() === 'admin') {
@@ -233,6 +261,31 @@ export class AuthService {
         success: false,
         message: `Tài khoản tạm thời bị khóa do đăng nhập sai nhiều lần. Vui lòng thử lại sau ${rate.waitMinutes} phút.`
       };
+    }
+    // Try server API first for cross-device authentication
+    if (typeof window !== 'undefined' && typeof fetch === 'function') {
+      try {
+        const sRes = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password: pass })
+        });
+        if (sRes.ok) {
+          const sJson = await sRes.json();
+          if (sJson.success && sJson.data) {
+            clearRateLimit(username);
+            this.setCustomerSession(sJson.data);
+            return { success: true, user: sJson.data };
+          }
+        } else if (sRes.status === 401 || sRes.status === 429) {
+          const errJson = await sRes.json().catch(() => ({}));
+          if (sRes.status === 429) {
+            return { success: false, message: errJson.message || 'Tài khoản tạm thời bị khóa do đăng nhập sai nhiều lần.' };
+          }
+          recordFailedAttempt(username);
+          return { success: false, message: 'Tên đăng nhập hoặc mật khẩu không chính xác!' };
+        }
+      } catch {}
     }
 
     let user = userRepo.getByUsername(username);
@@ -299,13 +352,29 @@ export class AuthService {
     if (patch.password) {
       patch.password = await hashPasswordArgon2(patch.password);
     }
-    const success = userRepo.update(id, patch);
-    if (success) {
-      const updated = userRepo.getById(id);
-      if (updated) {
-        this.setCustomerSession(updated);
-        return sanitizeUser(updated) as User;
-      }
+    userRepo.update(id, patch);
+
+    if (typeof window !== 'undefined' && typeof fetch === 'function') {
+      try {
+        const res = await fetch(`/api/users/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(patch)
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.data) {
+            this.setCustomerSession(json.data);
+            return json.data;
+          }
+        }
+      } catch {}
+    }
+
+    const updated = userRepo.getById(id);
+    if (updated) {
+      this.setCustomerSession(updated);
+      return sanitizeUser(updated) as User;
     }
     return null;
   }

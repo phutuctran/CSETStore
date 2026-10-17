@@ -26,7 +26,10 @@ import {
   sqlGetTheme,
   sqlSaveTheme,
   verifyPassword,
-  sqlGetUserByUsername
+  sqlGetUserByUsername,
+  sqlGetUserById,
+  sqlUpdateUser,
+  sqlDeleteUser
 } from './server/database.js';
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -371,6 +374,110 @@ const server = http.createServer((req, res) => {
       const users = sqlGetUsers();
       res.writeHead(200);
       res.end(JSON.stringify({ success: true, data: users }));
+      return;
+    }
+
+    // User endpoints: /api/users/:id
+    const userMatch = reqPath.match(/^\/api\/users\/([^/]+)$/);
+    if (req.method === 'GET' && userMatch) {
+      const user = sqlGetUserById(userMatch[1]);
+      if (user) {
+        const sanitized = { ...user };
+        delete sanitized.password_hash;
+        res.writeHead(200);
+        res.end(JSON.stringify({ success: true, data: sanitized }));
+      } else {
+        res.writeHead(404);
+        res.end(JSON.stringify({ success: false, message: 'Không tìm thấy người dùng' }));
+      }
+      return;
+    }
+
+    // POST /api/users
+    if (req.method === 'POST' && (reqPath === '/api/users' || reqPath === '/api/users/')) {
+      let body = '';
+      req.on('data', chunk => body += chunk);
+      req.on('end', async () => {
+        try {
+          const userData = JSON.parse(body);
+          if (!userData.username) {
+            res.writeHead(400);
+            res.end(JSON.stringify({ success: false, message: 'Tên đăng nhập không được để trống' }));
+            return;
+          }
+          const created = await sqlCreateUser(userData);
+          const sanitized = { ...created };
+          delete sanitized.password_hash;
+          res.writeHead(201);
+          res.end(JSON.stringify({ success: true, data: sanitized }));
+        } catch (err) {
+          res.writeHead(400);
+          res.end(JSON.stringify({ success: false, message: 'Dữ liệu không hợp lệ' }));
+        }
+      });
+      return;
+    }
+
+    // PUT /api/users/:id
+    if (req.method === 'PUT' && userMatch) {
+      const userId = userMatch[1];
+      let body = '';
+      req.on('data', chunk => body += chunk);
+      req.on('end', async () => {
+        try {
+          const patch = JSON.parse(body);
+          if (patch.avatar && typeof patch.avatar === 'string' && patch.avatar.startsWith('data:image/')) {
+            const approxBytes = patch.avatar.length * 0.75;
+            if (approxBytes > 3 * 1024 * 1024) {
+              res.writeHead(400);
+              res.end(JSON.stringify({ success: false, message: 'Dung lượng ảnh đại diện vượt quá 3MB' }));
+              return;
+            }
+          }
+          const updated = await sqlUpdateUser(userId, patch);
+          if (updated) {
+            const sanitized = { ...updated };
+            delete sanitized.password_hash;
+            res.writeHead(200);
+            res.end(JSON.stringify({ success: true, data: sanitized }));
+          } else {
+            res.writeHead(404);
+            res.end(JSON.stringify({ success: false, message: 'Không tìm thấy người dùng' }));
+          }
+        } catch (err) {
+          res.writeHead(400);
+          res.end(JSON.stringify({ success: false, message: 'Dữ liệu không hợp lệ' }));
+        }
+      });
+      return;
+    }
+
+    // DELETE /api/users/:id
+    if (req.method === 'DELETE' && userMatch) {
+      const userId = userMatch[1];
+      const success = sqlDeleteUser(userId);
+      res.writeHead(200);
+      res.end(JSON.stringify({ success }));
+      return;
+    }
+
+    // PUT /api/orders/:id/status
+    const orderStatusMatch = reqPath.match(/^\/api\/orders\/([^/]+)\/status$/);
+    if (req.method === 'PUT' && orderStatusMatch) {
+      const orderId = orderStatusMatch[1];
+      let body = '';
+      req.on('data', chunk => body += chunk);
+      req.on('end', () => {
+        try {
+          const { status } = JSON.parse(body);
+          const success = sqlUpdateOrderStatus(orderId, status);
+          res.writeHead(200);
+          res.end(JSON.stringify({ success }));
+        } catch {
+          res.writeHead(400);
+          res.end(JSON.stringify({ success: false, message: 'Dữ liệu không hợp lệ' }));
+        }
+      });
       return;
     }
 

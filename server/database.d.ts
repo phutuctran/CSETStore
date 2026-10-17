@@ -8,9 +8,11 @@ export function sqlDeleteProduct(id: number): boolean;
 export function sqlAutoSelectTop5BestSellers(): Product[];
 
 export function sqlGetUsers(): User[];
+export function sqlGetUserById(id: string): (User & { password_hash?: string }) | null;
 export function sqlGetUserByUsername(username: string): (User & { password_hash?: string }) | null;
-export function sqlCreateUser(u: Omit<User, 'id' | 'createdAt'> & { id?: string; password?: string }): User | null;
-
+export function sqlCreateUser(u: Partial<User> & { username: string }): Promise<(User & { password_hash?: string }) | null>;
+export function sqlUpdateUser(id: string, patch: Partial<User>): Promise<(User & { password_hash?: string }) | null>;
+export function sqlDeleteUser(id: string): boolean;
 export function sqlGetReviews(productId?: number | string | null, includeHidden?: boolean): ProductReview[];
 export function sqlCreateReview(data: Omit<ProductReview, 'id'> & { id?: string }): ProductReview;
 export function sqlUpdateReview(id: string, patch: Partial<ProductReview>): boolean;

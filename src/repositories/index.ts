@@ -195,6 +195,13 @@ export class LocalStorageOrderRepository implements IOrderRepository {
     };
     list.unshift(newOrder);
     getSafeStorage().setItem(ORDERS_STORAGE_KEY, JSON.stringify(list));
+    if (typeof window !== 'undefined' && typeof fetch === 'function') {
+      fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newOrder)
+      }).catch(() => {});
+    }
     return newOrder;
   }
 
@@ -204,9 +211,30 @@ export class LocalStorageOrderRepository implements IOrderRepository {
     if (!target) return false;
     target.status = status;
     getSafeStorage().setItem(ORDERS_STORAGE_KEY, JSON.stringify(list));
+    if (typeof window !== 'undefined' && typeof fetch === 'function') {
+      fetch(`/api/orders/${id}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      }).catch(() => {});
+    }
     return true;
   }
 
+  async syncFromServer(): Promise<Order[]> {
+    if (typeof window === 'undefined' || typeof fetch !== 'function') return this.getAll();
+    try {
+      const res = await fetch('/api/orders');
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data)) {
+          getSafeStorage().setItem(ORDERS_STORAGE_KEY, JSON.stringify(json.data));
+          return json.data;
+        }
+      }
+    } catch {}
+    return this.getAll();
+  }
 }
 
 /**
@@ -253,6 +281,13 @@ export class LocalStorageReviewRepository implements IReviewRepository {
     };
     list.unshift(newReview);
     getSafeStorage().setItem(REVIEWS_STORAGE_KEY, JSON.stringify(list));
+    if (typeof window !== 'undefined' && typeof fetch === 'function') {
+      fetch('/api/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newReview)
+      }).catch(() => {});
+    }
     return newReview;
   }
 
@@ -262,6 +297,13 @@ export class LocalStorageReviewRepository implements IReviewRepository {
     if (idx === -1) return false;
     list[idx] = { ...list[idx], ...patch };
     getSafeStorage().setItem(REVIEWS_STORAGE_KEY, JSON.stringify(list));
+    if (typeof window !== 'undefined' && typeof fetch === 'function') {
+      fetch(`/api/reviews/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch)
+      }).catch(() => {});
+    }
     return true;
   }
 
@@ -270,7 +312,25 @@ export class LocalStorageReviewRepository implements IReviewRepository {
     const next = list.filter(r => r.id !== id);
     if (next.length === list.length) return false;
     getSafeStorage().setItem(REVIEWS_STORAGE_KEY, JSON.stringify(next));
+    if (typeof window !== 'undefined' && typeof fetch === 'function') {
+      fetch(`/api/reviews/${id}`, { method: 'DELETE' }).catch(() => {});
+    }
     return true;
+  }
+
+  async syncFromServer(): Promise<ProductReview[]> {
+    if (typeof window === 'undefined' || typeof fetch !== 'function') return this.getAll();
+    try {
+      const res = await fetch('/api/reviews?all=1');
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data)) {
+          getSafeStorage().setItem(REVIEWS_STORAGE_KEY, JSON.stringify(json.data));
+          return json.data;
+        }
+      }
+    } catch {}
+    return this.getAll();
   }
 
   reply(id: string, replyText: string, replierName = 'Ban Quản Trị CSET Store'): boolean {
@@ -341,6 +401,13 @@ export class LocalStorageUserRepository implements IUserRepository {
     };
     list.unshift(newUser);
     getSafeStorage().setItem(USERS_STORAGE_KEY, JSON.stringify(list));
+    if (typeof window !== 'undefined' && typeof fetch === 'function') {
+      fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newUser)
+      }).catch(() => {});
+    }
     return newUser;
   }
 
@@ -350,6 +417,13 @@ export class LocalStorageUserRepository implements IUserRepository {
     if (index === -1) return false;
     list[index] = { ...list[index], ...patch };
     getSafeStorage().setItem(USERS_STORAGE_KEY, JSON.stringify(list));
+    if (typeof window !== 'undefined' && typeof fetch === 'function') {
+      fetch(`/api/users/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch)
+      }).catch(() => {});
+    }
     return true;
   }
 
@@ -358,7 +432,37 @@ export class LocalStorageUserRepository implements IUserRepository {
     const next = list.filter((u) => u.id !== id);
     if (next.length === list.length) return false;
     getSafeStorage().setItem(USERS_STORAGE_KEY, JSON.stringify(next));
+    if (typeof window !== 'undefined' && typeof fetch === 'function') {
+      fetch(`/api/users/${id}`, { method: 'DELETE' }).catch(() => {});
+    }
     return true;
+  }
+
+  async syncFromServer(): Promise<User[]> {
+    if (typeof window === 'undefined' || typeof fetch !== 'function') return this.getAll();
+    try {
+      const res = await fetch('/api/users');
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data)) {
+          const serverUsers = json.data as User[];
+          const localList = this.getAll();
+          // Merge server users with local users
+          const mergedMap = new Map<string, User>();
+          for (const u of localList) {
+            mergedMap.set(u.id, u);
+          }
+          for (const u of serverUsers) {
+            const existing = mergedMap.get(u.id);
+            mergedMap.set(u.id, existing ? { ...existing, ...u } : u);
+          }
+          const merged = Array.from(mergedMap.values());
+          getSafeStorage().setItem(USERS_STORAGE_KEY, JSON.stringify(merged));
+          return merged;
+        }
+      }
+    } catch {}
+    return this.getAll();
   }
 }
 

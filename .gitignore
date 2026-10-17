@@ -31,3 +31,5 @@ dist-ssr
 backups/
 *.sqlite
 data/test.sqlite
+
+.env*
