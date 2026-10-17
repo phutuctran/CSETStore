@@ -69,14 +69,18 @@
 <div class="space-y-16">
   <!-- Hero Section (Conditional) -->
   {#if themeStore.theme.visibility.showHeroSection}
-    <section class="relative rounded-3xl overflow-hidden glass-panel border border-slate-200 p-8 md:p-12 lg:p-16 flex flex-col lg:flex-row items-center justify-between gap-12 bg-white">
-      <div class="space-y-6 max-w-2xl text-center lg:text-left z-10">
+    <section class="relative rounded-3xl overflow-hidden border border-slate-200/90 p-6 sm:p-10 lg:p-12 xl:p-14 flex flex-col lg:flex-row items-center justify-between gap-8 lg:gap-12 bg-gradient-to-br from-white via-blue-50/20 to-slate-50/60 shadow-xs">
+      <!-- Decorative ambient gradient circles -->
+      <div class="absolute -top-24 -right-24 w-96 h-96 bg-blue-100/40 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="absolute -bottom-24 -left-24 w-80 h-80 bg-indigo-100/30 rounded-full blur-3xl pointer-events-none"></div>
+
+      <div class="space-y-6 max-w-xl xl:max-w-2xl text-center lg:text-left z-10">
         {#if themeStore.theme.visibility.showPromoBadge && (themeStore.theme.heroBadgeEnabled !== false)}
-          <div class="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-blue-900 text-xs font-bold uppercase tracking-wider">
+          <div class="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-blue-50/90 border border-blue-200/80 text-blue-900 text-xs font-bold uppercase tracking-wider shadow-2xs">
             {#if themeStore.theme.heroBadgeLogo}
               <img src={themeStore.theme.heroBadgeLogo} alt="Badge Logo" class="w-4 h-4 object-contain rounded-full" />
             {:else}
-              <i class="fa-solid {themeStore.theme.heroBadgeIcon || 'fa-gift'}"></i>
+              <i class="fa-solid {themeStore.theme.heroBadgeIcon || 'fa-gift'} text-blue-700"></i>
             {/if}
             {#if themeStore.theme.badgeText}
               <span>{themeStore.theme.badgeText}</span>
@@ -84,20 +88,20 @@
           </div>
         {/if}
 
-        <h1 class="text-4xl md:text-5xl lg:text-6xl font-black text-blue-950 leading-tight">
+        <h1 class="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-black text-blue-950 leading-[1.15] tracking-tight">
           {themeStore.theme.heroTitle} <br />
           <span class="text-blue-900">{themeStore.theme.heroSubtitle}</span>
         </h1>
 
-        <p class="text-slate-600 text-base md:text-lg leading-relaxed">
+        <p class="text-slate-600 text-sm sm:text-base leading-relaxed max-w-lg mx-auto lg:mx-0">
           {themeStore.theme.heroDescription}
         </p>
 
-        <div class="flex flex-wrap items-center justify-center lg:justify-start gap-4 pt-2">
+        <div class="flex flex-wrap items-center justify-center lg:justify-start gap-3.5 pt-2">
           <button
             type="button"
             onclick={() => appStore.setTab('shop')}
-            class="px-8 py-4 rounded-xl text-white font-bold shadow-lg hover:shadow-xl transition cursor-pointer flex items-center gap-2"
+            class="px-7 py-3.5 sm:px-8 sm:py-4 rounded-xl text-white font-bold text-sm sm:text-base shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 cursor-pointer flex items-center gap-2.5"
             style="background-color: {themeStore.theme.heroStyle?.primaryBtnBg || themeStore.theme.primaryColor}; color: {themeStore.theme.heroStyle?.primaryBtnTextColor || '#ffffff'};"
           >
             <i class="fa-solid fa-bag-shopping"></i>
@@ -108,40 +112,41 @@
             <button
               type="button"
               onclick={() => appStore.setTab('shop')}
-              class="px-8 py-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-blue-950 font-bold border border-slate-300 transition cursor-pointer flex items-center gap-2"
+              class="px-7 py-3.5 sm:px-8 sm:py-4 rounded-xl bg-white hover:bg-slate-100 text-blue-950 font-bold text-sm sm:text-base border border-slate-200 shadow-2xs hover:shadow-sm transition-all duration-200 hover:-translate-y-0.5 cursor-pointer flex items-center gap-2.5"
             >
               <i class="fa-solid fa-fire text-amber-500"></i>
               <span>{themeStore.theme.heroStyle?.secondaryBtnText || 'Sản Phẩm Bán Chạy'}</span>
             </button>
           {/if}
         </div>
+
         <!-- Trust Badges (Conditional) -->
         {#if themeStore.theme.visibility.showTrustBadges && themeStore.theme.trustBadges?.length > 0}
-          <div class="pt-6 flex flex-wrap gap-6 border-t border-slate-200/80 text-left">
+          <div class="pt-6 flex flex-wrap gap-4 sm:gap-6 border-t border-slate-200/80 text-left">
             {#each themeStore.theme.trustBadges as tb (tb.id)}
-              <div class="flex-1 min-w-[140px]">
-                <span class="flex items-center text-sm font-black text-blue-950 gap-2">
+              <div class="flex-1 min-w-[130px] p-2 rounded-xl hover:bg-white/60 transition">
+                <span class="flex items-center text-xs sm:text-sm font-black text-blue-950 gap-2">
                   {#if tb.customIconImage}
-                    <img src={tb.customIconImage} alt={tb.title} class="w-5 h-5 object-contain shrink-0" />
+                    <img src={tb.customIconImage} alt={tb.title} class="w-4 h-4 sm:w-5 sm:h-5 object-contain shrink-0" />
                   {:else}
                     <i class="fa-solid {tb.icon} text-blue-900"></i>
                   {/if}
                   <span>{tb.title}</span>
                 </span>
-                <span class="text-xs text-slate-500 font-medium block mt-0.5">{tb.subtitle}</span>
+                <span class="text-[11px] sm:text-xs text-slate-500 font-medium block mt-0.5">{tb.subtitle}</span>
               </div>
             {/each}
           </div>
         {/if}
       </div>
 
-      <!-- Banner Hero Carousel / Image Container: Responsive Fill & Auto Transition -->
+      <!-- Banner Hero Carousel / Image Container -->
       {#if themeStore.theme.visibility.showHeroImage}
         {@const posters = (themeStore.theme.heroPosters && themeStore.theme.heroPosters.length > 0)
           ? themeStore.theme.heroPosters
           : [{ id: 'p-default', imageUrl: themeStore.theme.heroImage, highlightTitle: themeStore.theme.heroHighlightTitle, highlightSub: themeStore.theme.heroHighlightSub }]}
-        <div class="relative w-full lg:w-1/2 flex items-center justify-center self-stretch">
-          <div class="relative w-full h-80 sm:h-96 md:h-[420px] rounded-3xl overflow-hidden border border-slate-200 shadow-2xl bg-slate-100 group">
+        <div class="relative w-full lg:w-5/12 xl:w-1/2 flex items-center justify-center self-stretch">
+          <div class="relative w-full h-72 sm:h-84 md:h-[400px] lg:h-[440px] rounded-3xl overflow-hidden border border-slate-200/90 shadow-xl bg-gradient-to-tr from-slate-100 to-slate-50 group">
             {#each posters as poster, idx (poster.id)}
               <div
                 class="absolute inset-0 w-full h-full transition-opacity duration-700 ease-in-out {idx === activePosterIndex ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'}"
@@ -149,17 +154,17 @@
                 <img
                   src={poster.imageUrl}
                   alt={poster.highlightTitle || 'Hero Poster'}
-                  class="w-full h-full object-cover"
+                  class="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-102"
                 />
                 {#if poster.highlightTitle || poster.highlightSub}
-                  <div class="absolute bottom-4 left-4 right-4 bg-white/95 backdrop-blur-md p-4 rounded-2xl border border-white/50 shadow-md flex items-center justify-between z-20">
+                  <div class="absolute bottom-4 left-4 right-4 bg-white/95 backdrop-blur-md p-3.5 sm:p-4 rounded-2xl border border-white/60 shadow-lg flex items-center justify-between z-20">
                     <div class="space-y-0.5">
-                      <p class="text-xs font-black text-blue-950">{poster.highlightTitle}</p>
+                      <p class="text-xs sm:text-sm font-black text-blue-950">{poster.highlightTitle}</p>
                       {#if poster.highlightSub}
-                        <p class="text-[10px] text-slate-500 font-medium">{poster.highlightSub}</p>
+                        <p class="text-[10px] sm:text-xs text-slate-500 font-medium">{poster.highlightSub}</p>
                       {/if}
                     </div>
-                    <span class="px-2.5 py-1 rounded-lg bg-blue-900 text-white font-bold text-[10px]">
+                    <span class="px-2.5 py-1 rounded-lg bg-blue-900 text-white font-bold text-[10px] sm:text-xs shrink-0 shadow-2xs">
                       {poster.badgeText || 'Hot Deal'}
                     </span>
                   </div>
@@ -169,10 +174,23 @@
 
             <!-- Controls when 2 or more posters exist -->
             {#if posters.length >= 2}
+              <!-- Top Left Dots Indicator -->
+              <div class="absolute top-4 left-4 z-30 flex items-center gap-1.5 bg-black/40 backdrop-blur-md px-2.5 py-1.5 rounded-full">
+                {#each posters as _, dotIdx}
+                  <button
+                    type="button"
+                    onclick={() => activePosterIndex = dotIdx}
+                    class="h-1.5 rounded-full transition-all cursor-pointer {dotIdx === activePosterIndex ? 'w-5 bg-white' : 'w-1.5 bg-white/50 hover:bg-white/80'}"
+                    aria-label="Chuyển đến poster {dotIdx + 1}"
+                  ></button>
+                {/each}
+              </div>
+
+              <!-- Prev/Next arrows -->
               <button
                 type="button"
                 onclick={() => activePosterIndex = (activePosterIndex - 1 + posters.length) % posters.length}
-                class="absolute left-3 top-1/2 -translate-y-1/2 z-30 w-8 h-8 rounded-full bg-black/50 hover:bg-black/80 text-white flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition cursor-pointer"
+                class="absolute left-3 top-1/2 -translate-y-1/2 z-30 w-8 h-8 rounded-full bg-black/50 hover:bg-black/80 text-white flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition cursor-pointer shadow-md"
                 aria-label="Poster trước"
               >
                 <i class="fa-solid fa-chevron-left"></i>
@@ -181,23 +199,11 @@
               <button
                 type="button"
                 onclick={() => activePosterIndex = (activePosterIndex + 1) % posters.length}
-                class="absolute right-3 top-1/2 -translate-y-1/2 z-30 w-8 h-8 rounded-full bg-black/50 hover:bg-black/80 text-white flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition cursor-pointer"
+                class="absolute right-3 top-1/2 -translate-y-1/2 z-30 w-8 h-8 rounded-full bg-black/50 hover:bg-black/80 text-white flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition cursor-pointer shadow-md"
                 aria-label="Poster sau"
               >
                 <i class="fa-solid fa-chevron-right"></i>
               </button>
-
-              <!-- Dots navigation -->
-              <div class="absolute bottom-2 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5">
-                {#each posters as _, dotIdx}
-                  <button
-                    type="button"
-                    onclick={() => activePosterIndex = dotIdx}
-                    class="w-2 h-2 rounded-full transition-all cursor-pointer {dotIdx === activePosterIndex ? 'w-5 bg-blue-900' : 'bg-slate-300'}"
-                    aria-label="Chuyển đến poster {dotIdx + 1}"
-                  ></button>
-                {/each}
-              </div>
             {/if}
           </div>
         </div>
@@ -208,17 +214,24 @@
   <!-- Category Quick Browse -->
   <section class="space-y-4">
     <div class="flex items-center justify-between">
-      <h2 class="text-xl font-black text-blue-950">{themeStore.theme.categoryBlockStyle?.sectionTitle || 'Danh Mục Mua Sắm Phổ Biến'}</h2>
+      <div>
+        <h2 class="text-xl sm:text-2xl font-black text-blue-950 flex items-center gap-2">
+          <i class="fa-solid fa-layer-group text-blue-800 text-lg"></i>
+          {themeStore.theme.categoryBlockStyle?.sectionTitle || 'Danh Mục Mua Sắm Phổ Biến'}
+        </h2>
+        <p class="text-xs text-slate-500 mt-0.5">Khám phá hàng ngàn sản phẩm chính hãng theo từng ngành hàng</p>
+      </div>
       <button
         type="button"
         onclick={() => appStore.setTab('shop')}
-        class="text-blue-900 font-bold text-xs hover:underline cursor-pointer"
+        class="text-blue-900 font-bold text-xs sm:text-sm hover:underline cursor-pointer flex items-center gap-1 group"
       >
-        Xem tất cả danh mục &rarr;
+        <span>Xem tất cả</span>
+        <i class="fa-solid fa-arrow-right text-xs transition-transform group-hover:translate-x-1"></i>
       </button>
     </div>
 
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3.5">
       {#each categories as cat}
         <button
           type="button"
@@ -226,9 +239,9 @@
             appStore.selectedCategory = cat.key;
             appStore.setTab('shop');
           }}
-          class="p-4 rounded-2xl bg-white border border-slate-200 hover:border-blue-900 hover:shadow-md transition text-center cursor-pointer group flex flex-col items-center justify-center space-y-2"
+          class="p-4 rounded-2xl bg-white border border-slate-200/90 hover:border-blue-700 hover:shadow-md transition-all duration-200 text-center cursor-pointer group flex flex-col items-center justify-center space-y-2.5 hover:-translate-y-0.5"
         >
-          <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-900 flex items-center justify-center text-xl group-hover:bg-blue-900 group-hover:text-white transition overflow-hidden p-1.5">
+          <div class="w-12 h-12 sm:w-13 sm:h-13 rounded-2xl bg-blue-50/80 text-blue-900 flex items-center justify-center text-xl group-hover:bg-blue-900 group-hover:text-white transition-all duration-200 overflow-hidden p-2 shadow-2xs">
             {#if cat.customIconImage}
               <img src={cat.customIconImage} alt={cat.label} class="w-full h-full object-contain" />
             {:else}

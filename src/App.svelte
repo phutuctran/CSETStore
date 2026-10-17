@@ -47,26 +47,15 @@
     return () => window.removeEventListener('resize', updateDimensions);
   });
 
-  // Proportional Full HD scaling is active on landscape desktop screens (>= 1200px)
-  // On portrait tablets (like iPad 1067x1536) or vertical screens, use fluid 100% width
-  let isDesktopScaled = $derived(!isMobile && isLandscape && windowWidth >= 1200);
-  let desktopScale = $derived.by(() => {
-    if (!isDesktopScaled) return 1;
-    if (windowWidth < 1920) {
-      return windowWidth / 1920;
-    }
-    return 1;
-  });
   let hasSideBanners = $derived(
     themeStore.theme.visibility.showSideAdBanners &&
     (themeStore.theme.banners?.some(b => (b.position === 'side-left' || b.position === 'side-right') && b.enabled) ?? false)
   );
 
-  // If side banners are OFF, stretch full width across widescreen monitors up to 1920px (3xl:max-w-[1920px])
   let containerWidthClass = $derived(
     hasSideBanners
-      ? 'max-w-7xl 2xl:max-w-[1400px] 3xl:max-w-[1600px]'
-      : 'max-w-7xl 2xl:max-w-[1760px] 3xl:max-w-[1920px]'
+      ? 'max-w-7xl 2xl:max-w-[1440px]'
+      : 'max-w-7xl 2xl:max-w-[1536px]'
   );
 
   // Two-way Dynamic Routing with Browser History & URL Hash
@@ -105,11 +94,8 @@
   <!-- Dedicated Mobile App Layout (Inspired by Image #1) -->
   <MobileLayout />
 {:else}
-  <!-- Desktop Layout (Full HD scaled in landscape, fluid responsive in portrait/tablets) -->
-  <div
-    class="min-h-screen flex flex-col justify-between bg-slate-50 text-slate-800 relative origin-top mx-auto"
-    style={isDesktopScaled ? `width: 1920px; min-width: 1920px; zoom: ${desktopScale};` : 'width: 100%; max-width: 100%;'}
-  >
+  <!-- Desktop Layout (Fluid responsive across all screen sizes) -->
+  <div class="min-h-screen flex flex-col justify-between bg-slate-50 text-slate-800 relative w-full overflow-x-hidden">
   <!-- Top Advertising / Announcement Banner -->
   <TopAdBanner />
 
