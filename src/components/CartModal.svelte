@@ -6,6 +6,7 @@
   let phone = $state('');
   let address = $state('');
   let isSubmitting = $state(false);
+  let isOrderCooldown = $state(false);
   let isGuestOrder = $state(false);
   let couponInput = $state('');
   $effect(() => {
@@ -16,8 +17,11 @@
     }
   });
 
-  function handleSubmitCheckout(e: Event) {
+  async function handleSubmitCheckout(e: Event) {
     e.preventDefault();
+    // Chặn double submit hoặc auto-click khi đang xử lý hoặc trong cooldown
+    if (isSubmitting || isOrderCooldown) return;
+
     if (appStore.cart.length === 0) {
       alert('Giỏ hàng trống!');
       return;
@@ -29,24 +33,34 @@
     }
 
     isSubmitting = true;
-    const order = appStore.checkout({
-      name: customerName.trim(),
-      phone: phone.trim(),
-      address: address.trim(),
-      isGuest: isGuestOrder
-    });
+    try {
+      const order = await appStore.checkout({
+        name: customerName.trim(),
+        phone: phone.trim(),
+        address: address.trim(),
+        isGuest: !appStore.currentCustomer || isGuestOrder
+      });
 
-    isSubmitting = false;
-
-    if (order) {
-      alert(
-        `Cảm ơn bạn ${customerName}! Đặt hàng thành công.\n` +
-        `Mã đơn hàng: ${order.id}\n` +
-        `CSET Store sẽ liên hệ qua số điện thoại ${phone} và giao hàng đến địa chỉ:\n${address} trong thời gian sớm nhất.`
-      );
-      customerName = '';
-      phone = '';
-      address = '';
+      if (order) {
+        alert(
+          `Cảm ơn bạn ${customerName}! Đặt hàng thành công.\n` +
+          `Mã đơn hàng: ${order.id}\n` +
+          `CSET Store sẽ liên hệ qua số điện thoại ${phone} và giao hàng đến địa chỉ:\n${address} trong thời gian sớm nhất.`
+        );
+        customerName = '';
+        phone = '';
+        address = '';
+        // Kích hoạt cooldown 3 giây sau khi đặt hàng thành công
+        isOrderCooldown = true;
+        setTimeout(() => {
+          isOrderCooldown = false;
+        }, 3000);
+      }
+    } catch (err) {
+      console.error('[CartModal] Checkout error:', err);
+      alert('Đã có lỗi xảy ra trong quá trình xử lý đơn hàng. Vui lòng thử lại!');
+    } finally {
+      isSubmitting = false;
     }
   }
 </script>
@@ -316,11 +330,19 @@
 
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isOrderCooldown}
               class="w-full py-4 rounded-xl bg-blue-900 hover:bg-blue-800 disabled:opacity-50 text-white font-bold cursor-pointer shadow-md transition flex items-center justify-center gap-2"
             >
-              <i class="fa-solid fa-check"></i>
-              <span>{isSubmitting ? 'Đang Xử Lý...' : 'Xác Nhận Đặt Hàng Ngay'}</span>
+              {#if isSubmitting}
+                <i class="fa-solid fa-spinner fa-spin"></i>
+                <span>Đang Xử Lý Đơn Hàng...</span>
+              {:else if isOrderCooldown}
+                <i class="fa-solid fa-hourglass-half"></i>
+                <span>Vui Lòng Chờ Trong Giây Lát...</span>
+              {:else}
+                <i class="fa-solid fa-check"></i>
+                <span>Xác Nhận Đặt Hàng Ngay</span>
+              {/if}
             </button>
           </form>
         </div>

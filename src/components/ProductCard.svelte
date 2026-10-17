@@ -11,6 +11,7 @@
   let { product, showQuickAdd = true }: Props = $props();
   let effectivePrice = $derived(getEffectivePrice(product));
   let discountInfo = $derived(getProductDiscountDetails(product));
+  let isAdding = $state(false);
 </script>
 
 <div
@@ -77,17 +78,36 @@
       </div>
 
       {#if showQuickAdd}
+        {@const hasVariants = Boolean(product.variantGroups && product.variantGroups.length > 0)}
         <button
           type="button"
+          disabled={isAdding}
           onclick={(e) => {
             e.stopPropagation();
+            if (isAdding) return;
+            if (hasVariants) {
+              appStore.openProductDetail(product);
+              return;
+            }
+            isAdding = true;
             appStore.addToCart(product);
+            setTimeout(() => {
+              isAdding = false;
+            }, 300);
           }}
-          class="px-3 py-2 rounded-xl bg-blue-900 hover:bg-blue-800 text-white font-semibold text-xs transition shadow-sm flex items-center gap-1.5 cursor-pointer"
-          title="Thêm vào giỏ"
+          class="px-3 py-2 rounded-xl bg-blue-900 hover:bg-blue-800 disabled:opacity-60 text-white font-semibold text-xs transition shadow-sm flex items-center gap-1.5 cursor-pointer {isAdding ? 'scale-95' : ''}"
+          title={hasVariants ? 'Chọn phân loại sản phẩm trước khi mua' : 'Thêm vào giỏ'}
         >
-          <i class="fa-solid fa-cart-plus"></i>
-          <span>{themeStore.theme.productGridStyle?.buyButtonText || 'Thêm'}</span>
+          {#if isAdding}
+            <i class="fa-solid fa-check text-xs"></i>
+            <span>Đã thêm</span>
+          {:else if hasVariants}
+            <i class="fa-solid fa-shapes text-xs"></i>
+            <span>Tùy chọn</span>
+          {:else}
+            <i class="fa-solid fa-cart-plus"></i>
+            <span>{themeStore.theme.productGridStyle?.buyButtonText || 'Thêm'}</span>
+          {/if}
         </button>
       {/if}
     </div>

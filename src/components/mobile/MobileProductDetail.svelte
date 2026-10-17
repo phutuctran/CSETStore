@@ -20,6 +20,7 @@
   let selectedVariants = $state<Record<string, string>>({});
   let missingVariantError = $state<string | null>(null);
   let isFavorite = $state<boolean>(false);
+  let isAdding = $state(false);
 
   let currentAdminUser = $derived(authService.getAdminSession());
   let isCustomerAdmin = $derived(
@@ -108,15 +109,21 @@
   }
 
   function handleAddToCart() {
+    if (isAdding) return;
     if (product && validateVariants()) {
+      isAdding = true;
       appStore.addToCart(product, quantity, { ...selectedVariants });
+      setTimeout(() => { isAdding = false; }, 300);
     }
   }
 
   function handleBuyNow() {
+    if (isAdding) return;
     if (product && validateVariants()) {
+      isAdding = true;
       appStore.addToCart(product, quantity, { ...selectedVariants });
       appStore.openCart();
+      setTimeout(() => { isAdding = false; }, 400);
     }
   }
 </script>
@@ -351,17 +358,19 @@
       <div class="flex items-center gap-2 shrink-0">
         <button
           type="button"
+          disabled={isAdding}
           onclick={handleAddToCart}
-          class="px-4 py-3 rounded-2xl border-2 border-blue-900 text-blue-900 font-bold text-xs hover:bg-blue-50 transition active:scale-95 cursor-pointer flex items-center gap-1.5"
+          class="px-4 py-3 rounded-2xl border-2 border-blue-900 text-blue-900 font-bold text-xs hover:bg-blue-50 disabled:opacity-60 transition active:scale-95 cursor-pointer flex items-center gap-1.5"
         >
-          <i class="fa-solid fa-cart-plus"></i>
-          <span>Thêm Giỏ</span>
+          <i class="fa-solid {isAdding ? 'fa-check' : 'fa-cart-plus'}"></i>
+          <span>{isAdding ? 'Đã Thêm' : 'Thêm Giỏ'}</span>
         </button>
 
         <button
           type="button"
+          disabled={isAdding}
           onclick={handleBuyNow}
-          class="px-6 py-3 rounded-2xl bg-blue-900 hover:bg-blue-800 text-white font-bold text-xs shadow-md transition active:scale-95 cursor-pointer flex items-center gap-1.5"
+          class="px-6 py-3 rounded-2xl bg-blue-900 hover:bg-blue-800 disabled:opacity-60 text-white font-bold text-xs shadow-md transition active:scale-95 cursor-pointer flex items-center gap-1.5"
         >
           <i class="fa-solid fa-bolt"></i>
           <span>Mua Ngay</span>

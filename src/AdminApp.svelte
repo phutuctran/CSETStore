@@ -39,18 +39,61 @@
   let coupons = $state<Coupon[]>(couponRepo.getAll());
   let reviews = $state<ProductReview[]>(reviewRepo.getAll());
   let toastMsg = $state<string | null>(null);
+  let isSyncingOrders = $state(false);
+  let lastOrderSyncTime = $state<string | null>(null);
+
+  async function syncOrdersFromServer(showNotification = false): Promise<void> {
+    if (typeof window === 'undefined') return;
+    isSyncingOrders = true;
+    try {
+      const serverOrders = await orderRepo.syncFromServer();
+      orders = serverOrders;
+      lastOrderSyncTime = new Date().toLocaleTimeString('vi-VN');
+      if (showNotification) {
+        showToast(`Đã đồng bộ ${serverOrders.length} đơn hàng từ máy chủ!`);
+      }
+    } catch (err) {
+      console.warn('[AdminApp] Sync orders error:', err);
+    } finally {
+      isSyncingOrders = false;
+    }
+  }
+
+  async function syncAllServerData(): Promise<void> {
+    if (typeof window === 'undefined') return;
+    await syncOrdersFromServer(false);
+    userRepo.syncFromServer().then((u) => { users = u; }).catch(() => {});
+    reviewRepo.syncFromServer().then((r) => { reviews = r; }).catch(() => {});
+  }
+
   // Pick initial tab once on login
   let initializedAdminRole = $state<string | null>(null);
   $effect(() => {
-    if (currentAdmin && initializedAdminRole !== currentAdmin.role) {
-      initializedAdminRole = currentAdmin.role;
-      if (currentAdmin.role === 'inventory_admin') {
-        activeTab = 'inventory';
-      } else {
-        activeTab = 'orders';
+    if (currentAdmin) {
+      if (initializedAdminRole !== currentAdmin.role) {
+        initializedAdminRole = currentAdmin.role;
+        if (currentAdmin.role === 'inventory_admin') {
+          activeTab = 'inventory';
+        } else {
+          activeTab = 'orders';
+        }
+        themeDraft = themeRepo.getTheme();
       }
-      themeDraft = themeRepo.getTheme();
+      if (!lastOrderSyncTime) {
+        syncAllServerData();
+      }
     }
+  });
+
+  // Periodic live refresh every 15s for new orders from customers
+  $effect(() => {
+    if (!currentAdmin) return;
+    const interval = setInterval(() => {
+      if (activeTab === 'orders') {
+        syncOrdersFromServer(false);
+      }
+    }, 15000);
+    return () => clearInterval(interval);
   });
 
   function showToast(msg: string) {
@@ -72,6 +115,7 @@
       users = userRepo.getAll();
       themeDraft = themeRepo.getTheme();
       showToast(`Chào mừng quản trị viên ${res.user.fullName}!`);
+      syncAllServerData();
     } else {
       loginError = res.message || 'Đăng nhập thất bại!';
     }
@@ -1254,7 +1298,7 @@
           {#if authService.canManageOrders(currentAdmin.role)}
             <button
               type="button"
-              onclick={() => activeTab = 'orders'}
+              onclick={() => { activeTab = 'orders'; syncOrdersFromServer(false); }}
               class="w-full text-left px-3.5 py-2.5 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center justify-between {activeTab === 'orders'
                 ? 'bg-slate-900 text-white shadow-xs'
                 : 'text-slate-700 hover:bg-slate-100'}"
@@ -1472,10 +1516,25 @@
               <h2 class="text-lg font-bold text-slate-900">Quản Lý & Theo Dõi Đơn Hàng</h2>
               <p class="text-xs text-slate-500">Xem tiến độ, thông tin khách nhận và cập nhật trạng thái đơn</p>
             </div>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 flex-wrap">
               <span class="text-xs text-slate-600 font-semibold bg-slate-200/80 px-2.5 py-1 rounded">
                 Tổng: {orders.length} đơn
               </span>
+              <button
+                type="button"
+                onclick={() => syncOrdersFromServer(true)}
+                disabled={isSyncingOrders}
+                class="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-900 hover:bg-blue-800 disabled:opacity-50 text-white text-xs font-bold rounded shadow-xs cursor-pointer transition"
+                title="Tải lại tất cả đơn hàng mới nhất từ máy chủ"
+              >
+                <i class="fa-solid fa-rotate {isSyncingOrders ? 'fa-spin' : ''}"></i>
+                <span>{isSyncingOrders ? 'Đang đồng bộ...' : 'Đồng bộ từ máy chủ'}</span>
+              </button>
+              {#if lastOrderSyncTime}
+                <span class="text-[11px] text-slate-500">
+                  (Đã đồng bộ: {lastOrderSyncTime})
+                </span>
+              {/if}
             </div>
           </div>
           <!-- ORDER FILTER CONTROLS BAR -->

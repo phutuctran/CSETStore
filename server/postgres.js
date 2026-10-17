@@ -328,18 +328,23 @@ export async function pgCreateOrder(order) {
   const sql = getSql();
   const id = order.id || 'ORD-' + Date.now().toString(36).toUpperCase();
   const createdAt = order.createdAt || new Date().toLocaleString('vi-VN');
+  const totalAmount = Math.round(Number(order.totalAmount) || 0);
+  const subtotalAmount = Math.round(Number(order.subtotalAmount || order.totalAmount) || 0);
+  const discountAmount = Math.round(Number(order.discountAmount) || 0);
+  const customerId = (order.customerId && typeof order.customerId === 'string' && order.customerId.trim()) ? order.customerId.trim() : null;
+
   await sql`
     INSERT INTO orders (
       id, customer_id, customer_name, phone_encrypted, address_encrypted,
       items_json, subtotal_amount, coupon_code, discount_amount, total_amount, status, created_at
     ) VALUES (
-      ${id}, ${order.customerId || null}, ${order.customerName},
+      ${id}, ${customerId}, ${order.customerName || 'Khách Vãng Lai'},
       ${order.phone || ''}, ${order.address || ''},
       ${JSON.stringify(order.items || [])},
-      ${order.subtotalAmount || order.totalAmount},
+      ${subtotalAmount},
       ${order.couponCode || null},
-      ${order.discountAmount || 0},
-      ${order.totalAmount},
+      ${discountAmount},
+      ${totalAmount},
       ${order.status || 'pending'},
       ${createdAt}
     );
@@ -347,6 +352,10 @@ export async function pgCreateOrder(order) {
   return {
     ...order,
     id,
+    customerId: customerId || undefined,
+    totalAmount,
+    subtotalAmount,
+    discountAmount,
     createdAt
   };
 }

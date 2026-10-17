@@ -46,6 +46,11 @@ const loginAttempts = new Map();
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_MS = 15 * 60 * 1000;
 
+// In-memory Order Rate Limiting (Anti-spam / Anti-auto-click)
+const offlineOrderRateLimits = new Map();
+const MIN_ORDER_INTERVAL_MS = 2500;
+const MAX_ORDERS_PER_MINUTE = 4;
+const RATE_WINDOW_MS = 60000;
 // Automated 12-Hour Periodic Database Backup
 const BACKUP_DIR = path.join(import.meta.dirname, 'backups');
 if (!fs.existsSync(BACKUP_DIR)) {
@@ -346,6 +351,7 @@ const server = http.createServer((req, res) => {
     // GET /api/orders
     if (req.method === 'GET' && (reqPath === '/api/orders' || reqPath === '/api/orders/')) {
       const orders = sqlGetOrders();
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
       res.writeHead(200);
       res.end(JSON.stringify({ success: true, data: orders }));
       return;
@@ -358,10 +364,43 @@ const server = http.createServer((req, res) => {
       req.on('end', () => {
         try {
           const newOrder = JSON.parse(body);
+          if (!newOrder.customerName || !newOrder.phone || !newOrder.address || !newOrder.items || !Array.isArray(newOrder.items) || newOrder.items.length === 0) {
+            res.setHeader('Content-Type', 'application/json; charset=utf-8');
+            res.writeHead(400);
+            res.end(JSON.stringify({ success: false, message: 'Thông tin đơn hàng không đầy đủ' }));
+            return;
+          }
+
+          const clientIp = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '127.0.0.1';
+          const cleanPhone = String(newOrder.phone || '').replace(/[\s+-]+/g, '');
+          const rateKey = `${clientIp}:${cleanPhone || 'anonymous'}`;
+          const now = Date.now();
+          const entry = offlineOrderRateLimits.get(rateKey) || { timestamps: [] };
+          entry.timestamps = entry.timestamps.filter(t => now - t < RATE_WINDOW_MS);
+
+          const lastTime = entry.timestamps[entry.timestamps.length - 1] || 0;
+          if (now - lastTime < MIN_ORDER_INTERVAL_MS) {
+            res.setHeader('Content-Type', 'application/json; charset=utf-8');
+            res.writeHead(429);
+            res.end(JSON.stringify({ success: false, message: 'Thao tác đặt hàng quá nhanh. Vui lòng chờ 3 giây trước khi thử lại.' }));
+            return;
+          }
+          if (entry.timestamps.length >= MAX_ORDERS_PER_MINUTE) {
+            res.setHeader('Content-Type', 'application/json; charset=utf-8');
+            res.writeHead(429);
+            res.end(JSON.stringify({ success: false, message: 'Tần suất gửi đơn hàng quá cao. Vui lòng thử lại sau 1 phút.' }));
+            return;
+          }
+
+          entry.timestamps.push(now);
+          offlineOrderRateLimits.set(rateKey, entry);
+
           const created = sqlCreateOrder(newOrder);
+          res.setHeader('Content-Type', 'application/json; charset=utf-8');
           res.writeHead(201);
           res.end(JSON.stringify({ success: true, data: created }));
         } catch (err) {
+          res.setHeader('Content-Type', 'application/json; charset=utf-8');
           res.writeHead(400);
           res.end(JSON.stringify({ success: false, message: 'Dữ liệu không hợp lệ' }));
         }

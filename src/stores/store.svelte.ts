@@ -6,6 +6,16 @@ import { getEffectivePrice } from '../services/pricingService';
 const productRepo = new LocalStorageProductRepository();
 const orderRepo = new LocalStorageOrderRepository();
 const couponRepo = new LocalStorageCouponRepository();
+
+export function getCanonicalVariantKey(variants?: Record<string, string>): string {
+  if (!variants || Object.keys(variants).length === 0) return '';
+  const sortedKeys = Object.keys(variants).sort();
+  const sortedObj: Record<string, string> = {};
+  for (const k of sortedKeys) {
+    sortedObj[k] = String(variants[k]);
+  }
+  return JSON.stringify(sortedObj);
+}
 class StoreState {
   // Navigation State (supports 'home', 'shop', 'orders', or any custom tab id)
   activeTab = $state<string>('home');
@@ -350,15 +360,57 @@ class StoreState {
     this.isCartOpen = false;
   }
 
-  addToCart(product: Product, quantity = 1, selectedVariants?: Record<string, string>) {
-    // Generate unique key for items with same product but different variants
-    const variantKey = selectedVariants ? JSON.stringify(selectedVariants) : '';
+  // Anti-spam & Throttling
+  private lastAddToCartTime = 0;
+  private addToCartBurstCount = 0;
+  private burstResetTimer: number | undefined;
+  private lastCheckoutTime = 0;
+
+  addToCart(product: Product, quantity = 1, selectedVariants?: Record<string, string>): boolean {
+    const now = Date.now();
+    const timeSinceLast = now - this.lastAddToCartTime;
+
+    // Chống auto-clicker và spam click liên tục (tối thiểu 250ms giữa 2 lần bấm)
+    if (timeSinceLast < 250) {
+      this.showToast('Thao tác quá nhanh, vui lòng chờ chút nhé!');
+      return false;
+    }
+
+    // Burst protection: Tối đa 6 lần thêm liên tục trong 2.5 giây
+    this.addToCartBurstCount += 1;
+    if (this.addToCartBurstCount > 6) {
+      this.showToast('Phát hiện thao tác liên tục! Vui lòng chờ 2 giây trước khi thêm tiếp.');
+      return false;
+    }
+    clearTimeout(this.burstResetTimer);
+    this.burstResetTimer = setTimeout(() => {
+      this.addToCartBurstCount = 0;
+    }, 2500);
+    this.lastAddToCartTime = now;
+    // Yêu cầu chọn phân loại nếu sản phẩm có variantGroups
+    if (product.variantGroups && product.variantGroups.length > 0) {
+      const hasMissing = product.variantGroups.some((vg) => !selectedVariants || !selectedVariants[vg.name]);
+      if (hasMissing) {
+        this.openProductDetail(product);
+        this.showToast(`Vui lòng chọn phân loại cho "${product.name}"!`);
+        return false;
+      }
+    }
+
+    // Gom sản phẩm cùng loại: kiểm tra trùng productId và trùng các thuộc tính phân loại (variants)
+    const targetKey = getCanonicalVariantKey(selectedVariants);
     const existingIndex = this.cart.findIndex(
-      (item) => item.productId === product.id && JSON.stringify(item.selectedVariants || '') === variantKey
+      (item) => item.productId === product.id && getCanonicalVariantKey(item.selectedVariants) === targetKey
     );
 
+    const variantSuffix = selectedVariants && Object.keys(selectedVariants).length > 0
+      ? ` (${Object.values(selectedVariants).join(', ')})`
+      : '';
+
     if (existingIndex > -1) {
+      // Nếu cùng loại thì gom về chung 1 sản phẩm và tăng số lượng
       this.cart[existingIndex].quantity += quantity;
+      this.showToast(`Đã tăng số lượng "${product.name}${variantSuffix}" lên ${this.cart[existingIndex].quantity}!`);
     } else {
       const effectivePrice = getEffectivePrice(product);
       this.cart.push({
@@ -369,14 +421,11 @@ class StoreState {
         originalPrice: product.originalPrice || (effectivePrice < product.price ? product.price : undefined),
         image: product.image,
         quantity,
-        selectedVariants
+        selectedVariants: selectedVariants && Object.keys(selectedVariants).length > 0 ? { ...selectedVariants } : undefined
       });
+      this.showToast(`Đã thêm "${product.name}${variantSuffix}" vào giỏ hàng!`);
     }
-
-    const variantSuffix = selectedVariants && Object.keys(selectedVariants).length > 0
-      ? ` (${Object.values(selectedVariants).join(', ')})`
-      : '';
-    this.showToast(`Đã thêm "${product.name}${variantSuffix}" vào giỏ hàng!`);
+    return true;
   }
 
   addCustomOrderToCart(customOrder: { fileName: string; grams: number; hours: number; price: number; infill: number }) {
@@ -412,18 +461,25 @@ class StoreState {
   }
 
   // Checkout Action
-  checkout(customer: { name: string; phone: string; address: string; isGuest?: boolean }): Order | null {
+  async checkout(customer: { name: string; phone: string; address: string; isGuest?: boolean }): Promise<Order | null> {
+    const now = Date.now();
+    // Chống double submit / auto-click khi đặt hàng
+    if (now - this.lastCheckoutTime < 3000) {
+      this.showToast('Đơn hàng của bạn đang được xử lý, vui lòng không gửi lại liên tục!');
+      return null;
+    }
+
     if (this.cart.length === 0) {
       this.showToast('Giỏ hàng của bạn đang trống!');
       return null;
     }
-
+    this.lastCheckoutTime = now;
     const subtotal = this.subtotal;
     const discount = this.discountAmount;
     const finalTotal = this.cartTotal;
     const coupon = this.appliedCoupon;
 
-    const newOrder = orderRepo.create({
+    const newOrder = await orderRepo.create({
       customerId: !customer.isGuest && this.currentCustomer ? this.currentCustomer.id : undefined,
       customerName: customer.name,
       phone: customer.phone,

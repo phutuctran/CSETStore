@@ -6,7 +6,7 @@
   let quantity = $state<number>(1);
   let selectedImage = $state<string>('');
   let selectedVariants = $state<Record<string, string>>({});
-
+  let isAdding = $state(false);
   let effectivePrice = $derived(product ? getEffectivePrice(product) : 0);
   let discountInfo = $derived(product ? getProductDiscountDetails(product) : { hasDiscount: false, discountPercent: 0 });
 
@@ -28,9 +28,14 @@
   });
 
   function handleAddToCart() {
+    if (isAdding) return;
     if (product) {
+      isAdding = true;
       appStore.addToCart(product, quantity, { ...selectedVariants });
-      appStore.closeProductDetail();
+      setTimeout(() => {
+        isAdding = false;
+        appStore.closeProductDetail();
+      }, 250);
     }
   }
 </script>
@@ -130,7 +135,83 @@
               {/if}
             </div>
           </div>
+          <!-- Variant Selector (Phân loại sản phẩm: Màu sắc, Size, ...) -->
+          {#if product.variantGroups && product.variantGroups.length > 0}
+            <div class="p-4 rounded-2xl bg-blue-50/70 border border-blue-200/80 space-y-3.5">
+              <div class="flex items-center justify-between text-xs">
+                <span class="font-bold text-blue-950 flex items-center gap-1.5 uppercase tracking-wider text-[11px]">
+                  <i class="fa-solid fa-shapes text-blue-900"></i>
+                  Tùy Chọn Phân Loại *
+                </span>
+                <span class="text-[11px] font-semibold text-blue-800 bg-white px-2 py-0.5 rounded-full border border-blue-100">
+                  Vui lòng chọn trước khi thêm
+                </span>
+              </div>
+              {#each product.variantGroups as vg}
+                <div class="space-y-1.5">
+                  <div class="flex items-center justify-between text-xs">
+                    <span class="font-bold text-slate-700">{vg.name}:</span>
+                    <span class="font-semibold text-blue-900 bg-white px-2.5 py-0.5 rounded-lg border border-blue-100">{selectedVariants[vg.name] || 'Chưa chọn'}</span>
+                  </div>
+                  <div class="flex flex-wrap gap-2">
+                    {#each vg.options as opt}
+                      {@const isSelected = selectedVariants[vg.name] === opt}
+                      <button
+                        type="button"
+                        onclick={() => { selectedVariants[vg.name] = opt; }}
+                        class="px-3.5 py-1.5 rounded-xl text-xs font-semibold border transition cursor-pointer {isSelected
+                          ? 'bg-blue-900 text-white border-blue-900 shadow-sm font-bold scale-[1.02]'
+                          : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300'}"
+                      >
+                        {opt}
+                      </button>
+                    {/each}
+                  </div>
+                </div>
+              {/each}
+            </div>
+          {/if}
 
+          <!-- Quantity Selector & Add to Cart -->
+          <div class="space-y-3 pt-1 border-t border-slate-200">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-slate-600 uppercase">Số lượng:</span>
+              <div class="flex items-center border border-slate-300 rounded-xl overflow-hidden bg-slate-50">
+                <button
+                  type="button"
+                  onclick={() => quantity = Math.max(1, quantity - 1)}
+                  class="px-3 py-1.5 hover:bg-slate-200 text-slate-700 transition cursor-pointer"
+                  aria-label="Giảm số lượng"
+                >
+                  <i class="fa-solid fa-minus text-xs"></i>
+                </button>
+                <span class="px-4 py-1.5 font-bold text-sm text-blue-950 min-w-10 text-center">{quantity}</span>
+                <button
+                  type="button"
+                  onclick={() => quantity += 1}
+                  class="px-3 py-1.5 hover:bg-slate-200 text-slate-700 transition cursor-pointer"
+                  aria-label="Tăng số lượng"
+                >
+                  <i class="fa-solid fa-plus text-xs"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Action Button -->
+            <div class="pt-1">
+              <button
+                type="button"
+                disabled={isAdding}
+                onclick={handleAddToCart}
+                class="w-full py-4 rounded-xl bg-blue-900 hover:bg-blue-800 disabled:opacity-60 text-white font-bold shadow-lg cursor-pointer transition flex items-center justify-center gap-2"
+              >
+                <i class="fa-solid {isAdding ? 'fa-check' : 'fa-cart-plus'}"></i>
+                <span>{isAdding ? 'Đang Thêm...' : 'Thêm Vào Giỏ Hàng'}</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Description & Specifications Accordion / Block -->
           <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
             <span class="text-xs font-bold text-slate-500 uppercase block tracking-wider">
               Mô tả chi tiết sản phẩm:
@@ -165,69 +246,6 @@
                 </div>
               </div>
             {/if}
-          </div>
-          <!-- Variant Selector (Phân loại sản phẩm: Màu sắc, Size, ...) -->
-          {#if product.variantGroups && product.variantGroups.length > 0}
-            <div class="space-y-3 pt-1 border-t border-slate-200">
-              {#each product.variantGroups as vg}
-                <div class="space-y-1.5">
-                  <div class="flex items-center justify-between text-xs">
-                    <span class="font-bold text-slate-700 uppercase">{vg.name}:</span>
-                    <span class="font-semibold text-blue-900">{selectedVariants[vg.name] || 'Chưa chọn'}</span>
-                  </div>
-                  <div class="flex flex-wrap gap-2">
-                    {#each vg.options as opt}
-                      {@const isSelected = selectedVariants[vg.name] === opt}
-                      <button
-                        type="button"
-                        onclick={() => { selectedVariants[vg.name] = opt; }}
-                        class="px-3 py-1.5 rounded-lg text-xs font-semibold border transition cursor-pointer {isSelected
-                          ? 'bg-blue-900 text-white border-blue-900 shadow-xs'
-                          : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300'}"
-                      >
-                        {opt}
-                      </button>
-                    {/each}
-                  </div>
-                </div>
-              {/each}
-            </div>
-          {/if}
-
-          <!-- Quantity Selector -->
-          <div class="flex items-center space-x-4">
-            <span class="text-xs font-bold text-slate-600 uppercase">Số lượng:</span>
-            <div class="flex items-center border border-slate-300 rounded-xl overflow-hidden bg-slate-50">
-              <button
-                type="button"
-                onclick={() => quantity = Math.max(1, quantity - 1)}
-                class="px-3 py-1.5 hover:bg-slate-200 text-slate-700 transition cursor-pointer"
-                aria-label="Giảm số lượng"
-              >
-                <i class="fa-solid fa-minus text-xs"></i>
-              </button>
-              <span class="px-4 py-1.5 font-bold text-sm text-blue-950 min-w-10 text-center">{quantity}</span>
-              <button
-                type="button"
-                onclick={() => quantity += 1}
-                class="px-3 py-1.5 hover:bg-slate-200 text-slate-700 transition cursor-pointer"
-                aria-label="Tăng số lượng"
-              >
-                <i class="fa-solid fa-plus text-xs"></i>
-              </button>
-            </div>
-          </div>
-
-          <!-- Actions -->
-          <div class="flex gap-4 pt-1">
-            <button
-              type="button"
-              onclick={handleAddToCart}
-              class="flex-grow py-4 rounded-xl bg-blue-900 hover:bg-blue-800 text-white font-bold shadow-lg cursor-pointer transition flex items-center justify-center gap-2"
-            >
-              <i class="fa-solid fa-cart-plus"></i>
-              <span>Thêm Vào Giỏ Hàng</span>
-            </button>
           </div>
         </div>
       </div>

@@ -840,24 +840,38 @@ export function sqlCreateOrder(order) {
   const id = order.id || 'ORD-' + Date.now().toString(36).toUpperCase();
   const encPhone = encryptSensitiveData(order.phone || '');
   const encAddress = encryptSensitiveData(order.address || '');
+  const totalAmount = Math.round(Number(order.totalAmount) || 0);
+  const subtotalAmount = Math.round(Number(order.subtotalAmount || order.totalAmount) || 0);
+  const discountAmount = Math.round(Number(order.discountAmount) || 0);
+  const customerId = (order.customerId && typeof order.customerId === 'string' && order.customerId.trim()) ? order.customerId.trim() : null;
+  const createdAt = order.createdAt || new Date().toLocaleString('vi-VN');
+
   db.prepare(`
     INSERT INTO orders (id, customer_id, customer_name, phone_encrypted, address_encrypted, items_json, total_amount, subtotal_amount, coupon_code, discount_amount, status, created_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     id,
-    order.customerId || null,
-    order.customerName,
+    customerId,
+    order.customerName || 'Khách Vãng Lai',
     encPhone,
     encAddress,
-    JSON.stringify(order.items),
-    order.totalAmount,
-    order.subtotalAmount || null,
+    JSON.stringify(order.items || []),
+    totalAmount,
+    subtotalAmount,
     order.couponCode || null,
-    order.discountAmount || 0,
+    discountAmount,
     order.status || 'pending',
-    order.createdAt || new Date().toLocaleString('vi-VN')
+    createdAt
   );
-  return { ...order, id };
+  return {
+    ...order,
+    id,
+    customerId: customerId || undefined,
+    totalAmount,
+    subtotalAmount,
+    discountAmount,
+    createdAt
+  };
 }
 
 export function sqlUpdateOrderStatus(id, status) {

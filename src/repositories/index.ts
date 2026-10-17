@@ -45,7 +45,7 @@ export interface IProductRepository {
 export interface IOrderRepository {
   getAll(): Order[];
   getByCustomerId(customerId: string): Order[];
-  create(order: Omit<Order, 'id' | 'createdAt'>): Order;
+  create(order: Omit<Order, 'id' | 'createdAt'>): Promise<Order>;
   updateStatus(id: string, status: Order['status']): boolean;
 }
 
@@ -186,7 +186,7 @@ export class LocalStorageOrderRepository implements IOrderRepository {
     return this.getAll().filter((o) => o.customerId === customerId);
   }
 
-  create(orderData: Omit<Order, 'id' | 'createdAt'>): Order {
+  async create(orderData: Omit<Order, 'id' | 'createdAt'>): Promise<Order> {
     const list = this.getAll();
     const newOrder: Order = {
       ...orderData,
@@ -196,11 +196,28 @@ export class LocalStorageOrderRepository implements IOrderRepository {
     list.unshift(newOrder);
     getSafeStorage().setItem(ORDERS_STORAGE_KEY, JSON.stringify(list));
     if (typeof window !== 'undefined' && typeof fetch === 'function') {
-      fetch('/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newOrder)
-      }).catch(() => {});
+      try {
+        const res = await fetch('/api/orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newOrder)
+        });
+        if (!res.ok) {
+          const errJson = await res.json().catch(() => ({}));
+          console.error('[OrderRepo] Server failed to create order:', res.status, errJson);
+        } else {
+          const resJson = await res.json().catch(() => null);
+          if (resJson && resJson.data && resJson.data.id) {
+            const idx = list.findIndex(o => o.id === newOrder.id);
+            if (idx !== -1) {
+              list[idx] = { ...newOrder, ...resJson.data };
+              getSafeStorage().setItem(ORDERS_STORAGE_KEY, JSON.stringify(list));
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('[OrderRepo] Network error posting order to server:', err);
+      }
     }
     return newOrder;
   }

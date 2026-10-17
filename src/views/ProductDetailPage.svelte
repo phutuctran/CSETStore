@@ -19,6 +19,7 @@
   let selectedImage = $state<string>('');
   let selectedVariants = $state<Record<string, string>>({});
   let missingVariantError = $state<string | null>(null);
+  let isAdding = $state(false);
   // Phân quyền Quản Trị Viên trên Storefront:
   // Khách hàng thông thường (role: 'customer') hoặc khách vãng lai (chưa đăng nhập) TUYỆT ĐỐI KHÔNG có quyền Admin.
   // Chỉ tài khoản đăng nhập có vai trò Quản Trị Viên (super_admin, sales_admin, inventory_admin) mới có quyền Admin.
@@ -183,15 +184,21 @@
   }
 
   function handleAddToCart() {
+    if (isAdding) return;
     if (product && validateVariants()) {
+      isAdding = true;
       appStore.addToCart(product, quantity, { ...selectedVariants });
+      setTimeout(() => { isAdding = false; }, 300);
     }
   }
 
   function handleBuyNow() {
+    if (isAdding) return;
     if (product && validateVariants()) {
+      isAdding = true;
       appStore.addToCart(product, quantity, { ...selectedVariants });
       appStore.openCart();
+      setTimeout(() => { isAdding = false; }, 400);
     }
   }
 
@@ -483,17 +490,19 @@
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <button
               type="button"
+              disabled={isAdding}
               onclick={handleAddToCart}
-              class="w-full py-4 rounded-2xl bg-white border-2 border-blue-900 text-blue-900 hover:bg-blue-50 font-bold transition shadow-sm cursor-pointer flex items-center justify-center gap-2"
+              class="w-full py-4 rounded-2xl bg-white border-2 border-blue-900 text-blue-900 hover:bg-blue-50 disabled:opacity-60 font-bold transition shadow-sm cursor-pointer flex items-center justify-center gap-2"
             >
-              <i class="fa-solid fa-cart-plus text-base"></i>
-              <span>Thêm Vào Giỏ Hàng</span>
+              <i class="fa-solid {isAdding ? 'fa-check' : 'fa-cart-plus'} text-base"></i>
+              <span>{isAdding ? 'Đang thêm...' : 'Thêm Vào Giỏ Hàng'}</span>
             </button>
 
             <button
               type="button"
+              disabled={isAdding}
               onclick={handleBuyNow}
-              class="w-full py-4 rounded-2xl bg-blue-900 hover:bg-blue-800 text-white font-bold transition shadow-lg cursor-pointer flex items-center justify-center gap-2"
+              class="w-full py-4 rounded-2xl bg-blue-900 hover:bg-blue-800 disabled:opacity-60 text-white font-bold transition shadow-lg cursor-pointer flex items-center justify-center gap-2"
             >
               <i class="fa-solid fa-bolt text-base"></i>
               <span>Mua Ngay</span>
