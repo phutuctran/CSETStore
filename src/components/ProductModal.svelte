@@ -1,7 +1,7 @@
 <script lang="ts">
   import { appStore } from '../stores/store.svelte';
-  import { formatCurrency, getEffectivePrice, getProductDiscountDetails } from '../services/pricingService';
-
+import { formatCurrency, getEffectivePrice, getProductDiscountDetails, getProductMaxPurchaseLimit } from '../services/pricingService';
+import { themeStore } from '../stores/themeStore.svelte';
   let product = $derived(appStore.selectedProduct);
   let quantity = $state<number>(1);
   let selectedImage = $state<string>('');
@@ -9,7 +9,8 @@
   let isAdding = $state(false);
   let effectivePrice = $derived(product ? getEffectivePrice(product) : 0);
   let discountInfo = $derived(product ? getProductDiscountDetails(product) : { hasDiscount: false, discountPercent: 0 });
-
+  let purchaseLimit = $derived(product ? getProductMaxPurchaseLimit(product, themeStore.theme.defaultMaxPurchaseLimit) : undefined);
+  let maxAllowedQty = $derived(purchaseLimit && purchaseLimit > 0 ? purchaseLimit : (product?.stock ?? 999));
   $effect(() => {
     if (appStore.isProductModalOpen && product) {
       quantity = 1;
@@ -174,8 +175,16 @@
 
           <!-- Quantity Selector & Add to Cart -->
           <div class="space-y-3 pt-1 border-t border-slate-200">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-bold text-slate-600 uppercase">Số lượng:</span>
+            <div class="flex items-center justify-between gap-2 flex-wrap">
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-bold text-slate-600 uppercase">Số lượng:</span>
+                {#if purchaseLimit && purchaseLimit > 0}
+                  <span class="text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md inline-flex items-center gap-1">
+                    <i class="fa-solid fa-circle-exclamation text-amber-600"></i>
+                    <span>Tối đa {purchaseLimit} sp/đơn</span>
+                  </span>
+                {/if}
+              </div>
               <div class="flex items-center border border-slate-300 rounded-xl overflow-hidden bg-slate-50">
                 <button
                   type="button"
@@ -188,15 +197,21 @@
                 <span class="px-4 py-1.5 font-bold text-sm text-blue-950 min-w-10 text-center">{quantity}</span>
                 <button
                   type="button"
-                  onclick={() => quantity += 1}
-                  class="px-3 py-1.5 hover:bg-slate-200 text-slate-700 transition cursor-pointer"
+                  disabled={quantity >= maxAllowedQty}
+                  onclick={() => {
+                    if (quantity < maxAllowedQty) {
+                      quantity += 1;
+                    } else {
+                      appStore.showToast(`Đã đạt giới hạn mua tối đa (${purchaseLimit} sản phẩm) cho sản phẩm này!`);
+                    }
+                  }}
+                  class="px-3 py-1.5 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed text-slate-700 transition cursor-pointer"
                   aria-label="Tăng số lượng"
                 >
                   <i class="fa-solid fa-plus text-xs"></i>
                 </button>
               </div>
             </div>
-
             <!-- Action Button -->
             <div class="pt-1">
               <button

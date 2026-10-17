@@ -67,3 +67,20 @@ export function calculateCustomQuote(fileSizeBytes: number, infillPercent: numbe
   const price = grams * 3000 + 50000;
   return { grams, hours, price };
 }
+
+/**
+ * Lấy giới hạn số lượng mua tối đa cho sản phẩm trong 1 đơn hàng.
+ * Ưu tiên:
+ * 1. Giới hạn riêng của sản phẩm (`product.maxPurchaseLimit`) nếu > 0.
+ * 2. Giới hạn chung toàn hệ thống (`defaultLimit`) nếu > 0.
+ * 3. Trả về undefined nếu không giới hạn.
+ */
+export function getProductMaxPurchaseLimit(product: Product, defaultLimit?: number): number | undefined {
+  if (typeof product.maxPurchaseLimit === 'number' && product.maxPurchaseLimit > 0) {
+    return product.maxPurchaseLimit;
+  }
+  if (typeof defaultLimit === 'number' && defaultLimit > 0) {
+    return defaultLimit;
+  }
+  return undefined;
+}

@@ -241,6 +241,7 @@ export function initDatabaseSchema() {
   `);
   try { db.exec("ALTER TABLE products ADD COLUMN sold_count INTEGER DEFAULT 0;"); } catch {}
   try { db.exec("ALTER TABLE products ADD COLUMN show_on_home INTEGER DEFAULT 0;"); } catch {}
+  try { db.exec("ALTER TABLE products ADD COLUMN max_purchase_limit INTEGER DEFAULT 0;"); } catch {}
   // Ensure all detailed user profile columns exist
   const userCols = db.prepare('PRAGMA table_info(users)').all().map(c => c.name);
   const missingUserCols = ['email', 'city', 'district', 'ward', 'gender', 'birthday', 'avatar', 'bio'];
@@ -438,7 +439,8 @@ export function sqlGetProducts() {
     variantGroups: r.variant_groups_json ? JSON.parse(r.variant_groups_json) : undefined,
     rating: r.rating,
     soldCount: r.sold_count || 0,
-    showOnHome: r.show_on_home === 1
+    showOnHome: r.show_on_home === 1,
+    maxPurchaseLimit: r.max_purchase_limit || undefined
   }));
 }
 
@@ -469,7 +471,8 @@ export function sqlGetProductById(id) {
     variantGroups: r.variant_groups_json ? JSON.parse(r.variant_groups_json) : undefined,
     rating: r.rating,
     soldCount: r.sold_count || 0,
-    showOnHome: r.show_on_home === 1
+    showOnHome: r.show_on_home === 1,
+    maxPurchaseLimit: r.max_purchase_limit || undefined
   };
 }
 
@@ -477,8 +480,8 @@ export function sqlCreateProduct(p) {
   const maxId = db.prepare('SELECT MAX(id) as maxId FROM products').get()?.maxId || 0;
   const newId = p.id || maxId + 1;
   db.prepare(`
-    INSERT INTO products (id, name, category, sub_category, price, original_price, discount_percent, discount_start_date, discount_end_date, image, images_json, description, brand, sku, stock, origin, warranty, weight, condition, specifications_json, variant_groups_json, rating, sold_count, show_on_home)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO products (id, name, category, sub_category, price, original_price, discount_percent, discount_start_date, discount_end_date, image, images_json, description, brand, sku, stock, origin, warranty, weight, condition, specifications_json, variant_groups_json, rating, sold_count, show_on_home, max_purchase_limit)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     newId,
     p.name,
@@ -503,7 +506,8 @@ export function sqlCreateProduct(p) {
     p.variantGroups ? JSON.stringify(p.variantGroups) : null,
     p.rating || 5.0,
     p.soldCount || 0,
-    p.showOnHome ? 1 : 0
+    p.showOnHome ? 1 : 0,
+    p.maxPurchaseLimit || 0
   );
   return sqlGetProductById(newId);
 }
@@ -518,7 +522,7 @@ export function sqlUpdateProduct(id, patch) {
       discount_percent = ?, discount_start_date = ?, discount_end_date = ?, image = ?,
       images_json = ?, description = ?, brand = ?, sku = ?, stock = ?, origin = ?,
       warranty = ?, weight = ?, condition = ?, specifications_json = ?, variant_groups_json = ?,
-      sold_count = ?, show_on_home = ?
+      sold_count = ?, show_on_home = ?, max_purchase_limit = ?
     WHERE id = ?
   `).run(
     merged.name,
@@ -543,6 +547,7 @@ export function sqlUpdateProduct(id, patch) {
     merged.variantGroups ? JSON.stringify(merged.variantGroups) : null,
     merged.soldCount || 0,
     merged.showOnHome ? 1 : 0,
+    merged.maxPurchaseLimit || 0,
     id
   );
   return true;

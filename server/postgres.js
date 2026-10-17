@@ -48,7 +48,8 @@ export async function pgGetProducts() {
     specifications: r.specifications_json ? JSON.parse(r.specifications_json) : [],
     variantGroups: r.variant_groups_json ? JSON.parse(r.variant_groups_json) : [],
     soldCount: r.sold_count || 0,
-    showOnHome: Boolean(r.show_on_home)
+    showOnHome: Boolean(r.show_on_home),
+    maxPurchaseLimit: r.max_purchase_limit || undefined
   }));
 }
 
@@ -80,7 +81,8 @@ export async function pgGetProductById(id) {
     specifications: r.specifications_json ? JSON.parse(r.specifications_json) : [],
     variantGroups: r.variant_groups_json ? JSON.parse(r.variant_groups_json) : [],
     soldCount: r.sold_count || 0,
-    showOnHome: Boolean(r.show_on_home)
+    showOnHome: Boolean(r.show_on_home),
+    maxPurchaseLimit: r.max_purchase_limit || undefined
   };
 }
 
@@ -97,14 +99,15 @@ export async function pgCreateProduct(p) {
       discount_percent, discount_start_date, discount_end_date,
       image, images_json, description, brand, sku, stock, origin,
       warranty, weight, condition, specifications_json, variant_groups_json,
-      sold_count, show_on_home
+      sold_count, show_on_home, max_purchase_limit
     ) VALUES (
       ${newId}, ${p.name}, ${p.category}, ${p.subCategory || null}, ${p.price}, ${p.originalPrice || null},
       ${p.discountPercent || null}, ${p.discountStartDate || null}, ${p.discountEndDate || null},
       ${p.image}, ${p.images ? JSON.stringify(p.images) : null}, ${p.description}, ${p.brand || null},
       ${p.sku || null}, ${p.stock || 50}, ${p.origin || null}, ${p.warranty || null}, ${p.weight || null},
       ${p.condition || null}, ${p.specifications ? JSON.stringify(p.specifications) : null},
-      ${p.variantGroups ? JSON.stringify(p.variantGroups) : null}, ${p.soldCount || 0}, ${p.showOnHome ? 1 : 0}
+      ${p.variantGroups ? JSON.stringify(p.variantGroups) : null}, ${p.soldCount || 0}, ${p.showOnHome ? 1 : 0},
+      ${p.maxPurchaseLimit || 0}
     );
   `;
   return pgGetProductById(newId);
@@ -138,7 +141,8 @@ export async function pgUpdateProduct(id, patch) {
       specifications_json = ${merged.specifications ? JSON.stringify(merged.specifications) : null},
       variant_groups_json = ${merged.variantGroups ? JSON.stringify(merged.variantGroups) : null},
       sold_count = ${merged.soldCount || 0},
-      show_on_home = ${merged.showOnHome ? 1 : 0}
+      show_on_home = ${merged.showOnHome ? 1 : 0},
+      max_purchase_limit = ${merged.maxPurchaseLimit || 0}
     WHERE id = ${id};
   `;
   return true;

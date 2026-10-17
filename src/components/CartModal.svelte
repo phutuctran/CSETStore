@@ -1,6 +1,7 @@
 <script lang="ts">
   import { appStore } from '../stores/store.svelte';
-  import { formatCurrency } from '../services/pricingService';
+import { formatCurrency, getProductMaxPurchaseLimit } from '../services/pricingService';
+import { themeStore } from '../stores/themeStore.svelte';
 
   let customerName = $state('');
   let phone = $state('');
@@ -122,8 +123,9 @@
       {:else}
         <div class="space-y-3 max-h-60 overflow-y-auto pr-1">
           {#each appStore.cart as item (item.id)}
+            {@const prod = item.productId ? appStore.products.find(p => p.id === item.productId) : undefined}
+            {@const limit = prod ? getProductMaxPurchaseLimit(prod, themeStore.theme.defaultMaxPurchaseLimit) : undefined}
             <div class="flex items-center justify-between bg-slate-50 p-3.5 rounded-2xl border border-slate-200 gap-3">
-              <div class="flex items-center space-x-3 min-w-0">
                 <img
                   src={item.image}
                   alt={item.name}
@@ -140,6 +142,11 @@
                         </span>
                       {/each}
                     </div>
+                  {/if}
+                  {#if limit && limit > 0}
+                    <span class="inline-block text-[10px] text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded font-semibold mt-0.5">
+                      Giới hạn: tối đa {limit} sp
+                    </span>
                   {/if}
                   {#if item.details?.isCustom}
                     <span class="inline-block text-[10px] bg-blue-100 text-blue-900 font-bold px-2 py-0.5 rounded mt-0.5">
@@ -162,12 +169,13 @@
                   <span class="px-2 py-1 font-bold text-slate-800">{item.quantity}</span>
                   <button
                     type="button"
+                    disabled={Boolean(limit && limit > 0 && item.quantity >= limit)}
                     onclick={() => appStore.updateCartQuantity(item.id, 1)}
-                    class="px-2 py-1 hover:bg-slate-100 text-slate-600"
+                    class="px-2 py-1 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed text-slate-600"
+                    title={limit && limit > 0 && item.quantity >= limit ? `Đã đạt giới hạn tối đa (${limit} sản phẩm)` : 'Tăng số lượng'}
                   >
                     +
                   </button>
-                </div>
 
                 <button
                   type="button"

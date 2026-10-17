@@ -486,8 +486,10 @@
   ]);
   let pSoldCount = $state<number>(0);
   let pShowOnHome = $state<boolean>(false);
+  let pMaxPurchaseLimit = $state<number | null>(null);
   let edPSoldCount = $state<number>(0);
   let edPShowOnHome = $state<boolean>(false);
+  let edPMaxPurchaseLimit = $state<number | null>(null);
   interface VariantGroupDraft {
     name: string;
     optionsStr: string;
@@ -641,6 +643,7 @@
       variantGroups: validVariantGroups.length > 0 ? validVariantGroups : undefined,
       soldCount: pSoldCount || 0,
       showOnHome: pShowOnHome,
+      maxPurchaseLimit: (pMaxPurchaseLimit && pMaxPurchaseLimit > 0) ? pMaxPurchaseLimit : undefined,
       image,
       images: pImagesList.length > 0 ? pImagesList : [image],
       description: pDesc.trim() || 'Sản phẩm chính hãng chất lượng cao tại CSET Store.'
@@ -667,6 +670,7 @@
     pVariantGroups = [];
     pSoldCount = 0;
     pShowOnHome = false;
+    pMaxPurchaseLimit = null;
   }
 
   function handleOpenEditProduct(p: Product) {
@@ -695,6 +699,7 @@
       : [];
     edPSoldCount = p.soldCount || 0;
     edPShowOnHome = Boolean(p.showOnHome);
+    edPMaxPurchaseLimit = p.maxPurchaseLimit || null;
   }
   function handleEditProductMultipleImages(e: Event) {
     const input = e.target as HTMLInputElement;
@@ -746,6 +751,7 @@
       variantGroups: validEdVariantGroups.length > 0 ? validEdVariantGroups : undefined,
       soldCount: edPSoldCount || 0,
       showOnHome: edPShowOnHome,
+      maxPurchaseLimit: (edPMaxPurchaseLimit && edPMaxPurchaseLimit > 0) ? edPMaxPurchaseLimit : undefined,
     });
     products = productRepo.getAll();
     showToast(`Đã lưu thay đổi cho sản phẩm "${edPName}"!`);
@@ -1866,6 +1872,21 @@
                 </div>
 
                 <div class="space-y-1">
+                  <label for="inv-limit" class="font-semibold text-slate-700 flex justify-between items-center">
+                    <span>Giới hạn mua / đơn</span>
+                    <span class="text-[10px] text-slate-400 font-normal">0 = theo chung</span>
+                  </label>
+                  <input
+                    id="inv-limit"
+                    type="number"
+                    min="0"
+                    bind:value={pMaxPurchaseLimit}
+                    placeholder="0 (áp dụng giới hạn chung)"
+                    class="w-full border border-slate-300 rounded px-3 py-1.5 text-xs text-slate-900 focus:outline-none"
+                    title="Số lượng mua tối đa cho mỗi đơn hàng (0 hoặc để trống = theo giới hạn chung)"
+                  />
+                </div>
+                <div class="space-y-1">
                   <span class="font-semibold text-slate-700 block text-xs">Hiển Thị Nổi Bật Trang Chủ</span>
                   <label class="flex items-center gap-2 p-1.5 rounded border border-slate-300 bg-white cursor-pointer hover:bg-slate-50">
                     <input type="checkbox" bind:checked={pShowOnHome} class="w-4 h-4 accent-amber-500 cursor-pointer" />
@@ -2296,7 +2317,14 @@
                             </span>
                           {/if}
                         </td>
-                        <td class="p-2.5">{p.stock ?? 50}</td>
+                        <td class="p-2.5">
+                          <span class="font-semibold">{p.stock ?? 50}</span>
+                          {#if p.maxPurchaseLimit && p.maxPurchaseLimit > 0}
+                            <span class="block text-[10px] text-amber-800 bg-amber-50 border border-amber-200 px-1 py-0.5 rounded font-semibold w-max mt-0.5" title="Giới hạn số lượng mua trong 1 đơn">
+                              Tối đa: {p.maxPurchaseLimit}
+                            </span>
+                          {/if}
+                        </td>
                         <td class="p-2.5 text-center space-x-2">
                           <button
                             type="button"
@@ -2404,6 +2432,21 @@
                       <input id="ed-pr-sold" type="number" min="0" bind:value={edPSoldCount} class="w-full border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-900 focus:outline-none" />
                     </div>
 
+                    <div class="space-y-1">
+                      <label for="ed-pr-limit" class="font-semibold text-slate-700 flex justify-between items-center">
+                        <span>Giới hạn mua / đơn</span>
+                        <span class="text-[10px] text-slate-400 font-normal">0 = theo chung</span>
+                      </label>
+                      <input
+                        id="ed-pr-limit"
+                        type="number"
+                        min="0"
+                        bind:value={edPMaxPurchaseLimit}
+                        placeholder="0 (áp dụng giới hạn chung)"
+                        class="w-full border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-900 focus:outline-none"
+                        title="Số lượng mua tối đa cho mỗi đơn hàng (0 hoặc để trống = theo giới hạn chung)"
+                      />
+                    </div>
                     <div class="space-y-1">
                       <span class="font-semibold text-slate-700 block text-xs">Ghim Khối Nổi Bật Trang Chủ</span>
                       <label class="flex items-center gap-2 p-1.5 rounded border border-slate-300 bg-white cursor-pointer hover:bg-slate-50">
@@ -5018,6 +5061,22 @@
                     <div class="space-y-1">
                       <label for="pg-btn" class="font-semibold text-slate-700">Chữ trên nút mua nhanh</label>
                       <input id="pg-btn" type="text" bind:value={themeDraft.productGridStyle.buyButtonText} class="w-full border border-slate-300 rounded px-3 py-1.5" />
+                    </div>
+
+                    <div class="space-y-1">
+                      <label for="pg-limit" class="font-semibold text-slate-700 flex items-center justify-between">
+                        <span>Giới hạn mua chung (mỗi SP / đơn)</span>
+                        <span class="text-[10px] text-slate-400 font-normal">0 = không giới hạn</span>
+                      </label>
+                      <input
+                        id="pg-limit"
+                        type="number"
+                        min="0"
+                        bind:value={themeDraft.defaultMaxPurchaseLimit}
+                        placeholder="0 (không giới hạn)"
+                        class="w-full border border-slate-300 rounded px-3 py-1.5"
+                        title="Giới hạn số lượng mua tối đa cho mỗi sản phẩm trong 1 đơn hàng (áp dụng chung cho các sản phẩm không set riêng)"
+                      />
                     </div>
                   </div>
                 </div>

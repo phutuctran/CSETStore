@@ -101,11 +101,8 @@
           {#if isAdding}
             <i class="fa-solid fa-check text-xs"></i>
             <span>Đã thêm</span>
-          {:else if hasVariants}
-            <i class="fa-solid fa-shapes text-xs"></i>
-            <span>Tùy chọn</span>
           {:else}
-            <i class="fa-solid fa-cart-plus"></i>
+            <i class="fa-solid fa-cart-plus text-xs"></i>
             <span>{themeStore.theme.productGridStyle?.buyButtonText || 'Thêm'}</span>
           {/if}
         </button>

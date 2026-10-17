@@ -68,9 +68,9 @@ export class BackupService {
 
     // Products table
     sql += `DROP TABLE IF EXISTS products;\n`;
-    sql += `CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT NOT NULL, category TEXT NOT NULL, sub_category TEXT, price INTEGER NOT NULL, original_price INTEGER, discount_percent INTEGER, discount_start_date TEXT, discount_end_date TEXT, image TEXT NOT NULL, images_json TEXT, description TEXT NOT NULL, brand TEXT, sku TEXT, stock INTEGER DEFAULT 50, origin TEXT, warranty TEXT, weight TEXT, condition TEXT, specifications_json TEXT, variant_groups_json TEXT, rating REAL DEFAULT 5.0);\n`;
+    sql += `CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT NOT NULL, category TEXT NOT NULL, sub_category TEXT, price INTEGER NOT NULL, original_price INTEGER, discount_percent INTEGER, discount_start_date TEXT, discount_end_date TEXT, image TEXT NOT NULL, images_json TEXT, description TEXT NOT NULL, brand TEXT, sku TEXT, stock INTEGER DEFAULT 50, origin TEXT, warranty TEXT, weight TEXT, condition TEXT, specifications_json TEXT, variant_groups_json TEXT, rating REAL DEFAULT 5.0, max_purchase_limit INTEGER DEFAULT 0);\n`;
     for (const p of products) {
-      sql += `INSERT INTO products VALUES (${p.id}, ${esc(p.name)}, ${esc(p.category)}, ${esc(p.subCategory)}, ${p.price}, ${num(p.originalPrice)}, ${num(p.discountPercent)}, ${esc(p.discountStartDate)}, ${esc(p.discountEndDate)}, ${esc(p.image)}, ${json(p.images)}, ${esc(p.description)}, ${esc(p.brand)}, ${esc(p.sku)}, ${p.stock ?? 50}, ${esc(p.origin)}, ${esc(p.warranty)}, ${esc(p.weight)}, ${esc(p.condition)}, ${json(p.specifications)}, ${json(p.variantGroups)}, ${p.rating ?? 5.0});\n`;
+      sql += `INSERT INTO products VALUES (${p.id}, ${esc(p.name)}, ${esc(p.category)}, ${esc(p.subCategory)}, ${p.price}, ${num(p.originalPrice)}, ${num(p.discountPercent)}, ${esc(p.discountStartDate)}, ${esc(p.discountEndDate)}, ${esc(p.image)}, ${json(p.images)}, ${esc(p.description)}, ${esc(p.brand)}, ${esc(p.sku)}, ${p.stock ?? 50}, ${esc(p.origin)}, ${esc(p.warranty)}, ${esc(p.weight)}, ${esc(p.condition)}, ${json(p.specifications)}, ${json(p.variantGroups)}, ${p.rating ?? 5.0}, ${num(p.maxPurchaseLimit)});\n`;
     }
     sql += `\n`;
 

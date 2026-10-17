@@ -69,6 +69,7 @@ export interface Product {
   rating?: number;
   soldCount?: number;     // Số lượng đã bán (lượt bán)
   showOnHome?: boolean;   // Thẻ chọn sản phẩm hiển thị tại trang chủ
+  maxPurchaseLimit?: number; // Giới hạn số lượng mua tối đa cho sản phẩm này trong 1 đơn (0 hoặc undefined = theo giới hạn chung)
 }
 
 export interface CartItem {
@@ -294,4 +295,5 @@ export interface ThemeConfig {
   storeAddress: string;
   footerText: string;
   socials: FooterSocials;
+  defaultMaxPurchaseLimit?: number; // Giới hạn số lượng mua chung mặc định cho tất cả sản phẩm (0 hoặc undefined = không giới hạn)
 }

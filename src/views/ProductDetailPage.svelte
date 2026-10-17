@@ -1,6 +1,7 @@
 <script lang="ts">
   import { appStore } from '../stores/store.svelte';
-  import { formatCurrency, getEffectivePrice, getProductDiscountDetails } from '../services/pricingService';
+import { formatCurrency, getEffectivePrice, getProductDiscountDetails, getProductMaxPurchaseLimit } from '../services/pricingService';
+import { themeStore } from '../stores/themeStore.svelte';
   import { LocalStorageReviewRepository } from '../repositories';
   import { fetchProductDetailApi } from '../services/productService';
   import { routerService } from '../services/routerService';
@@ -20,6 +21,8 @@
   let selectedVariants = $state<Record<string, string>>({});
   let missingVariantError = $state<string | null>(null);
   let isAdding = $state(false);
+  let purchaseLimit = $derived(product ? getProductMaxPurchaseLimit(product, themeStore.theme.defaultMaxPurchaseLimit) : undefined);
+  let maxAllowedQty = $derived(purchaseLimit && purchaseLimit > 0 ? purchaseLimit : (product?.stock ?? 999));
   // Phân quyền Quản Trị Viên trên Storefront:
   // Khách hàng thông thường (role: 'customer') hoặc khách vãng lai (chưa đăng nhập) TUYỆT ĐỐI KHÔNG có quyền Admin.
   // Chỉ tài khoản đăng nhập có vai trò Quản Trị Viên (super_admin, sales_admin, inventory_admin) mới có quyền Admin.
@@ -464,8 +467,14 @@
 
         <!-- Quantity & Buy Action Buttons -->
         <div class="space-y-4 pt-2">
-          <div class="flex items-center space-x-4">
+          <div class="flex items-center space-x-4 flex-wrap gap-y-2">
             <span class="text-xs font-bold text-slate-700 uppercase">Số lượng:</span>
+            {#if purchaseLimit && purchaseLimit > 0}
+              <span class="text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-md inline-flex items-center gap-1">
+                <i class="fa-solid fa-circle-exclamation text-amber-600"></i>
+                <span>Giới hạn mua: tối đa {purchaseLimit} sp/đơn</span>
+              </span>
+            {/if}
             <div class="flex items-center border border-slate-300 rounded-xl overflow-hidden bg-white">
               <button
                 type="button"
@@ -478,8 +487,15 @@
               <span class="px-5 py-2 font-bold text-sm text-blue-950 min-w-12 text-center">{quantity}</span>
               <button
                 type="button"
-                onclick={() => quantity += 1}
-                class="px-3.5 py-2 hover:bg-slate-100 text-slate-700 transition cursor-pointer"
+                disabled={quantity >= maxAllowedQty}
+                onclick={() => {
+                  if (quantity < maxAllowedQty) {
+                    quantity += 1;
+                  } else {
+                    appStore.showToast(`Đã đạt giới hạn mua tối đa (${purchaseLimit} sản phẩm) cho sản phẩm này!`);
+                  }
+                }}
+                class="px-3.5 py-2 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed text-slate-700 transition cursor-pointer"
                 aria-label="Tăng"
               >
                 <i class="fa-solid fa-plus text-xs"></i>

@@ -2,7 +2,8 @@ import type { Product, CartItem, Order, CategoryKey, User, Coupon } from '../mod
 import { LocalStorageProductRepository, LocalStorageOrderRepository, LocalStorageCouponRepository } from '../repositories';
 import { authService } from '../services/authService';
 import { routerService } from '../services/routerService';
-import { getEffectivePrice } from '../services/pricingService';
+import { getEffectivePrice, getProductMaxPurchaseLimit } from '../services/pricingService';
+import { themeStore } from './themeStore.svelte';
 const productRepo = new LocalStorageProductRepository();
 const orderRepo = new LocalStorageOrderRepository();
 const couponRepo = new LocalStorageCouponRepository();
@@ -366,6 +367,7 @@ class StoreState {
   private burstResetTimer: number | undefined;
   private lastCheckoutTime = 0;
 
+
   addToCart(product: Product, quantity = 1, selectedVariants?: Record<string, string>): boolean {
     const now = Date.now();
     const timeSinceLast = now - this.lastAddToCartTime;
@@ -393,6 +395,24 @@ class StoreState {
       if (hasMissing) {
         this.openProductDetail(product);
         this.showToast(`Vui lòng chọn phân loại cho "${product.name}"!`);
+        return false;
+      }
+    }
+
+    // Kiểm tra giới hạn số lượng mua hàng (giới hạn riêng của sản phẩm hoặc giới hạn chung)
+    const maxLimit = getProductMaxPurchaseLimit(product, themeStore.theme.defaultMaxPurchaseLimit);
+    if (maxLimit && maxLimit > 0) {
+      const currentQtyInCart = this.cart
+        .filter((i) => i.productId === product.id)
+        .reduce((sum, i) => sum + i.quantity, 0);
+
+      if (currentQtyInCart + quantity > maxLimit) {
+        const remaining = Math.max(0, maxLimit - currentQtyInCart);
+        if (remaining === 0) {
+          this.showToast(`Bạn đã đạt giới hạn mua tối đa (${maxLimit} sản phẩm) cho mặt hàng "${product.name}"!`);
+        } else {
+          this.showToast(`Sản phẩm "${product.name}" giới hạn tối đa ${maxLimit} sản phẩm/đơn! (Bạn chỉ có thể mua thêm tối đa ${remaining} sản phẩm nữa)`);
+        }
         return false;
       }
     }
@@ -451,9 +471,27 @@ class StoreState {
     const nextQty = item.quantity + delta;
     if (nextQty <= 0) {
       this.removeFromCart(cartItemId);
-    } else {
-      item.quantity = nextQty;
+      return;
     }
+
+    if (delta > 0 && item.productId) {
+      const prod = this.products.find(p => p.id === item.productId);
+      if (prod) {
+        const maxLimit = getProductMaxPurchaseLimit(prod, themeStore.theme.defaultMaxPurchaseLimit);
+        if (maxLimit && maxLimit > 0) {
+          const totalQtyInCart = this.cart
+            .filter(i => i.productId === item.productId)
+            .reduce((sum, i) => sum + i.quantity, 0);
+
+          if (totalQtyInCart + delta > maxLimit) {
+            this.showToast(`Sản phẩm "${prod.name}" chỉ được mua tối đa ${maxLimit} sản phẩm cho mỗi đơn hàng!`);
+            return;
+          }
+        }
+      }
+    }
+
+    item.quantity = nextQty;
   }
 
   clearCart() {
@@ -473,7 +511,27 @@ class StoreState {
       this.showToast('Giỏ hàng của bạn đang trống!');
       return null;
     }
+
     this.lastCheckoutTime = now;
+
+    // Kiểm tra giới hạn mua hàng trước khi thanh toán
+    for (const item of this.cart) {
+      if (item.productId) {
+        const prod = this.products.find(p => p.id === item.productId);
+        if (prod) {
+          const maxLimit = getProductMaxPurchaseLimit(prod, themeStore.theme.defaultMaxPurchaseLimit);
+          if (maxLimit && maxLimit > 0) {
+            const totalForProd = this.cart
+              .filter(i => i.productId === item.productId)
+              .reduce((sum, i) => sum + i.quantity, 0);
+            if (totalForProd > maxLimit) {
+              this.showToast(`Sản phẩm "${prod.name}" vượt quá giới hạn mua tối đa (${maxLimit} sản phẩm/đơn). Vui lòng điều chỉnh số lượng!`);
+              return null;
+            }
+          }
+        }
+      }
+    }
     const subtotal = this.subtotal;
     const discount = this.discountAmount;
     const finalTotal = this.cartTotal;

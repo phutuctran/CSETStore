@@ -859,5 +859,6 @@ export const DEFAULT_THEME_CONFIG: ThemeConfig = {
     workingHours: '08:00 - 21:30 (Thứ 2 - Chủ Nhật)',
     socialText: 'Kết nối cùng CSET Store qua Facebook & Zalo:',
     messengerPageId: 'https://m.me'
-  }
+  },
+  defaultMaxPurchaseLimit: 0
 };
